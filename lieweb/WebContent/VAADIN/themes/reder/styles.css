@@ -1,0 +1,657 @@
+
+@import "../reindeer/styles.css";
+
+
+
+
+.v-scrollable {
+	overflow-x: hidden;
+}
+
+.v-table-header {
+	background-color: #D1D1D1;
+}
+
+
+.v-tabsheet-tabitemcell.v-tabsheet-tabitemcell-first{
+	background-image: url(images/tabsheet_tab.png);
+	background-position: left -32px;
+	background-color: transparent;
+	padding-left: 5px;
+}
+
+
+
+
+/* Add padding through which the background color shows. */
+.v-gridlayout .v-gridlayout-margin {
+    padding: 2px 10px 2px 10px;     
+}
+
+/* Add cell borders and make the cell backgrounds white.
+ * Warning: This depends heavily on the HTML structure. */
+.v-gridlayout > div > div > div {
+    padding:    2px 2px 2px 2px;        /* Layout background will show through. */
+}
+
+
+
+
+
+.v-tabsheet-tabitem.v-tabsheet-tabitem-selected .v-caption{
+	background-image: url(images/tabsheet_tab.png);
+	background-repeat: repeat-x;
+	background-position: left -96px;
+	padding-left: 15px;
+	background-color: #EEEEEE;
+}
+.v-tabsheet-tabitemcell{
+	background-image: url(images/tabsheet_tab.png);
+	background-repeat: repeat-x;
+	background-position: left top;
+	padding-left: 5px;
+	background-color: transparent;
+}
+.v-tabsheet-tabitem-selected {
+	background-image: url(images/tabsheet_tab.png);
+	background-position: right -96px;
+	background-color: transparent;
+	padding-right: 10px;
+	background-color: #EEEEEE;
+}
+.v-tabsheet-tabitemcell-selected {
+	background-image: none;
+	background-position: right -64px;
+	background-color: transparent;
+	padding-right: 0px;
+	padding-left: 0px;
+	background-color: #EEEEEE;
+}
+
+/*
+.v-tabsheet-tabitemcell-selected-first {
+	background-image: url(images/tabsheet_tab.png);
+	background-position: left -32px;
+	background-color: transparent;
+	background-color: #EEEEEE;
+	padding-left: 5px;
+}*/
+
+.v-tabsheet-tabitem .v-caption{
+	background-image: url(images/tabsheet_tab.png);
+	background-repeat: repeat-x;
+	background-position: left top;
+	background-color: #EEEEEE;
+	padding-left: 16px;
+}
+/*
+.v-tabsheet-tabitem {
+	background-image: url(images/tabsheet_tab.png);
+	background-position: right -64px;
+	background-color: transparent;
+	padding-right: 6px;
+	background-color: #EEEEEE;
+}
+
+
+.v-tabsheet-tabitemcell {
+	background-image: url(images/tabsheet_tab.png);
+	background-position: right -64px;
+	background-color: transparent;
+	padding-right: 0px;
+	padding-left: 0px;
+	background-color: #EEEEEE;
+}
+*/
+
+.v-panel-content .v-panel-content-settings-block .v-scrollable{
+	border-image-width: 0 0 0 0;
+}
+
+
+/*******************************************
+*		Firefox: remove button padding
+********************************************/
+button::-moz-focus-inner {
+    border: 0;
+    padding: 0;
+}
+
+/*******************************************
+*		Splitpanel
+********************************************/
+
+.v-splitpanel-first-container {
+	background: #CCCCCC;
+	padding: none;
+	margin: none;
+	border: none;
+}
+
+.v-splitpanel-vsplitter-locked {
+    background: transparent;
+    height: 3px;
+}
+
+.v-verticallayout{
+	
+	padding: none;
+	margin: none;
+	border: none;
+	background: transparent;
+}
+
+.v-panel-deco {
+	border: none;
+	background: transparent;
+	height: 0;
+}
+
+.v-panel-content.v-scrollable {
+	border: none;
+}
+
+
+
+/***********************************************************************************************************************************************************
+ *
+ *				Header
+ *
+ ***********************************************************************************************************************************************************/
+
+.v-horizontallayout-header {
+	background: url(images/background.png) repeat-x left top;
+	padding: none;
+	margin: none;
+	border: none;
+}
+
+.v-ie .v-nativebutton-header, .v-nativebutton-header  {
+	display: block;
+	color: #333333;
+	height: 28px;
+	background: transparent url(images/tab_right.png) no-repeat scroll top right;
+	float: left;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	margin-right: 5px;
+	padding: 0 15px 0 0;
+}
+
+.v-nativebutton-header span, .v-ie .v-nativebutton-header  span{
+	display: inline;
+	background: transparent url(images/tab_left.png) no-repeat;
+	padding: 6px 0px 4px 15px;
+	line-height: 15px;
+	height: 28px;
+	float: left;
+	cursor: pointer;
+}
+
+
+.inactive .v-nativebutton-caption  {
+	color: #888888;
+}
+
+.v-nativebutton-header:hover span, .v-ie .v-nativebutton-header:hover span {
+	text-decoration: underline;
+}
+
+.v-nativebutton-header:hover span, .v-ie .v-nativebutton-header:hover span{
+}
+
+.v-nativebutton-header.header.v-nativebutton-active.active  {
+	display: block;
+	color: #FFFFFF;
+	height: 28px;
+	background: transparent url(images/tab_right.png) no-repeat scroll right -30px;
+	float: left;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	margin-right: 5px;
+	padding: 0 15px 0 0;
+	font-weight: bold;
+}
+
+.v-nativebutton-header.header.v-nativebutton-active.active span{
+	display: inline;
+	background: transparent url(images/tab_left.png) no-repeat scroll 0 -30px;
+	padding: 6px 0px 4px 15px;
+	line-height: 15px;
+	height: 28px;
+	float: left;
+	cursor: pointer;
+}
+
+
+
+
+
+.v-caption-newdevicelist  {
+	background: transparent url(images/list_header.png);
+	background-repeat: no-repeat;
+	color: #ffffff;
+	font-weight: bold;
+	height: 22px;
+	padding-top: 7px;
+	padding-left: 10px;
+	
+}
+
+ .v-nativebutton .v-nativebutton-header-language  {
+	background: transparent;
+	color: #BBBBBB;
+	font-weight: bold;
+	text-align: center;
+	padding: 4px;
+	
+}
+
+/***********************************************************************************************************************************************************
+ *
+ *				Devicemanager Screen
+ *
+ ***********************************************************************************************************************************************************/
+.v-tabsheet-tabs {
+	padding-left: 10px;
+}
+
+.v-tabsheet-content.v-tabsheet-content-tab-devicemanager {
+	background: #EEEEEE;
+	border-bottom: none;
+}
+
+.v-tabsheet-tabsheetpanel {
+	background: transparent;
+}
+
+.v-caption-devicelist  {
+	background: transparent url(images/list_header.png);
+	background-repeat: no-repeat;
+	color: #ffffff;
+	font-weight: bold;
+	height: 22px;
+	padding-top: 7px;
+	padding-left: 10px;
+	
+}
+
+.v-horizontallayout-deviceManager {
+	padding: none;
+	margin: none;
+	border: none;
+	padding-top: 18px;
+	padding-left: 18px;
+	padding-bottom: 23px;
+}
+
+.v-label-header-language {
+	background: transparent;
+	color: #BBBBBB;
+	font-weight: bold;
+	text-align: center;
+	padding: 4px;	
+}
+
+.v-nativebutton-link .v-nativebutton-caption{
+	background: transparent;
+	color: #BBBBBB;
+	font-weight: bold;
+	text-align: center;
+	padding: 4px;		
+	text-decoration: none;
+}
+
+.v-label-detaillist-header {
+	background: transparent url(images/details_header.png);	
+	padding: 4px;
+	color: #FFFFFF;
+	font-weight: bold;
+	vertical-align: middle;
+	padding-left: 10px;
+}
+
+.v-verticallayout.v-verticallayout-detaillist.detaillist{
+	background: transparent;
+	border: none;
+	padding-left: 18px;
+}
+
+.v-verticallayout.v-verticallayout-detaillist-body.detaillist-body{
+	background: #F9F9F9;
+	border: solid 1px #BBBBBB;
+	border-top: none;
+	border-bottom: none;
+	padding: 10px;
+	vertical-align: middle;
+}
+
+.v-horizontallayout.v-horizontallayout-detaillist-footer.detaillist-footer{
+	background: #F9F9F9 url(images/details_footer.png) no-repeat;
+	border: none;
+	padding: 0;
+	vertical-align: middle;
+}
+
+.v-textarea.v-textarea-detaillist-body, .v-textfield.v-textfield-detaillist-body{
+	background: #ECECEC;
+	border: none;
+}
+
+.v-textarea.v-textarea-detaillist-body, .v-textfield.v-textfield-detaillist-body:focus{
+	background: #E3E3E3;
+	border: none;
+}
+
+.v-horizontallayout-detaillist.detaillist.v-horizontallayout-formlayout.formlayout {
+	margin-bottom: 5px;
+}
+
+.v-label {
+	vertical-align: middle;
+}
+
+.v-select-select {
+	background: #ECECEC;
+	border: none;
+}
+ 
+ .v-nativebutton-detaillist-footer.detaillist-footer {
+	display: block;
+	color: #FFFFFF;
+	font-weight: bold;
+	background: transparent url(images/button_right_orange.png) no-repeat scroll top right;
+	float: left;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	height: 24px;
+	margin-right: 6px;
+	padding-right: 15px;
+}
+
+.v-nativebutton-detaillist-footer.detaillist-footer span {
+	display: inline;
+	background: transparent url(images/button_left_orange.png) no-repeat;
+	padding: 4px 0 6px 13px;
+	line-height: 15px;
+	height: 24px;
+	float: left;
+	cursor: pointer;
+}
+ 
+ .v-label-bold.bold {
+	font-weight: bold;
+}
+
+ .v-label-newmodul.newmodul {
+	border-top: 1px solid;
+	border-color: #CCCCCC;
+}
+
+.v-verticallayout.v-verticallayout-modullayout.modullayout {
+	font-weight: bold;
+	border-top: solid 1px #BBBBBB;
+}
+
+.v-verticallayout.v-verticallayout-channelmainlayout.channelmainlayout {
+	font-weight: normal;
+}
+
+
+ /***********************************************************************************************************************************************************
+ *
+ *				Download Screen
+ *
+ ***********************************************************************************************************************************************************/
+ .v-button {
+ 	margin-top: 10px;
+ }
+ 
+/***********************************************************************************************************************************************************
+ *
+ *				Download Screen
+ *
+ ***********************************************************************************************************************************************************/
+
+.v-splitpanel-first-container-downloadscreen {
+	background: #EEEEEE;
+}
+
+.v-splitpanel-second-container-downloadscreen {
+	background: #EEEEEE;
+	padding-top: 20px;
+	padding-left: 75px;
+}
+
+.v-nativebutton-downloadscreen.downloadscreen {
+	display: block;
+	color: #FFFFFF;
+	font-weight: bold;
+	background: transparent url(images/button_right_orange.png) no-repeat scroll top right;
+	float: left;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	height: 24px;
+	margin-right: 170px;
+	padding-right: 15px;
+}
+
+.v-nativebutton-downloadscreen.downloadscreen span{
+	display: block;
+	background: transparent url(images/button_left_orange.png) no-repeat;
+	padding: 4px 0 6px 13px;
+	line-height: 15px;
+	height: 24px;
+	float: left;
+	cursor: pointer;
+}
+
+.v-caption.v-caption-downloadscreen {
+	background: transparent url(images/list_header_wide.png);
+	background-repeat: no-repeat;
+	color: #ffffff;
+	font-weight: bold;
+	height: 22px;
+	padding-top: 7px;
+	padding-left: 10px;	
+	margin: none;
+}
+
+.v-table.v-table-downloadscreen.downloadscreen {
+	padding-bottom: 20px;
+}
+
+.v-splittpanel-vsplitter-downloadscreen, .v-splitpanel-vsplitter-downloadscreen-locked {
+	height: 0px;
+	background: #CCCCCC;
+
+}
+
+.v-splitpanel-vertical.v-splitpanel-vertical-downloadscreen.downloadscreen {
+	border: solid 1px #DCDCDC;	
+}
+
+.v-table-row-bold.v-table-row,
+.v-table-row-bold.v-table-row-odd {
+	font-weight: bold;
+	background: #EEEEEE;
+}
+
+.v-table-row-nobackground.v-table-row,
+.v-table-row-nobackground.v-table-row-odd {
+	background: #FFFFFF;
+}
+
+.v-table-row-bold.v-table-row.v-selected,
+.v-table-row-bold.v-table-row-odd.v-selected {
+	background: #4D749F;
+}
+
+.v-table-row-nobackground.v-table-row.v-selected,
+.v-table-row-nobackground.v-table-row-odd.v-selected {
+	background: #7095BA;
+}
+
+
+/***********************************************************************************************************************************************************
+ *
+ *				Options Screen
+ *
+ ***********************************************************************************************************************************************************/
+
+
+.v-tabsheet-content.v-tabsheet-content-tab-settings {
+	background: #EEEEEE;
+}
+
+.v-horizontallayout-userlist {
+	margin: 10px;
+}
+
+.v-caption-userlist {
+	background: transparent url(images/list_header.png);
+	background-repeat: no-repeat;
+	color: #ffffff;
+	font-weight: bold;
+	height: 22px;
+	padding-top: 7px;
+	padding-left: 10px;
+}
+
+.v-caption-grouplist {
+	background: transparent url(images/list_header.png);
+	background-repeat: no-repeat;
+	color: #ffffff;
+	font-weight: bold;
+	height: 22px;
+	padding-top: 7px;
+	padding-left: 10px;
+}
+
+.v-panel-content-settings-block.v-scrollable {
+	background: #EEEEEE;
+}
+
+.v-verticallayout-settings-block{
+	margin: 18px;
+	margin-bottom: 0px;
+}
+
+.v-panel-content > div {
+	background:transparent;
+}
+
+.v-nativebutton-optionsscreen.optionsscreen {
+	display: block;
+	color: #FFFFFF;
+	font-weight: bold;
+	background: transparent url(images/button_right_orange.png) no-repeat scroll top right;
+	float: left;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	height: 24px;
+	margin-right: 6px;
+	margin-bottom: 5px;
+	padding-right: 15px;
+}
+
+.v-nativebutton-optionsscreen.optionsscreen span {
+	display: inline;
+	background: transparent url(images/button_left_orange.png) no-repeat;
+	padding: 4px 0 6px 13px;
+	line-height: 15px;
+	height: 24px;
+	float: left;
+	cursor: pointer;
+}
+
+.v-horizontallayout-optionsscreen-details {
+	background: #F9F9F9;
+	padding: 10px;
+	border: solid 1px #BBBBBB;
+	border-top: none;
+	border-bottom: none;
+	vertical-align: middle;
+}
+
+.v-verticallayout-optionsscreen-details-body {
+	background: #F9F9F9;
+	padding: 10px;
+	border: solid 1px #BBBBBB;
+	border-top: none;
+	border-bottom: none;
+	vertical-align: middle;
+}
+
+.v-horizontallayout-optionsscreen-details-body {
+	margin-bottom: 5px;
+	background: #F9F9F9;
+	border: none;
+	vertical-align: middle;
+}
+
+.v-horizontallayout-optionsscreen-details-footer {
+	background: transparent;
+	padding: 10px;
+	/*border: solid 1px #BBBBBB;
+	border-top: none;
+	border-bottom: none;*/
+	vertical-align: middle;
+}
+
+/***********************************************************************************************************************************************************
+ *
+ *				Popup
+ *
+ ***********************************************************************************************************************************************************/
+
+.v-window-outerheader {
+	background: transparent url(images/popup_header.png) no-repeat;
+}
+
+.v-window-wrap {
+	border: none;
+}
+
+.v-label.v-label-popup.popup {
+	margin-bottom: 5px;
+}
+
+.v-nativebutton.v-nativebutton-popup.popup {
+	display: block;
+	color: #FFFFFF;
+	font-weight: bold;
+	background: transparent url(images/button_right_orange.png) no-repeat scroll top right;
+	float: left;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	height: 24px;
+	margin-right: 6px;
+	margin-bottom: 5px;
+	padding-right: 15px;
+}
+
+.v-nativebutton.v-nativebutton-popup.popup span {
+	display: inline;
+	background: transparent url(images/button_left_orange.png) no-repeat;
+	padding: 4px 0 6px 13px;
+	line-height: 15px;
+	height: 24px;
+	float: left;
+	cursor: pointer;
+}
+
+.v-window-closebox {
+	background: transparent url(images/popup_closebox.png) no-repeat;
+}
+
+.v-window-closebox:active {
+	background: transparent url(images/popup_closebox.png) no-repeat;
+}
+

@@ -1,0 +1,30 @@
+include Makefile.inc
+
+C_SRCS += \
+src/lielas/channel.c \
+src/lielas/device.c \
+src/lielas/devicecontainer.c \
+src/lielas/deviceevent.c \
+src/lielas/modul.c \
+
+OBJS += \
+src/lielas/channel.o \
+src/lielas/device.o \
+src/lielas/devicecontainer.o \
+src/lielas/deviceevent.o \
+src/lielas/modul.o \
+
+C_DEPS += \
+src/lielas/channel.d \
+src/lielas/device.d \
+src/lielas/devicecontainer.d \
+src/lielas/deviceevent.d \
+src/lielas/modul.d \
+
+%.o: %.c
+	@echo 'Building file: $<'
+	@echo 'Invoking: GCC C Compiler'
+	$(CC) $(CFLAGS) -c  -o $@ $<
+	@echo 'Finished building: $<'
+	@echo ' '
+

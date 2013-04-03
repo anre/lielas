@@ -1,0 +1,19 @@
+include Makefile.inc
+
+C_SRCS += \
+src/jsmn/jsmn.c
+
+OBJS += \
+src/jsmn/jsmn.o
+
+C_DEPS += \
+src/jsmn/jsmn.d
+
+src/jsmn/jsmn.o: src/jsmn/jsmn.c
+	@echo 'Building file: $<'
+	@echo 'Invoking: GCC C Compiler'
+	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo 'Finished building: $<'
+	@echo ' '
+
+

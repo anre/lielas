@@ -1,0 +1,19 @@
+include Makefile.inc
+
+C_SRCS += \
+src/sql/sql.c
+
+OBJS += \
+src/sql/sql.o
+
+C_DEPS += \
+src/sql/sql.d
+
+# Each subdirectory must supply rules for building sources it contributes
+src/sql/sql.o: src/sql/sql.c
+	@echo 'Building file: $<'
+	@echo 'Invoking: GCC C Compiler'
+	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo 'Finished building: $<'
+	@echo ' '
+
