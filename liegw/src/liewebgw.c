@@ -33,6 +33,7 @@
 #include "log.h"
 #include "devicehandler.h"
 #include "signals.h"
+#include "lielas/lbus.h"
 
 int savePID();
 void deletePID();
@@ -45,45 +46,48 @@ int main(void) {
 	//pid = fork();
 
 	//setbuf(stdout, NULL);
-	printf("starting liewebgw\n");
-	fflush(stdout);
+	lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);
 
-	printf("saving pid\n");
+	lielas_log((unsigned char*)"saving pid", LOG_LEVEL_DEBUG);
 	if(savePID() != 0){
 		lielas_log((unsigned char*)"Error saving PID", LOG_LEVEL_ERROR);
 		return -1;
 	}
 
-	printf("init signal handlers\n");
-	fflush(stdout);
+	lielas_log((unsigned char*)"init signal handlers", LOG_LEVEL_DEBUG);
 	if(sig_init() != 0){
 		lielas_log((unsigned char*)"Error initializing signal handlers", LOG_LEVEL_ERROR);
 		return -1;
 	}
 
-	printf("init ldc\n");
-	fflush(stdout);
+	lielas_log((unsigned char*)"init ldc", LOG_LEVEL_DEBUG);
 	if(LDCinit() != 0){
 		lielas_log((unsigned char*)"Error initializing device container", LOG_LEVEL_ERROR);
 		return -1;
 	}
-	printf("load debices\n");
-	fflush(stdout);
+	
+	lielas_log((unsigned char*)"loading devices", LOG_LEVEL_DEBUG);
 	if(LDCloadDevices() != 0){
 		lielas_log((unsigned char*)"Error loading devices", LOG_LEVEL_ERROR);
 		return -2;
 	}
-	printf("init coap\n");
-	fflush(stdout);
+  
+  lielas_log((unsigned char*)"init lbus", LOG_LEVEL_DEBUG);
+	if(lbus_init() != 0){
+		lielas_log((unsigned char*)"Error initializing lbus", LOG_LEVEL_ERROR);
+		return -2;
+	}
+	
+	lielas_log((unsigned char*)"init coap", LOG_LEVEL_DEBUG);
 	if(COAPinit() != 0){
 		lielas_log((unsigned char*)"Error initializing COAP Server", LOG_LEVEL_ERROR);
 		return -3;
 	}
 
 
-	printf("Lielasd COAP server successfully started\n");
+	lielas_log((unsigned char*)"Lielasd COAP server successfully started", LOG_LEVEL_DEBUG);
 	while(!sig_sigint_received()){
-		//COAPhandleServer();
+		COAPhandleServer();
 		//HandleDevices();
 		//LDCcheckForNewDevices();
 		if(sig_sigusr1_received()){
@@ -92,7 +96,7 @@ int main(void) {
 			fflush(stdout);
 		}
 	}
-	printf("Shutting down server\n");
+	lielas_log((unsigned char*)"Shutting down server", LOG_LEVEL_DEBUG);
 	return EXIT_SUCCESS;
 }
 

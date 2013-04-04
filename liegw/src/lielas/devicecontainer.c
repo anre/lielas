@@ -175,6 +175,7 @@ int LDCloadDevices(){
 	int rows;
 	int i;
 	char moduls[500];
+	char msg[500];
 
 	//query devices table
 	res = SQLexec("SELECT id, address, mint, pint, aint, moduls, registered FROM devices");
@@ -203,7 +204,8 @@ int LDCloadDevices(){
 		strcpy(moduls,  PQgetvalue(res, i, 5));
 		loadModuls(d, moduls);
 		LDCadd(d);
-		printf("Device %s loaded\n", d->address);
+		sprintf(msg, "Device %s loaded", d->address);
+		lielas_log((unsigned char*)msg, LOG_LEVEL_DEBUG);
 
 	}
 	PQclear(res);
