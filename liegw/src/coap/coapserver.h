@@ -30,7 +30,7 @@
 #include "libcoap/coap_time.h"
 
 int COAPinit();
-void COAPhandleServer();
+void *COAPhandleServer();
 void COAPfreeContext();
 coap_tid_t COAPgetID();
 

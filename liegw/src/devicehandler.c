@@ -24,6 +24,11 @@
 
 #define _XOPEN_SOURCE 700
 
+#include <stdio.h>
+#include <time.h>
+#include <unistd.h>
+#include <string.h>
+
 #include "devicehandler.h"
 #include "lielas/devicecontainer.h"
 #include "lielas/deviceevent.h"
@@ -32,10 +37,9 @@
 #include "sql/sql.h"
 #include "jsmn/jsmn.h"
 #include "coap/mycoap.h"
-#include <stdio.h>
-#include <time.h>
-#include <unistd.h>
-#include <string.h>
+#include "settings.h"
+#include "log.h"
+
 
 int getDeviceData(Ldevice *d, datapaketcontainer *dpc);
 int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc);
@@ -45,6 +49,8 @@ int DeviceSetDatetime(Ldevice *d);
 int deactivateCycleMode(Ldevice *d);
 datapaket *CreateDatapaket();
 
+int runmode;
+static struct tm *endRegModeTimer;
 
 /********************************************************************************************************************************
  * 		void HandleDevices(): handle device events
@@ -358,7 +364,7 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 	int success = 0;
 
 	if(SQLTableExists("data")){
-		snprintf(st, DATABUFFER_SIZE, "CREATE TABLE data( datetime timestamp NOT NULL, PRIMARY KEY(datetime))");
+		snprintf(st, CMDBUFFER_SIZE, "CREATE TABLE data( datetime timestamp NOT NULL, PRIMARY KEY(datetime))");
 		res = SQLexec(st);
 		PQclear(res);
 		if(SQLTableExists("data")){
@@ -382,26 +388,26 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 	for( i = 0; i < dpc->datapakets; i++){
 
 		//create column if not existing
-		snprintf(adrStr, DATABUFFER_SIZE, "%s.%s.%s", dpc->dp[i]->d->address, dpc->dp[i]->m->address, dpc->dp[i]->c->address);
+		snprintf(adrStr, CMDBUFFER_SIZE, "%s.%s.%s", dpc->dp[i]->d->address, dpc->dp[i]->m->address, dpc->dp[i]->c->address);
 		if(SQLRowExists("data", adrStr)){
-			snprintf(st, DATABUFFER_SIZE, "ALTER TABLE data ADD COLUMN \"%s\" text", adrStr);
+			snprintf(st, CMDBUFFER_SIZE, "ALTER TABLE data ADD COLUMN \"%s\" text", adrStr);
 			res = SQLexec(st);
 			PQclear(res);
 		}
 
 		// create datetime string
-		strftime(dtStr, DATABUFFER_SIZE, "%Y-%m-%d %H:%M:%S", dpc->dp[i]->dt);
+		strftime(dtStr, CMDBUFFER_SIZE, "%Y-%m-%d %H:%M:%S", dpc->dp[i]->dt);
 		//check, if datetime-row exists
 		if(SQLCellExists("data", "datetime", dtStr)){
 			//creat new row
-			snprintf(st, DATABUFFER_SIZE, "INSERT INTO data ( datetime, \"%s\" ) VALUES ( '%s', '%s')", adrStr, dtStr, dpc->dp[i]->value);
+			snprintf(st, CMDBUFFER_SIZE, "INSERT INTO data ( datetime, \"%s\" ) VALUES ( '%s', '%s')", adrStr, dtStr, dpc->dp[i]->value);
 			printf("Save data: Address:%s Time:%s Value:%s°C\n", adrStr, dtStr, dpc->dp[i]->value);
 			fflush(stdout);
 			res = SQLexec(st);
 			PQclear(res);
 			success += 1;
 		}else{
-			snprintf(st, DATABUFFER_SIZE, "UPDATE data SET \"%s\"='%s' WHERE datetime='%s'", adrStr, dpc->dp[i]->value, dtStr );
+			snprintf(st, CMDBUFFER_SIZE, "UPDATE data SET \"%s\"='%s' WHERE datetime='%s'", adrStr, dpc->dp[i]->value, dtStr );
 			printf("Save data: Address:%s Time:%s Value:%s°C\n", adrStr, dtStr, dpc->dp[i]->value);
 			fflush(stdout);
 			res = SQLexec(st);
@@ -422,12 +428,9 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 int deactivateCycleMode(Ldevice *d){
 	char cmd[CMDBUFFER_SIZE];
 	char payload[CMDBUFFER_SIZE];
-	char datetime[CMDBUFFER_SIZE];
 	char buf[CMDBUFFER_SIZE];
 	int tries = 30;
 	int i;
-	time_t rawtime;
-	struct tm *now;
 	coap_buf *cb = coap_create_buf();
 
 	if(cb == NULL){
@@ -439,19 +442,11 @@ int deactivateCycleMode(Ldevice *d){
 	snprintf(payload, CMDBUFFER_SIZE,"cycling=off");
 
 	for(i = 0; i < tries; i++){
-		time(&rawtime);
-		now = gmtime(&rawtime);
-		strftime(datetime, DATABUFFER_SIZE, "%d.%m.%Y %H:%M:%S", now);
-		printf("[%s]turn power cycle off, try %i\n", datetime, i);
-		fflush(stdout);
+	  lielas_log((unsigned char*)"turn power cycle off", LOG_LEVEL_DEBUG);
 
 		coap_send_cmd(cmd, cb, MYCOAP_METHOD_POST, (unsigned char*)payload);
 		if(cb->status == COAP_STATUS_CONTENT){
-			time(&rawtime);
-			now = gmtime(&rawtime);
-			strftime(datetime, DATABUFFER_SIZE, "%d.%m.%Y %H:%M:%S", now);
-			printf("[%s]successfully turned off power cycle\n", datetime);
-			fflush(stdout);
+	    lielas_log((unsigned char*)"successfully turned power cycle off", LOG_LEVEL_DEBUG);
 			sleep(2);
 			return 0;
 		}
@@ -527,8 +522,106 @@ void InitDeviceHandler(){
 		}
 		d = LDCgetNextDevice();
 	}while(d != NULL);
+}
 
+/********************************************************************************************************************************
+ *    int lielas_getRunmode()
+ ********************************************************************************************************************************/
+int lielas_getRunmode(){
+  return runmode;
+}
 
+/********************************************************************************************************************************
+ *    void lielas_setRunmode(int mode)
+ ********************************************************************************************************************************/
+int lielas_setRunmode(int mode){
+  char cmd[CMDBUFFER_SIZE];
+  char payload[CMDBUFFER_SIZE];
+  coap_buf *cb;
+  time_t rawtime;
+  struct tm *now;
+
+  cb = coap_create_buf();
+
+  if(mode != runmode){
+    if(mode == RUNMODE_REGISTER){
+      lielas_log((unsigned char*) "setting runmode to registration mode", LOG_LEVEL_DEBUG);
+      snprintf(cmd, CMDBUFFER_SIZE, "coap://[%s]:%s/network", set_getGatewaynodeAddr(), set_getGatewaynodePort());
+      snprintf(payload, CMDBUFFER_SIZE,"panid=%d", set_getStdRegModePanid());
+
+      coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
+      if(cb->status == COAP_STATUS_CONTENT){
+
+        time(&rawtime);
+        now = gmtime(&rawtime);
+
+        if(endRegModeTimer != NULL)
+          free(endRegModeTimer);
+
+        endRegModeTimer = malloc(sizeof(struct tm));
+        if(endRegModeTimer != NULL){
+          runmode = mode;
+          memcpy(endRegModeTimer, now, sizeof(struct tm));
+          endRegModeTimer->tm_sec += set_getRegModeLen();
+          mktime(endRegModeTimer);
+        }else{
+          lielas_log((unsigned char*) "failed to allocate memory for runtime timer", LOG_LEVEL_WARN);
+          return -1;
+        }
+
+      }else{
+        lielas_log((unsigned char*) "unable to set registration mode", LOG_LEVEL_WARN);
+        return -1;
+      }
+    }else if(mode == RUNMODE_NORMAL){
+      lielas_log((unsigned char*) "setting runmode to normal mode", LOG_LEVEL_DEBUG);
+      snprintf(cmd, CMDBUFFER_SIZE, "coap://[%s]:%s/network", set_getGatewaynodeAddr(), set_getGatewaynodePort());
+      snprintf(payload, CMDBUFFER_SIZE,"panid=%d", set_getStdNormalModePanid());
+
+      coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
+      if(cb->status == COAP_STATUS_CONTENT){
+        runmode = mode;
+      }else{
+        lielas_log((unsigned char*) "unable to set normal mode", LOG_LEVEL_WARN);
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+/********************************************************************************************************************************
+ *    void lielas_runmodeHandler()
+ *    switches automatically back to normal mode
+ ********************************************************************************************************************************/
+void lielas_runmodeHandler(){
+  double diff;
+  time_t rawtime;
+  struct tm *now;
+
+  if(lielas_getRunmode() != RUNMODE_REGISTER)
+    return;
+
+  if(endRegModeTimer != NULL){
+    time(&rawtime);
+    now = gmtime(&rawtime);
+    diff = difftime(mktime(now), mktime(endRegModeTimer));
+    if(diff < 0 && diff > (0 - set_getMaxRegModeLen())){
+      return;
+
+    }
+  }
+
+  if(lielas_setRunmode(RUNMODE_NORMAL) != 0){
+    lielas_log((unsigned char*)"failed to set runmode to normal mode", LOG_LEVEL_WARN);
+  }
+
+}
+
+/********************************************************************************************************************************
+ *    struct tm *lielas_getEndRegModeTimer()
+ ********************************************************************************************************************************/
+struct tm *lielas_getEndRegModeTimer(){
+  return endRegModeTimer;
 }
 
 

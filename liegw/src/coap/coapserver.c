@@ -45,6 +45,9 @@
 #include "../coap/libcoap/coap_time.h"
 #include "../coap/libcoap/encode.h"
 #include "../lielas/lbus.h"
+#include "../jsmn/jsmn.h"
+#include "../log.h"
+#include "../devicehandler.h"
 
 static time_t my_clock_base = 0;
 static coap_context_t *ctx;
@@ -53,9 +56,15 @@ coap_tid_t coapID;
 
 #define COAP_RESOURCE_CHECK_TIME 2
 
+#define MAX_PAYLOAD_SIZE 1000
+
 #ifndef min
  	 #define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
+
+/********************************************************************************************************************************
+ * 		hnd_get_index: index resource get handler
+ ********************************************************************************************************************************/
 
 void hnd_get_index(coap_context_t  *c, struct coap_resource_t *resource,
 		           coap_address_t *peer, coap_pdu_t *request, str *token,
@@ -75,6 +84,10 @@ void hnd_get_index(coap_context_t  *c, struct coap_resource_t *resource,
 	coap_add_data(response, strlen("lielas COAP server daemon"), (unsigned char*)"lielas COAP server daemon");
 
 }
+
+/********************************************************************************************************************************
+ * 		hnd_get_time: time resource get handler
+ ********************************************************************************************************************************/
 
 void hnd_get_time(coap_context_t  *c, struct coap_resource_t *resource,
         coap_address_t *peer, coap_pdu_t *request, str *token,
@@ -115,14 +128,75 @@ void hnd_get_time(coap_context_t  *c, struct coap_resource_t *resource,
 
 }
 
+/********************************************************************************************************************************
+ *    hnd_get_runmode: runmode resource get handler
+ ********************************************************************************************************************************/
+
+void hnd_get_runmode(coap_context_t  *c, struct coap_resource_t *resource,
+        coap_address_t *peer, coap_pdu_t *request, str *token,
+        coap_pdu_t *response){
+
+  coap_opt_iterator_t optIter;
+  unsigned char buf[5];
+  time_t now;
+  unsigned char payload[MAX_PAYLOAD_SIZE];
+  int len = 0;
+  struct tm *timer;
+
+  response->hdr->code = COAP_RESPONSE_CODE(205);
+
+  coap_add_option(response, COAP_OPTION_CONTENT_TYPE, coap_encode_var_bytes(buf, COAP_MEDIATYPE_TEXT_PLAIN), buf);
+
+  if(request != NULL && coap_check_option(request, COAP_OPTION_SUBSCRIPTION, &optIter)){
+    coap_add_observer(resource, peer, token);
+    coap_add_option(response, COAP_OPTION_SUBSCRIPTION, 0, NULL);
+  }
+
+  if(resource->dirty == 1){
+    coap_add_option(response, COAP_OPTION_SUBSCRIPTION, coap_encode_var_bytes(buf, c->observe), buf);
+  }
+
+  if(token->length){
+    coap_add_option(response, COAP_OPTION_TOKEN, token->length, token->s);
+  }
+
+  time(&now);
+
+  if(request != NULL
+      && coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)
+      && memcmp(COAP_OPT_VALUE(optIter.option), "ticks", min(5, COAP_OPT_LENGTH(optIter.option))) == 0){
+    response->length += snprintf((char*)response->data, response->max_size - response->length, "%u", (unsigned int) now);
+  }else{
+
+    len += sprintf((char*)&payload[len], "{\n");
+    if(lielas_getRunmode() == RUNMODE_NORMAL){
+      len += sprintf((char*)&payload[len], "  \"runmode\":\"normal\"\n");
+    }else if(lielas_getRunmode() == RUNMODE_REGISTER){
+      len += snprintf((char*)&payload[len], MAX_PAYLOAD_SIZE, "  \"runmode\":\"register\",\n");
+      timer = lielas_getEndRegModeTimer();
+      if(timer != NULL){
+        len += strftime((char*)&payload[len], (MAX_PAYLOAD_SIZE-len), "  \"end\":\"%d.%m.%Y %H:%M:%S\",\n", timer);
+      }
+    }
+    len += sprintf((char*)&payload[len], "}\n");
+
+    coap_add_data(response, len, payload);
+  }
+
+}
+
+/********************************************************************************************************************************
+ * 		hnd_get_lbus: lbus resource get handler
+ ********************************************************************************************************************************/
+
 void hnd_get_lbus(coap_context_t  *c, struct coap_resource_t *resource,
         coap_address_t *peer, coap_pdu_t *request, str *token,
         coap_pdu_t *response){
 
 	coap_opt_iterator_t optIter;
 	unsigned char buf[5];
-  unsigned char json[1000];
-  int len;
+	unsigned char payload[MAX_PAYLOAD_SIZE];
+	int len = 0;
 	time_t now;
 
 	response->hdr->code = COAP_RESPONSE_CODE(205);
@@ -149,34 +223,26 @@ void hnd_get_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 			&& memcmp(COAP_OPT_VALUE(optIter.option), "ticks", min(5, COAP_OPT_LENGTH(optIter.option))) == 0){
 		response->length += snprintf((char*)response->data, response->max_size - response->length, "%u", (unsigned int) now);
 	}else{
-		
-    Lbuscmd cmd;
-    cmd.id = 1;
-    strncpy(cmd.address, "2001:15c0:666d:1:221:2eff:ff00:2660", LBUF_MAX_ADDRESS_SIZE);
-    cmd.handled = 0;
-    strncpy(cmd.cmd, "\"chg\"", LBUF_MAX_CMD_SIZE);
-    strncpy(cmd.payload, "{\n    \"mint\":\"60\"\n  }", LBUF_MAX_PAYLOAD_SIZE);
-    lbus_add(&cmd);
-    
+
     Lbuscmd *ptr = lbus_getFirstCmd();
     while(ptr != NULL){
-      printf("geht noch\n");
-      len = sprintf((char*)json, "{\n");
-      len += sprintf((char*)&json[len], "  \"id\":\"%li\",\n", ptr->id);
-      len += sprintf((char*)&json[len], "  \"address\":\"%s\",\n", ptr->address);
-      len += sprintf((char*)&json[len], "  \"cmd\":\"%s\",\n", ptr->cmd);
-      len += sprintf((char*)&json[len], "  %s\n", ptr->payload);
-      len += sprintf((char*)&json[len], "  \"handled\":\"%s\",\n", (ptr->handled)?"true":"false");
-      len += sprintf((char*)&json[len], "}\n");     
+      len += sprintf((char*)&payload[len], "{\n");
+      len += sprintf((char*)&payload[len], "  \"id\":\"%li\",\n", ptr->id);
+      len += sprintf((char*)&payload[len], "  \"address\":\"%s\",\n", ptr->address);
+      len += sprintf((char*)&payload[len], "  \"cmd\":\"%s\",\n", ptr->cmd);
+      len += sprintf((char*)&payload[len], "  \"payload\":%s\n", ptr->payload);
+      len += sprintf((char*)&payload[len], "  \"handled\":\"%s\"\n", (ptr->handled)?"true":"false");
+      len += sprintf((char*)&payload[len], "}\n");
       ptr = lbus_getNextCmd();
     }
-    
-
-    
-		coap_add_data(response, len, json);
+		coap_add_data(response, len, payload);
 	}
 
 }
+
+/********************************************************************************************************************************
+ * 		hnd_put_lbus: lbus resource put handler
+ ********************************************************************************************************************************/
 
 void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
         coap_address_t *peer, coap_pdu_t *request, str *token,
@@ -185,6 +251,16 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 	coap_opt_iterator_t optIter;
 	unsigned char buf[5];
 	time_t now;
+	jsmn_parser json;
+	jsmnerr_t r;
+	jsmntok_t tokens[MAX_JSON_TOKENS];
+	int tok;
+	int len;
+	int parseError = 0;
+	unsigned char payload[MAX_PAYLOAD_SIZE];
+  Lbuscmd *cmd;
+  time_t rawtime;
+  struct tm *tmnow;
 
 	response->hdr->code = COAP_RESPONSE_CODE(205);
 
@@ -203,18 +279,105 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 		coap_add_option(response, COAP_OPTION_TOKEN, token->length, token->s);
 	}
 
-
 	time(&now);
 	if(request != NULL
 			&& coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)
 			&& memcmp(COAP_OPT_VALUE(optIter.option), "ticks", min(5, COAP_OPT_LENGTH(optIter.option))) == 0){
 		response->length += snprintf((char*)response->data, response->max_size - response->length, "%u", (unsigned int) now);
 	}else{
-		
-		coap_add_data(response, strlen("lielas COAP server daemon"), (unsigned char*)"lielas COAP server daemon");
+		//parse cmd
+		jsmn_init(&json);
+		r = jsmn_parse(&json, (char*)request->data, tokens, MAX_JSON_TOKENS);
+
+		if(r != JSMN_SUCCESS){
+			lielas_log((unsigned char*)"JSON parse error parsing put lbus cmd", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(400);
+			return;
+		}
+
+		cmd = lbus_createCmd();
+		if(cmd == NULL) {
+			lielas_log((unsigned char*)"Couldn't create lbus cmd", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(500);
+			return;
+		}
+
+		for(tok = 0; tok< json.toknext && !parseError; tok++){
+      // parse address
+			if(tokens[tok].type == JSMN_STRING){
+				if(strncmp((char*)&request->data[tokens[tok].start], LBUS_TOK_ADDRESS, strlen(LBUS_TOK_ADDRESS)) == 0){
+					tok += 1;
+					len = tokens[tok].end - tokens[tok].start;
+					if(len > LBUF_MAX_ADDRESS_SIZE){
+						parseError = 1;
+						break;
+					}
+					memcpy(cmd->address, (char*)&request->data[tokens[tok].start], len);
+					cmd->address[len] = 0;
+	      // parse user
+				}else if(strncmp((char*)&request->data[tokens[tok].start], LBUS_TOK_USER, strlen(LBUS_TOK_CMD)) == 0){
+          tok += 1;
+          len = tokens[tok].end - tokens[tok].start;
+          if(len > LBUF_MAX_USER_SIZE){
+            parseError = 1;
+            break;
+          }
+          memcpy(cmd->user, (char*)&request->data[tokens[tok].start], len);
+          cmd->user[len] = 0;
+        // parse cmd
+        }else if(strncmp((char*)&request->data[tokens[tok].start], LBUS_TOK_CMD, strlen(LBUS_TOK_CMD)) == 0){
+					tok += 1;
+					len = tokens[tok].end - tokens[tok].start;
+					if(len > LBUF_MAX_CMD_SIZE){
+						parseError = 1;
+						break;
+					}
+					memcpy(cmd->cmd, (char*)&request->data[tokens[tok].start], len);
+					cmd->cmd[len] = 0;
+				// parse payload
+				}else if(strncmp((char*)&request->data[tokens[tok].start], LBUS_TOK_PAYLOAD, strlen(LBUS_TOK_PAYLOAD)) == 0){
+					tok += 1;
+
+					len = tokens[tok].end - tokens[tok].start;
+					if(len > LBUF_MAX_PAYLOAD_SIZE){
+						parseError = 1;
+						break;
+					}
+					memcpy(cmd->payload, &request->data[tokens[tok].start], len);
+					cmd->payload[len] = 0;
+				}
+			}
+		}
+
+		if(parseError){
+			lielas_log((unsigned char*)"JSON parse error parsing put lbus cmd", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(400);
+			return;
+		}
+
+	  //create timestamp
+	  time(&rawtime);
+	  tmnow = gmtime(&rawtime);
+	  cmd->tmrecv = *tmnow;
+
+    lbus_add(cmd, 1);
+
+
+
+	  Lbuscmd *ptr = lbus_getFirstCmd();
+	  len = 0;
+	  while(ptr != NULL){
+	    len += lbus_printCmd((char*)&payload[len], MAX_PAYLOAD_SIZE, ptr);
+	    ptr = lbus_getNextCmd();
+	  }
+		coap_add_data(response, len, payload);
 	}
 
 }
+
+/********************************************************************************************************************************
+ * 		void init_resources(coap_context_t *c): register coap resources
+ ********************************************************************************************************************************/
 
 void init_resources(coap_context_t *c){
 	coap_resource_t *r;
@@ -232,17 +395,28 @@ void init_resources(coap_context_t *c){
 	coap_add_attr(r, (unsigned char *)"rt", 2, (unsigned char*)"\"text\"", 7, 0);
 	coap_add_resource(c, r);
 	
+  r = coap_resource_init((unsigned char *) "runmode", 7, 0);
+  coap_register_handler(r, COAP_REQUEST_GET, hnd_get_runmode);
+  coap_add_attr(r, (unsigned char *)"ct", 2, (unsigned char*)"0", 1, 0);
+  coap_add_attr(r, (unsigned char *)"title", 2, (unsigned char*)"\"runmode\"", 16, 0);
+  coap_add_attr(r, (unsigned char *)"rt", 2, (unsigned char*)"\"application/json\"", 7, 0);
+  coap_add_resource(c, r);
+
 	r = coap_resource_init((unsigned char *) "lbus", 4, 0);
 	coap_register_handler(r, COAP_REQUEST_GET, hnd_get_lbus);
 	coap_register_handler(r, COAP_REQUEST_PUT, hnd_put_lbus);
 	coap_add_attr(r, (unsigned char *)"ct", 2, (unsigned char*)"0", 1, 0);
 	coap_add_attr(r, (unsigned char *)"title", 2, (unsigned char*)"\"lbus\"", 16, 0);
-	coap_add_attr(r, (unsigned char *)"rt", 2, (unsigned char*)"\"json\"", 7, 0);
+	coap_add_attr(r, (unsigned char *)"rt", 2, (unsigned char*)"\"application/json\"", 7, 0);
 	coap_add_resource(c, r);
 
 
 	my_clock_base = clock_offset;
 }
+
+/********************************************************************************************************************************
+ * 		coap_context_t *get_context()
+ ********************************************************************************************************************************/
 
 coap_context_t *get_context(){
 	coap_context_t *c = NULL;
@@ -282,9 +456,17 @@ coap_context_t *get_context(){
 	return c;
 }
 
+/********************************************************************************************************************************
+ * 		void COAPfreeContext()
+ ********************************************************************************************************************************/
+
 void COAPfreeContext(){
 	coap_free_context( ctx );
 }
+
+/********************************************************************************************************************************
+ * 		int COAPinit()
+ ********************************************************************************************************************************/
 
 int COAPinit(){
 	coap_set_log_level(LOG_WARN);
@@ -302,13 +484,19 @@ int COAPinit(){
 	return 0;
 }
 
-void COAPhandleServer(){
+/********************************************************************************************************************************
+ * 		void COAPhandleServer()
+ ********************************************************************************************************************************/
+
+void *COAPhandleServer(){
 	fd_set readfds;
 	coap_queue_t *nextpdu;
 	coap_tick_t now;
 	struct timeval tv = {1, 0};
 	struct timeval *timeout;
 	int result;
+
+	while(1){
 
 	FD_ZERO(&readfds);
 	FD_SET( ctx->sockfd, &readfds);
@@ -345,8 +533,9 @@ void COAPhandleServer(){
 	}else{	/* timeout */
 
 	}
+	}
 
-
+  return NULL;
 }
 
 coap_tid_t COAPgetID(){

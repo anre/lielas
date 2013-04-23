@@ -2,23 +2,20 @@ include Makefile.inc
 
 C_SRCS += \
 src/devicehandler.c \
-src/liewebgw.c \
+src/liegw.c \
 src/settings.c \
-src/signals.c \
 src/log.c
 
 OBJS += \
 src/devicehandler.o \
-src/liewebgw.o \
+src/liegw.o \
 src/settings.o \
-src/signals.o \
 src/log.o
 
 C_DEPS += \
 src/devicehandler.d \
-src/liewebgw.d \
+src/liegw.d \
 src/settings.d \
-src/signals.d \
 src/log.d
 
 # Each subdirectory must supply rules for building sources it contributes

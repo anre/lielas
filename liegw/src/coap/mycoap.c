@@ -293,6 +293,8 @@ void message_handler(struct coap_context_t  *ctx,
 	  }
 	#endif
 
+    mycoapbuf->status = received->hdr->code;
+
 	  /* check if this is a response to our original request */
 	  if (!check_token(received)) {
 	    /* drop if this was just some message, or send RST in case of notification */
@@ -340,13 +342,10 @@ void message_handler(struct coap_context_t  *ctx,
 	    	/* TODO: check if we are looking at the correct block number */
 	    	if (coap_get_data(received, &len, &databuf)){
 		    	  if( mycoapbuf->buf != 0){
-		    		  if(mycoapbuf->len == 0){
-			    		  mycoapbuf->status = received->hdr->code;
-		    		  }
-					  for( i = 0; i < len; i++){
-						  mycoapbuf->buf[mycoapbuf->len++] = databuf[i];
-					  }
-					  mycoapbuf->buf[mycoapbuf->len +1] = 0;
+		    	    for( i = 0; i < len; i++){
+		    	      mycoapbuf->buf[mycoapbuf->len++] = databuf[i];
+		    	    }
+		    	    mycoapbuf->buf[mycoapbuf->len +1] = 0;
 		    	  }
 	    	}
 
@@ -504,7 +503,7 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
       }
     }
 
-    if(method == MYCOAP_METHOD_POST){
+    if(method == MYCOAP_METHOD_POST || method == MYCOAP_METHOD_PUT){
     	len = check_segment(post, strlen((char*)post));
     	if(len < 0){
     		payload.length = 0;
