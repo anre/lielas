@@ -38,6 +38,12 @@ char coapPort[SET_ATTR_LEN] = SET_STD_COAP_PORT;
 char gatewaynodeAddr[SET_ATTR_LEN] = SET_STD_GW_ADDR;
 char gatewaynodePort[SET_ATTR_LEN] = SET_STD_GW_PORT;
 
+int regmodePanid = SET_STD_REGMODE_PANID;
+int normalmodePanid = SET_STD_NORMALMODE_PANID;
+
+int regmodeLen = SET_STD_REGMODE_LEN;
+int regmodeMaxLen = SET_STD_MAX_REGMODE_LEN;
+
 int set_load(){
 	char line[SET_MAX_LINE_LEN+1];
 	FILE *fp;
@@ -135,6 +141,23 @@ const char *set_getGatewaynodeAddr(){
 const char *set_getGatewaynodePort(){
 	return gatewaynodePort;
 }
+
+int set_getStdRegModePanid(){
+  return regmodePanid;
+}
+
+int set_getStdNormalModePanid(){
+  return normalmodePanid;
+}
+
+int set_getRegModeLen(){
+  return regmodeLen;
+}
+int set_getMaxRegModeLen(){
+  return regmodeMaxLen;
+}
+
+
 
 
 

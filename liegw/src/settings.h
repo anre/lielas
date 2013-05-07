@@ -45,8 +45,12 @@
 #define SET_STD_SQL_PORT	"5432"
 #define SET_STD_COAP_ADDR	"::"
 #define SET_STD_COAP_PORT	"5683"
-#define SET_STD_GW_ADDR		"2001:15c0:666d:1::ff:fe00:1"
-#define SET_STD_GW_PORT		"80"
+#define SET_STD_GW_ADDR		"2001:15c0:666d:1:221:2eff:ff00:2660"
+#define SET_STD_GW_PORT		"5683"
+#define SET_STD_REGMODE_PANID     43981
+#define SET_STD_NORMALMODE_PANID  40000
+#define SET_STD_REGMODE_LEN       60
+#define SET_STD_MAX_REGMODE_LEN   600
 
 const char *set_getSqlUser();
 const char *set_getSqlPass();
@@ -59,6 +63,12 @@ const char *set_getCoapPort();
 
 const char *set_getGatewaynodeAddr();
 const char *set_getGatewaynodePort();
+
+int set_getStdRegModePanid();
+int set_getStdNormalModePanid();
+
+int set_getRegModeLen();
+int set_getMaxRegModeLen();
 
 int set_load();
 #endif /* SETTINGS_H_ */

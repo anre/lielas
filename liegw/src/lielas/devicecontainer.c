@@ -35,6 +35,7 @@
 #include "../log.h"
 #include "../sql/sql.h"
 #include "../settings.h"
+#include "ldb.h"
 
 
 static struct Ldc_struct *deviceContainer = NULL;
@@ -42,6 +43,8 @@ static struct Ldc_struct *dcPtr;
 
 void loadModuls(Ldevice *d, char *moduls);
 void loadChannels(Lmodul *m, char *channels);
+
+
 
 /********************************************************************************************************************************
  *
@@ -176,9 +179,12 @@ int LDCloadDevices(){
 	int i;
 	char moduls[500];
 	char msg[500];
+	char st[SQL_STATEMENT_BUF_SIZE];
 
 	//query devices table
-	res = SQLexec("SELECT id, address, mint, pint, aint, moduls, registered FROM devices");
+	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mint, pint, aint, moduls, registered FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
+	res = SQLexec(st);
+
 
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
 		lielas_log((unsigned char*)"Failed to get devices or no device registered", LOG_LEVEL_WARN);
@@ -217,9 +223,9 @@ int LDCloadDevices(){
  ********************************************************************************************************************************/
 void loadModuls(Ldevice *d, char *moduls){
 	PGresult *res;
-	char st[500];
 	char channels[500];
 	char mstr[10];
+  char st[SQL_STATEMENT_BUF_SIZE];
 	int i = 0;
 	int j = 0;
 	Lmodul *modul;
@@ -241,7 +247,10 @@ void loadModuls(Ldevice *d, char *moduls){
 
 			//load modul
 			mstr[j] = 0;
-			snprintf(st, 500, "SELECT id, address, channels FROM moduls WHERE id=%s", mstr);
+		  snprintf(st, SQL_STATEMENT_BUF_SIZE,
+		            "SELECT id, address, channels FROM %s.%s WHERE id=%s",
+		            LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS, mstr);
+
 			res = SQLexec(st);
 			if(PQresultStatus(res) != PGRES_TUPLES_OK){
 				lielas_log((unsigned char*)"Failed to get modul or no modul registered", LOG_LEVEL_WARN);
@@ -273,9 +282,9 @@ void loadChannels(Lmodul *m, char *channels){
 	PGresult *res;
 	Lchannel *channel;
 	char cstr[10];
-	char st[500];
 	int i = 0;
 	int j = 0;
+  char st[SQL_STATEMENT_BUF_SIZE];
 
 	while(channels[i] != 0){
 		if(channels[i] != ';'){
@@ -292,8 +301,9 @@ void loadChannels(Lmodul *m, char *channels){
 
 			//load channel
 			cstr[j] = 0;
-			strcpy(st, "SELECT id, address, type, unit FROM channels WHERE id=");
-			strcpy(&st[strlen(st)], cstr);
+      snprintf(st, SQL_STATEMENT_BUF_SIZE,
+                "SELECT id, address, type, unit FROM %s.%s WHERE id=%s",
+                LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS, cstr);
 			res = SQLexec(st);
 			if(PQresultStatus(res) != PGRES_TUPLES_OK){
 				lielas_log((unsigned char*)"Failed to get channel or no channel registered", LOG_LEVEL_WARN);
@@ -320,20 +330,22 @@ void loadChannels(Lmodul *m, char *channels){
  * 		getNewId(): returns a free id
  ********************************************************************************************************************************/
 
-int getNewId(int type){
+static int getNewId(int type){
 	PGresult *res;
 	int id = 0;
+  char st[SQL_STATEMENT_BUF_SIZE];
 
 	if(type == ID_TYPE_DEVICE){
-		res = SQLexec("SELECT id FROM devices ORDER BY id DESC LIMIT 1");
+    snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id FROM %s.%s ORDER BY id DESC LIMIT 1", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
 	}else if(type == ID_TYPE_MODUL){
-		res = SQLexec("SELECT id FROM moduls ORDER BY id DESC LIMIT 1");
+    snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id FROM %s.%s ORDER BY id DESC LIMIT 1", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS);
 	}else if(type == ID_TYPE_CHANNEL){
-		res = SQLexec("SELECT id FROM channels ORDER BY id DESC LIMIT 1");
+    snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id FROM %s.%s ORDER BY id DESC LIMIT 1", LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS);
 	}else{
 		return 0;
 	}
 
+	res = SQLexec(st);
 	if(PQntuples(res) > 0){
 		id = atoi(PQgetvalue(res, 0, 0)) + 1;
 	}else{
@@ -357,7 +369,7 @@ Ldevice *loadDeviceById(unsigned int id){
 		return d;
 	}
 
-	snprintf(st, SQL_BUFFER_SIZE, "SELECT id, address, mint, pint, aint, moduls, registered FROM devices WHERE id=%d", id);
+	snprintf(st, SQL_BUFFER_SIZE, "SELECT id, address, mint, pint, aint, moduls, registered FROM %s.%s WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id);
 	res = SQLexec(st);
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
 		lielas_log((unsigned char*)"Failed to get device by id", LOG_LEVEL_WARN);
@@ -400,8 +412,8 @@ int LDCsaveNewDevice(Ldevice *d){
 		return -1;
 	}
 
-	snprintf(st, 200, "INSERT INTO devices (id, address, registered, mint, pint, aint) VALUES (%d, '%s', '%s', '%s', '%s', '%s')", id, d->address,
-			 "false", d->mint, d->pint, d->aint);
+	snprintf(st, 200, "INSERT INTO %s.%s (id, address, registered, mint, pint, aint) VALUES (%d, '%s', '%s', '%s', '%s', '%s')",
+	         LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id, d->address, "false", d->mint, d->pint, d->aint);
 
 	res = SQLexec(st);
 
@@ -439,7 +451,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 	}
 
 	if(strcmp(d->address, oldDevice->address)){
-		snprintf(st, SQL_BUFFER_SIZE, "UPDATE devices SET address=\"%s\" WHERE id=%d", d->address, d->id);
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET address=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->address, d->id);
 		res = SQLexec(st);
 		if(!res){
 			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -449,7 +461,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 		PQclear(res);
 	}
 	if(strcmp(d->mint, oldDevice->mint)){
-		snprintf(st, SQL_BUFFER_SIZE, "UPDATE devices SET mint=\"%s\" WHERE id=%d", d->mint, d->id);
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET mint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->mint, d->id);
 		res = SQLexec(st);
 		if(!res){
 			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -459,7 +471,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 		PQclear(res);
 	}
 	if(strcmp(d->pint, oldDevice->pint)){
-		snprintf(st, SQL_BUFFER_SIZE, "UPDATE devices SET pint=\"%s\" WHERE id=%d", d->pint, d->id);
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET pint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->pint, d->id);
 		res = SQLexec(st);
 		if(!res){
 			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -469,7 +481,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 		PQclear(res);
 	}
 	if(strcmp(d->aint, oldDevice->aint)){
-		snprintf(st, SQL_BUFFER_SIZE, "UPDATE devices SET aint=\"%s\" WHERE id=%d", d->aint, d->id);
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET aint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->aint, d->id);
 		res = SQLexec(st);
 		if(!res){
 			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -488,8 +500,10 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				lielas_log((unsigned char*)"Can't get new modul id", LOG_LEVEL_WARN);
 				return -1;
 			}
-			snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO moduls (id, address, mint, pint, aint) VALUES (%d, '%s', '%s', '%s', '%s')",
-					 d->modul[i]->id, d->modul[i]->address, d->modul[i]->mint, d->modul[i]->pint, d->modul[i]->aint);
+			snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mint, pint, aint) VALUES (%d, '%s', '%s', '%s', '%s')",
+			         LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->id, d->modul[i]->address, d->modul[i]->mint,
+			         d->modul[i]->pint, d->modul[i]->aint);
+
 			res = SQLexec(st);
 			if(!res){
 				lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -499,7 +513,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 			PQclear(res);
 
 			//update device-modul entry
-			snprintf(st, SQL_BUFFER_SIZE, "SELECT moduls FROM devices WHERE id=%d", d->id);
+			snprintf(st, SQL_BUFFER_SIZE, "SELECT %s.%s FROM devices WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->id);
 			res = SQLexec(st);
 			if(!res){
 				lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -508,9 +522,9 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 			}
 			strcpy(buf, PQgetvalue(res, 0,0));
 			if(buf[0] == 0){
-				snprintf(st, SQL_BUFFER_SIZE, "UPDATE devices SET moduls='%d' WHERE id=%d", d->modul[i]->id, d->id);
+				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET moduls='%d' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->modul[i]->id, d->id);
 			}else{
-				snprintf(st, SQL_BUFFER_SIZE, "UPDATE devices SET moduls='%s;%d' WHERE id=%d", PQgetvalue(res, 0,0), d->modul[i]->id, d->id);
+				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET moduls='%s;%d' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , PQgetvalue(res, 0,0), d->modul[i]->id, d->id);
 			}
 			PQclear(res);
 			res = SQLexec(st);
@@ -521,7 +535,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 			}
 		}else{	//update old modul-entry
 			if(strcmp(d->modul[i]->address, oldDevice->modul[i]->address)){
-				snprintf(st, SQL_BUFFER_SIZE, "UPDATE moduls SET address=\"%s\" WHERE id=%d", d->modul[i]->address, d->modul[i]->id);
+				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET address=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->address, d->modul[i]->id);
 				res = SQLexec(st);
 				if(!res){
 					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -531,7 +545,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				PQclear(res);
 			}
 			if(strcmp(d->modul[i]->mint, oldDevice->modul[i]->mint)){
-				snprintf(st, SQL_BUFFER_SIZE, "UPDATE moduls SET mint=\"%s\" WHERE id=%d", d->modul[i]->mint, d->modul[i]->id);
+				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET mint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->mint, d->modul[i]->id);
 				res = SQLexec(st);
 				if(!res){
 					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -541,7 +555,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				PQclear(res);
 			}
 			if(strcmp(d->modul[i]->pint, oldDevice->modul[i]->pint)){
-				snprintf(st, SQL_BUFFER_SIZE, "UPDATE moduls SET pint=\"%s\" WHERE id=%d", d->modul[i]->pint, d->modul[i]->id);
+				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET pint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->pint, d->modul[i]->id);
 				res = SQLexec(st);
 				if(!res){
 					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -551,7 +565,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				PQclear(res);
 			}
 			if(strcmp(d->modul[i]->aint, oldDevice->modul[i]->aint)){
-				snprintf(st, SQL_BUFFER_SIZE, "UPDATE moduls SET aint=\"%s\" WHERE id=%d", d->modul[i]->aint, d->modul[i]->id);
+				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET aint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->aint, d->modul[i]->id);
 				res = SQLexec(st);
 				if(!res){
 					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -586,7 +600,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				PQclear(res);
 
 				//update modul-channel entry
-				snprintf(st, SQL_BUFFER_SIZE, "SELECT channels FROM moduls WHERE id=%d", d->modul[i]->id);
+				snprintf(st, SQL_BUFFER_SIZE, "SELECT %s.%s FROM moduls WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->id);
 				res = SQLexec(st);
 				if(!res){
 					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -595,9 +609,9 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				}
 				strcpy(buf, PQgetvalue(res, 0,0));
 				if(buf[0] == 0){
-					snprintf(st, SQL_BUFFER_SIZE, "UPDATE moduls SET channels='%d' WHERE id=%d", c->id, d->modul[i]->id);
+					snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET channels='%d' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , c->id, d->modul[i]->id);
 				}else{
-					snprintf(st, SQL_BUFFER_SIZE, "UPDATE moduls SET channels='%s;%d' WHERE id=%d", PQgetvalue(res, 0,0), c->id, d->modul[i]->id);
+					snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET channels='%s;%d' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS ,  PQgetvalue(res, 0,0), c->id, d->modul[i]->id);
 				}
 				PQclear(res);
 				res = SQLexec(st);
@@ -608,7 +622,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				}
 			}else{	//update channel
 				if(strcmp(c->address, oldChannel->address)){
-					snprintf(st, SQL_BUFFER_SIZE, "UPDATE channels SET address=\"%s\" WHERE id=%d", c->address, c->id);
+					snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET address=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS ,  c->address, c->id);
 					res = SQLexec(st);
 					if(!res){
 						lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -618,7 +632,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 					PQclear(res);
 				}
 				if(strcmp(c->type, oldChannel->type)){
-					snprintf(st, SQL_BUFFER_SIZE, "UPDATE channels SET type=\"%s\" WHERE id=%d", c->type, c->id);
+					snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET type=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS ,  c->type, c->id);
 					res = SQLexec(st);
 					if(!res){
 						lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -628,7 +642,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 					PQclear(res);
 				}
 				if(strcmp(c->unit, oldChannel->unit)){
-					snprintf(st, SQL_BUFFER_SIZE, "UPDATE channels SET unit=\"%s\" WHERE id=%d", c->unit, c->id);
+					snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET unit=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS ,  c->unit, c->id);
 					res = SQLexec(st);
 					if(!res){
 						lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);

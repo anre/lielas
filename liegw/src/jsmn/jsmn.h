@@ -1,6 +1,9 @@
 #ifndef __JSMN_H_
 #define __JSMN_H_
 
+
+#define MAX_JSON_TOKENS			1000
+
 /**
  * JSON type identifier. Basic types are:
  * 	o Object

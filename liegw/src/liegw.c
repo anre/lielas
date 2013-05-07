@@ -27,38 +27,35 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 #include "lielas/devicecontainer.h"
 #include "coap/coapserver.h"
 #include "log.h"
 #include "devicehandler.h"
-#include "signals.h"
 #include "lielas/lbus.h"
-
-int savePID();
-void deletePID();
+#include "lielas/ldb.h"
 
 /*
  * 		main
  */
 int main(void) {
+  pthread_t coapserverThread;
 
 	//pid = fork();
 
 	//setbuf(stdout, NULL);
 	lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);
 
-	lielas_log((unsigned char*)"saving pid", LOG_LEVEL_DEBUG);
-	if(savePID() != 0){
-		lielas_log((unsigned char*)"Error saving PID", LOG_LEVEL_ERROR);
-		return -1;
-	}
+  lielas_log((unsigned char*)"setting timezone", LOG_LEVEL_DEBUG);
+	putenv("TZ=CUT0");
+	tzset();
 
-	lielas_log((unsigned char*)"init signal handlers", LOG_LEVEL_DEBUG);
-	if(sig_init() != 0){
-		lielas_log((unsigned char*)"Error initializing signal handlers", LOG_LEVEL_ERROR);
-		return -1;
-	}
+  lielas_log((unsigned char*)"init database", LOG_LEVEL_DEBUG);
+  if(lielas_createTables() != 0){
+    lielas_log((unsigned char*)"Error initializing database", LOG_LEVEL_ERROR);
+    return -1;
+  }
 
 	lielas_log((unsigned char*)"init ldc", LOG_LEVEL_DEBUG);
 	if(LDCinit() != 0){
@@ -67,10 +64,7 @@ int main(void) {
 	}
 	
 	lielas_log((unsigned char*)"loading devices", LOG_LEVEL_DEBUG);
-	if(LDCloadDevices() != 0){
-		lielas_log((unsigned char*)"Error loading devices", LOG_LEVEL_ERROR);
-		return -2;
-	}
+	LDCloadDevices();
   
   lielas_log((unsigned char*)"init lbus", LOG_LEVEL_DEBUG);
 	if(lbus_init() != 0){
@@ -84,33 +78,27 @@ int main(void) {
 		return -3;
 	}
 
+  lielas_log((unsigned char*)"set runmode to normal mode", LOG_LEVEL_DEBUG);
+	if(lielas_setRunmode(RUNMODE_NORMAL) != 0){
+    lielas_log((unsigned char*)"Error setting runmode to normal mode", LOG_LEVEL_ERROR);
+    return -4;
+	}
+
+  lielas_log((unsigned char*)"Starting coap server thread", LOG_LEVEL_DEBUG);
+  pthread_create(&coapserverThread, NULL, COAPhandleServer, NULL);
 
 	lielas_log((unsigned char*)"Lielasd COAP server successfully started", LOG_LEVEL_DEBUG);
-	while(!sig_sigint_received()){
-		COAPhandleServer();
-		//HandleDevices();
-		//LDCcheckForNewDevices();
-		if(sig_sigusr1_received()){
-			sig_reset_sigusr1();
-			lielas_log((unsigned char*)"received SIGUSR1", LOG_LEVEL_DEBUG);
-			fflush(stdout);
+	while(1){
+		//COAPhandleServer();
+		lbus_handler();
+		if(lielas_getRunmode() == RUNMODE_NORMAL){
+		  HandleDevices();
+		}else if(lielas_getRunmode() == RUNMODE_REGISTER){
+	    //LDCcheckForNewDevices();
+	    lielas_runmodeHandler();
 		}
 	}
 	lielas_log((unsigned char*)"Shutting down server", LOG_LEVEL_DEBUG);
 	return EXIT_SUCCESS;
 }
 
-int savePID(){
-	FILE *f = fopen("pid", "a");
-	if(f == NULL){
-		return -1;
-	}
-	fprintf(f, "%lu\n", (unsigned long) getpid());
-	fclose(f);
-	atexit(deletePID);
-	return 0;
-}
-
-void deletePID(){
-	unlink("pid");
-}

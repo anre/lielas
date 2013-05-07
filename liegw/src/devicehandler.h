@@ -32,7 +32,6 @@ void HandleDevices();
 
 #define CMDBUFFER_SIZE			500
 #define DATABUFFER_SIZE			20000
-#define MAX_JSON_TOKENS			1000
 #define VALUEBUFFER_SIZE		20
 #define MAX_VALUES_IN_PAKET		1000
 
@@ -59,7 +58,13 @@ typedef struct datapaketcontainer_struct{
 	int dec;	// number of digits after decimal point
 } datapaketcontainer;
 
+#define RUNMODE_NORMAL          0
+#define RUNMODE_REGISTER        1
 
+int lielas_getRunmode();
+int lielas_setRunmode(int mode);
+void lielas_runmodeHandler();
+struct tm *lielas_getEndRegModeTimer();
 
 #endif
 

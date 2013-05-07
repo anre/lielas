@@ -1,6 +1,6 @@
 include Makefile.inc
 
-BIN=liewebgw
+BIN=liegw
 DESTDIR=
 BINDIR=/usr/bin/
 
@@ -15,7 +15,7 @@ bindir = $(prefix)/bin
 # The directory to install the info files in.
 infodir = $(prefix)/info
 
-LIBS := -lpq -lcoap
+LIBS := -lpq -lcoap -lpthread
 C_SRCS :=
 O_SRCS :=
 C_DEPS :=
@@ -38,10 +38,6 @@ include src/jsmn/Makefile.sub
 $(BIN): $(OBJS) 
 	@echo 'Building target: $@'
 	$(CC) $(CFLAGS) -o $(BIN) $(OBJS) $(LFLAGS) $(LIBS) 
-	rm -f /home/r/workspace/LiewebGateway/Debug/liewebgw
-	rm -f /home/r/workspace/LiewebGateway/Debug/LiewebGateway
-	cp liewebgw /home/r/workspace/LiewebGateway/Debug/ 
-	mv /home/r/workspace/LiewebGateway/Debug/liewebgw /home/r/workspace/LiewebGateway/Debug/LiewebGateway
 	@echo 'Finished building target: $@'
 	@echo ' '
 
