@@ -13,6 +13,8 @@ import com.vaadin.server.VaadinRequest;
 import com.vaadin.terminal.*;
 import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickEvent;
+
+import lielas.core.CoapHelper;
 import lielas.core.Device;
 import lielas.core.DeviceContainer;
 import lielas.core.NewDeviceContainer;
@@ -51,12 +53,16 @@ public class LiewebUI extends UI {
 	
 	public UserContainer userContainer = null;
 	
+	public CoapHelper coap;
+	
 	
 	@Override
 	protected void init(VaadinRequest request) {
 		
 		sql = new SQLHelper();
 		sql.Connect();
+		
+		coap = new CoapHelper("192.168.0.18", 5683);
 		
 		deviceContainer = DeviceContainer.loadDevices(sql);
 		

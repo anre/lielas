@@ -21,6 +21,7 @@ import lielas.ui.OptionsUserDetailsScreen;
 
 import com.github.wolfie.refresher.Refresher;
 import com.github.wolfie.refresher.Refresher.RefreshListener;
+import com.google.gwt.user.client.ui.Widget;
 import com.vaadin.data.Property;
 import com.vaadin.data.Property.ValueChangeListener;
 import com.vaadin.data.Property.ValueChangeEvent;
@@ -132,7 +133,7 @@ public class OptionsScreen extends Panel{
 		hLayout.setSizeFull();
 		
 		//refresher
-		refresher = new Refresher();
+		/*refresher = new Refresher();
 		refresher.setRefreshInterval(2000);
 		refresher.addListener(new RefreshListener(){
 			@Override
@@ -140,7 +141,7 @@ public class OptionsScreen extends Panel{
 				CheckRunmode();
 			}
 		});
-		addExtension(refresher);
+		addExtension(refresher);*/
 		
 		/************************************************************************************************************************
 		 * 
@@ -175,7 +176,8 @@ public class OptionsScreen extends Panel{
 		clockSettingsPanel.setContent(clockSettingsLayout);
 		
 		//header
-		clockSettingsLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
+		//clockSettingsLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
+		clockSettingsLbl = new Label("test");
 		clockSettingsLbl.addStyleName("bold");
 		clockSettingsLayout.addComponent(clockSettingsLbl);
 
@@ -573,6 +575,12 @@ public class OptionsScreen extends Panel{
 		
 		regSaveButton = new NativeButton("Start registration mode");
 		regSaveButton.addStyleName("reg-settings");
+		regSaveButton.addClickListener(new ClickListener(){
+			@Override
+			public void buttonClick(ClickEvent event) {
+				StartRegModeBttnClicked(event);
+			}	
+		});
 		regSettingsGridLayout.addComponent(regSaveButton, 1, 5);
 		regSettingsGridLayout.setComponentAlignment(regSettingsGridLayout.getComponent(1, 5), Alignment.MIDDLE_RIGHT);
 		
@@ -737,13 +745,19 @@ public class OptionsScreen extends Panel{
 		}
 	}
 	
+	private void StartRegModeBttnClicked(ClickEvent event) {
+		//app.coap.send("bla");
+		//regCaptionLbl.setValue("bla");
+		System.out.println("bla bla");
+	}
+	
 	private void CheckRunmode(){
 		Integer newRunmode = 1;
 		// get runmode
 		
 		//check if reg mode
 		if(newRunmode == RUNMODE_REG){
-			
+		
 		}else if(newRunmode != runmode){
 			if(newRunmode == RUNMODE_REG){
 				//change to registration mode
