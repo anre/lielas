@@ -318,6 +318,7 @@ static int handleChgCmd(Lbuscmd *cmd){
           tok+=1;
           if(strncmp((char*)&cmd->payload[tokens[tok].start], LBUS_PAYLOAD_RUNMODE_NORMAL, strlen(LBUS_PAYLOAD_RUNMODE_NORMAL)) == 0){
             lielas_setRunmode(RUNMODE_NORMAL);
+            printf("setting runmode\n");
             setCmdHandled(cmd);
             return 0;
           }else if(strncmp((char*)&cmd->payload[tokens[tok].start], LBUS_PAYLOAD_RUNMODE_REGISTER, strlen(LBUS_PAYLOAD_RUNMODE_REGISTER)) == 0){

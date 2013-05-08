@@ -550,7 +550,8 @@ int lielas_setRunmode(int mode){
       snprintf(payload, CMDBUFFER_SIZE,"panid=%d", set_getStdRegModePanid());
 
       coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
-      if(cb->status == COAP_STATUS_CONTENT){
+      if(1){ //DEBUG
+      //if(cb->status == COAP_STATUS_CONTENT){
 
         time(&rawtime);
         now = gmtime(&rawtime);
@@ -579,7 +580,8 @@ int lielas_setRunmode(int mode){
       snprintf(payload, CMDBUFFER_SIZE,"panid=%d", set_getStdNormalModePanid());
 
       coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
-      if(cb->status == COAP_STATUS_CONTENT){
+      if(1){ //DEBUG
+      //if(cb->status == COAP_STATUS_CONTENT){
         runmode = mode;
       }else{
         lielas_log((unsigned char*) "unable to set normal mode", LOG_LEVEL_WARN);

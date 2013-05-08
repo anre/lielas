@@ -19,8 +19,8 @@ import lielas.core.User;
 import lielas.LiewebUI;
 import lielas.ui.OptionsUserDetailsScreen;
 
-import com.github.wolfie.refresher.Refresher;
-import com.github.wolfie.refresher.Refresher.RefreshListener;
+//import com.github.wolfie.refresher.Refresher;
+//import com.github.wolfie.refresher.Refresher.RefreshListener;
 import com.google.gwt.user.client.ui.Widget;
 import com.vaadin.data.Property;
 import com.vaadin.data.Property.ValueChangeListener;
@@ -55,7 +55,7 @@ public class OptionsScreen extends Panel{
 	
 	private TabSheet settingsTab = null;
 	
-	Refresher refresher = null;
+//	Refresher refresher = null;
 	
 	private VerticalLayout globalSettingsLayout = null;
 	private VerticalLayout userSettingsLayout = null;

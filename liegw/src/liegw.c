@@ -42,14 +42,14 @@
 int main(void) {
   pthread_t coapserverThread;
 
-	//pid = fork();
+  //pid = fork();
 
-	//setbuf(stdout, NULL);
-	lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);
+  //setbuf(stdout, NULL);
+  lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);
 
   lielas_log((unsigned char*)"setting timezone", LOG_LEVEL_DEBUG);
-	putenv("TZ=CUT0");
-	tzset();
+  putenv("TZ=CUT0");
+  tzset();
 
   lielas_log((unsigned char*)"init database", LOG_LEVEL_DEBUG);
   if(lielas_createTables() != 0){
@@ -92,10 +92,10 @@ int main(void) {
 		//COAPhandleServer();
 		lbus_handler();
 		if(lielas_getRunmode() == RUNMODE_NORMAL){
-		  HandleDevices();
+			//HandleDevices();
 		}else if(lielas_getRunmode() == RUNMODE_REGISTER){
-	    //LDCcheckForNewDevices();
-	    lielas_runmodeHandler();
+			//LDCcheckForNewDevices();
+			lielas_runmodeHandler();
 		}
 	}
 	lielas_log((unsigned char*)"Shutting down server", LOG_LEVEL_DEBUG);

@@ -13,8 +13,8 @@ public class Config {
 
 	//static String dbUser = "lielas";
 	//static String dbPass = "lielas";
-	String dbUser = "postgres";
-	String dbPass = "postgres";
+	String dbUser = "lielas";
+	String dbPass = "lieweb";
 	
 	String langPath = "lang\\";
 	String firstLang = "en.properties";

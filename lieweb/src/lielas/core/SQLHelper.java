@@ -41,7 +41,8 @@ public class SQLHelper implements Serializable {
 		
 		LoadSettings();
 		
-		String url = "jdbc:postgresql://192.168.0.100:5432/lielas";
+		//String url = "jdbc:postgresql://192.168.0.100:5432/lielas";
+		String url = "jdbc:postgresql://192.168.0.21:5432/lielas";
 		String user = dbUser;
 		String password = dbPass;
 		

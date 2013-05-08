@@ -76,10 +76,10 @@ public class LiewebUI extends UI {
 		
 		BuildMainLayout();
 		
-		//loginScreen = new LoginScreen(this);
-		//setMainComponent(loginScreen);
-		setMainComponent(getDeviceManagerScreen());
-		headerScreen.setPermisson(1);
+		loginScreen = new LoginScreen(this);
+		setMainComponent(loginScreen);
+		//setMainComponent(getDeviceManagerScreen());
+		//headerScreen.setPermisson(1);
 		
 		
 	}
