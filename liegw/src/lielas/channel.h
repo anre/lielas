@@ -29,9 +29,10 @@
 typedef struct Lchannel_struct{
 	  unsigned int id;
 	  char address[IPV6_STR_LEN];
-	  char type[CHANNEL_TYPE_STR_LEN];
-	  char sensor[CHANNEL_SENSOR_STR_LEN];
-	  char unit[CHANNEL_UNIT_STR_LEN];
+	  char type[CHANNEL_ATTR_STR_LEN];
+	  char sensor[CHANNEL_ATTR_STR_LEN];
+	  char unit[CHANNEL_ATTR_STR_LEN];
+    char class[CHANNEL_ATTR_STR_LEN];
 }Lchannel;
 
 

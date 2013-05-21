@@ -39,6 +39,7 @@
 #include "coap/mycoap.h"
 #include "settings.h"
 #include "log.h"
+#include "lielas/ldb.h"
 
 
 int getDeviceData(Ldevice *d, datapaketcontainer *dpc);
@@ -129,8 +130,8 @@ void HandleDevices(){
 	}
 
 	//turn cycle mode off and sync if out of sync
-	deactivateCycleMode(d);
-	sleep(2);
+	//deactivateCycleMode(d);
+	sleep(5);
 
 
 	printf("Start device scanning: %s\n", d->address);
@@ -188,15 +189,12 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 	char st[CMDBUFFER_SIZE];
 	char cmd[CMDBUFFER_SIZE];
 	char adrStr[CMDBUFFER_SIZE];
-	jsmntok_t tokens[MAX_JSON_TOKENS];
 	coap_buf *cb;
-	int mnr, cnr;
-	int dtIsValid;
-	int nextToken = 1;
+	int cnr;
 	datapaket *dp;
 	PGresult *res;
-	jsmn_parser json;
-	jsmnerr_t r;
+  int pos = 0;
+  int eof = 0;
 
 	dpc->datapakets = 0;
 	dpc->dec = 0;
@@ -208,6 +206,7 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 		return -1;
 	}
 	cb->buf = (char*)buf;
+  cb->bufSize = DATABUFFER_SIZE;
 
 
 	time(&rawtime);
@@ -218,35 +217,39 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 
 
 
-
 	// get last value in database
-//	lastValue.tm_year = 0;
 	snprintf(adrStr, DATABUFFER_SIZE, "%s.1.1", d->address);
-	if(SQLTableExists("data") == 0){
-		snprintf(st, DATABUFFER_SIZE, "SELECT datetime \"%s\" FROM data WHERE \"%s\" NOT LIKE '' ORDER BY datetime DESC LIMIT 1", adrStr, adrStr);
-		res = SQLexec(st);
-		if(PQntuples(res) == 1){
-			strcpy(datetimestr, PQgetvalue(res, 0, 0));
-			for(i = 0; i < strlen(datetimestr); i++){
-				if(datetimestr[i] == '-'){
-					datetimestr[i] = '.';
-				}
-			}
-			snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger/data?datetime=%s", d->address, datetimestr);
+	if(SQLTableExists(LDB_TBL_NAME_DATA) == 0){    
+    //Table exists, check if column exists
+    if(SQLColumnExists(LDB_TBL_NAME_DATA, adrStr)){ //column does not exist, get all data
+			snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
 			coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-		}else{
-			snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger/data?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
-			coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-		}
-		PQclear(res);
+    }else{ // column exists, get new data
+      snprintf(st, DATABUFFER_SIZE, 
+                  "SELECT datetime \"%s\" FROM %s.%s WHERE \"%s\" NOT LIKE '' ORDER BY datetime DESC LIMIT 1", 
+                  adrStr, LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA , adrStr);
+      res = SQLexec(st);
+      if(PQntuples(res) == 1){
+        strcpy(datetimestr, PQgetvalue(res, 0, 0));
+        for(i = 0; i < strlen(datetimestr); i++){
+          if(datetimestr[i] == '-'){
+            datetimestr[i] = '.';
+          }
+        }
+        snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, datetimestr);
+        coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+      }else{
+        snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
+        coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+      }
+      PQclear(res);
+    }
 	}else{
-		snprintf(st, DATABUFFER_SIZE, "CREATE TABLE data( datetime timestamp NOT NULL, PRIMARY KEY(datetime))");
-		res = SQLexec(st);
-		PQclear(res);
-		if(SQLTableExists("data")){
+		lielas_createDataTbl();
+		if(SQLTableExists(LDB_TBL_NAME_DATA)){
 			return -1;
 		}
-		snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger/data?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
+		snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
 		coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
 	}
 
@@ -255,51 +258,62 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 		return -1;
 	}
 
-	jsmn_init(&json);
-	r = jsmn_parse(&json, cb->buf, tokens, MAX_JSON_TOKENS);
-
-	if(r != JSMN_SUCCESS && r != JSMN_ERROR_PART){
-		printf("JSON Parse error\n");
-		return -1;
-	}
-
-	while(nextToken < json.toknext && buf[tokens[nextToken].start] != 0){
-		//scan date
-		strptime((char*)&buf[tokens[nextToken++].start], "%Y.%m.%d %H:%M:%S", &dt);
-		dtIsValid = testDatetime(&dt);
-		nextToken+=1;
-
-		//scan values
-		for(mnr = 1; mnr <= d->moduls; mnr++){
-			dpc->m = d->modul[mnr-1];
-			for(cnr = 1; cnr <= d->modul[mnr-1]->channels; cnr++){
-				if(dtIsValid){
-					dp =CreateDatapaket();
-					if(dp == NULL)
-						break;
-					dp->d = d;
-					dp->m = d->modul[mnr-1];
-					dp->c = d->modul[mnr-1]->channel[cnr-1];
-
-					for(i = 0; i < VALUEBUFFER_SIZE && buf[tokens[nextToken].start + i] != '"' && buf[tokens[nextToken].start + i] != 0; i++){
-						dp->value[i] = buf[tokens[nextToken].start + i];
-					}
-					dp->value[i] = 0;
-					memcpy(dp->dt, &dt, sizeof(struct tm));
-					dpc->dp[dpc->datapakets] = dp;
-					dpc->datapakets += 1;
-				}else{
-					printf("Date and or Time Error\n");
-					fflush(stdout);
+  while(pos < cb->len && !eof){
+    //search dataset, skip spaces
+    while(cb->buf[pos] == ' ' && pos < cb->len){pos += 1;}
+    
+    //dataset has to begin with year, check for numeric char
+    if(cb->buf[pos] < '0' || cb->buf[pos] > '9'){
+      lielas_log((unsigned char*) "error parsing log data, dataset doesn't start with a numeric value", LOG_LEVEL_WARN);
+      eof = 1;
+      break;
+    }
+    
+    //parse date
+		strptime((char*)&cb->buf[pos], "%Y.%m.%d %H:%M:%S", &dt);
+    strncpy(cmd, &cb->buf[pos], 20);
+    cmd[20] = 0;
+    
+    //skip date , YYYY.MM.DD HH:MM:SS plus space, 20 chars
+    pos += 20;
+      
+    //test date
+    if(testDatetime(&dt)){
+      
+      //parse values
+      for(cnr = 1; cnr <= d->modul[1]->channels; cnr++){
+				dp =CreateDatapaket();
+				if(dp == NULL)
+					break;
+				dp->d = d;
+				dp->m = d->modul[1];
+				dp->c = d->modul[1]->channel[cnr];
+        
+        for(i = 0; i < 4; i++){
+          if(cb->buf[pos + i] == ' ' || cb->buf[pos + i] == '\n' || cb->buf[pos + i] == 0 ){
+            break;
+          }
+					dp->value[i] = cb->buf[pos + i];
 				}
-				nextToken +=1;
-			}
-		}
-		while(buf[tokens[nextToken].start] == ' '){
-			nextToken += 1;
-		}
-	}
-
+        pos += i + 2;
+				dp->value[i] = 0;
+				memcpy(dp->dt, &dt, sizeof(struct tm));
+				dpc->dp[dpc->datapakets] = dp;
+				dpc->datapakets += 1;
+        
+      }
+    }else{
+      lielas_log((unsigned char*) "error parsing log data, invalid datetime ", LOG_LEVEL_WARN);
+      eof = 1;
+      break;
+    }
+    
+    // go to next line
+    while(cb->buf[pos] == '\n' && pos < cb->len){pos += 1;}
+    pos += 1;
+    
+  }
+  
 	return 0;
 }
 
@@ -313,13 +327,16 @@ int DeviceSetDatetime(Ldevice *d){
 	struct tm dt;
 	char cmd[CMDBUFFER_SIZE];
 	char datetime[CMDBUFFER_SIZE];
+  char recvDt[CMDBUFFER_SIZE];
 	char buf[CMDBUFFER_SIZE];
+  char log[CMDBUFFER_SIZE];
 	coap_buf *cb = coap_create_buf();
 
 	if(cb == NULL){
 		return -1;
 	}
 	cb->buf = buf;
+  cb->bufSize = CMDBUFFER_SIZE;
 
 	if(d == NULL){
 		return -1;
@@ -328,25 +345,36 @@ int DeviceSetDatetime(Ldevice *d){
 	time(&rawtime);
 	now = gmtime(&rawtime);
 
-	//snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger/logs?datetime=2000.01.01 00:00:00");
-	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/datetime", d->address);
+	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/device", d->address);
 	strftime(datetime, DATABUFFER_SIZE, "datetime=%Y.%m.%d %H:%M:%S", now);
-	coap_send_cmd(cmd, cb, MYCOAP_METHOD_POST, (unsigned char*)datetime);
+	coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)datetime);
 	sleep(1);
 
 	//get time and check if it is set
 	buf[0] = 0;
-	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/datetime", d->address);
+	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/device", d->address);
 	coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
 	sleep(1);
-	if(strncmp(buf, "[2.05]", 6)){
-		return -1;
-	}
-	strptime((char*)buf, "[2.05]%Y.%m.%d %H:%M:%S", &dt);
-
+  
+  if(lwp_get_attr_value(cb->buf, &d->wkc.device, LWP_ATTR_DEVICE_DATETIME, recvDt, DEVICE_MAX_STR_LEN)){
+    lielas_log((unsigned char*)"failed to parse /devcice/datetime", LOG_LEVEL_WARN);
+    return -1;
+  }
+	strptime(recvDt, "%Y.%m.%d %H:%M:%S", &dt);
+  
+	time(&rawtime);
+	now = gmtime(&rawtime);
+  
 	if(difftime(mktime(now), mktime(&dt)) < MAX_TIME_DIFF){
 		return 0;
 	}
+  
+  lielas_log((unsigned char*)"setting time: time difference too big", LOG_LEVEL_WARN);
+  snprintf(log, CMDBUFFER_SIZE, "server time: ");
+	strftime(&log[strlen(log)], CMDBUFFER_SIZE - strlen(log), "%d.%m.%Y %H:%M:%S", now);
+  snprintf(&log[strlen(log)], CMDBUFFER_SIZE - strlen(log), " received time: ");
+	strftime(&log[strlen(log)], CMDBUFFER_SIZE - strlen(log), "%d.%m.%Y %H:%M:%S",&dt);
+  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
 	return -1;
 }
 
@@ -363,24 +391,12 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 	char adrStr[CMDBUFFER_SIZE];
 	int success = 0;
 
-	if(SQLTableExists("data")){
-		snprintf(st, CMDBUFFER_SIZE, "CREATE TABLE data( datetime timestamp NOT NULL, PRIMARY KEY(datetime))");
-		res = SQLexec(st);
-		PQclear(res);
-		if(SQLTableExists("data")){
+	if(SQLTableExists(LDB_TBL_NAME_DATA)){
+		lielas_createDataTbl();
+		if(SQLTableExists(LDB_TBL_NAME_DATA)){
 			return -1;
 		}
 	}
-
-	// check if Table data exists
-	snprintf(st, DATABUFFER_SIZE, "SELECT relname FROM pg_class WHERE relname ='data'");
-	res = SQLexec(st);
-
-	if(PQresultStatus(res) != PGRES_TUPLES_OK){
-		PQclear(res);
-		return -1;
-	}
-	PQclear(res);
 
 	// create column string
 	//snprintf(column, BUFFER_SIZE, "%s.%s.%s", dpc->d->address, dpc->m->address, dpc->c->address);
@@ -389,8 +405,8 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 
 		//create column if not existing
 		snprintf(adrStr, CMDBUFFER_SIZE, "%s.%s.%s", dpc->dp[i]->d->address, dpc->dp[i]->m->address, dpc->dp[i]->c->address);
-		if(SQLRowExists("data", adrStr)){
-			snprintf(st, CMDBUFFER_SIZE, "ALTER TABLE data ADD COLUMN \"%s\" text", adrStr);
+		if(SQLRowExists(LDB_TBL_NAME_DATA, adrStr)){
+			snprintf(st, CMDBUFFER_SIZE, "ALTER TABLE %s.%s ADD COLUMN \"%s\" text", LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA , adrStr);
 			res = SQLexec(st);
 			PQclear(res);
 		}
@@ -398,16 +414,18 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 		// create datetime string
 		strftime(dtStr, CMDBUFFER_SIZE, "%Y-%m-%d %H:%M:%S", dpc->dp[i]->dt);
 		//check, if datetime-row exists
-		if(SQLCellExists("data", "datetime", dtStr)){
+		if(SQLCellExists(LDB_TBL_NAME_DATA, "datetime", dtStr)){
 			//creat new row
-			snprintf(st, CMDBUFFER_SIZE, "INSERT INTO data ( datetime, \"%s\" ) VALUES ( '%s', '%s')", adrStr, dtStr, dpc->dp[i]->value);
+			snprintf(st, CMDBUFFER_SIZE, "INSERT INTO %s.%s ( datetime, \"%s\" ) VALUES ( '%s', '%s')", 
+                LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dtStr, dpc->dp[i]->value);
 			printf("Save data: Address:%s Time:%s Value:%s°C\n", adrStr, dtStr, dpc->dp[i]->value);
 			fflush(stdout);
 			res = SQLexec(st);
 			PQclear(res);
 			success += 1;
 		}else{
-			snprintf(st, CMDBUFFER_SIZE, "UPDATE data SET \"%s\"='%s' WHERE datetime='%s'", adrStr, dpc->dp[i]->value, dtStr );
+			snprintf(st, CMDBUFFER_SIZE, "UPDATE %s.%s SET \"%s\"='%s' WHERE datetime='%s'", 
+                LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dpc->dp[i]->value, dtStr );
 			printf("Save data: Address:%s Time:%s Value:%s°C\n", adrStr, dtStr, dpc->dp[i]->value);
 			fflush(stdout);
 			res = SQLexec(st);

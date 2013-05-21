@@ -28,6 +28,7 @@
 
 #include "lielas.h"
 #include "modul.h"
+#include "lwp.h"
 
 #define DEVICE_NO_EVENT		0
 #define DEVICE_ALARM		1
@@ -40,23 +41,33 @@
 #define DEVICE_NO_LOGGER	0
 #define DEVICE_HAS_LOGGER	1
 
+#define DEVICE_MAX_STR_LEN 64
+
 typedef struct Ldevice_struct{
   unsigned int id;
   int registered;
   char address[IPV6_STR_LEN];
+  char mac[MAC_STR_LEN];
   char mint[INT_STR_LEN];
   char pint[INT_STR_LEN];
   char aint[INT_STR_LEN];
+  char name[DEVICE_MAX_STR_LEN];
+  char sw_ver[DEVICE_MAX_STR_LEN];
+  char supply[DEVICE_MAX_STR_LEN];
   int moduls;
   Lmodul *modul[MAX_MODULS];
   struct tm lastProcessed;
   int hasLogger;
   int event;
+  
+  lwp_wkc wkc;
 }Ldevice;
 
 Ldevice *LcreateDevice();
 void LdeleteDevice(Ldevice *d);
 void LaddModul(Ldevice *device, Lmodul *modul);
 void LremoveModul(Ldevice *device, Lmodul *modul);
+void LprintDeviceStructure(Ldevice *d, char *str, int size, int all);
+
 
 #endif /* DEVICE_H_ */

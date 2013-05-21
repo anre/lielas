@@ -32,6 +32,11 @@
 
 static PGconn *con = NULL;
 
+/********************************************************************************************************************************
+ * 		SQLconnect()
+ ********************************************************************************************************************************/
+
+
 int SQLconnect(){
 	char conSt[500] = { 0 };
 	strcpy(conSt, "user=");
@@ -57,14 +62,25 @@ int SQLconnect(){
 	return 0;
 }
 
+/********************************************************************************************************************************
+ * 		SQLclose()
+ ********************************************************************************************************************************/
+
 void SQLclose(){
 	  if(con != NULL && PQstatus(con) == CONNECTION_OK){
 	    PQfinish(con);
 	  }
 }
 
+/********************************************************************************************************************************
+ * 		SQLexec(char *st)
+ ********************************************************************************************************************************/
+
 PGresult *SQLexec(char *st){
 	PGresult *res;
+  char *err;
+  char errStr[500];
+  
 	if(PQstatus(con) != CONNECTION_OK){
 		SQLconnect();
 	}
@@ -72,9 +88,20 @@ PGresult *SQLexec(char *st){
 		return NULL;
 	}
 	res = PQexec(con, st);
-
+  
+  err = PQresultErrorMessage(res);
+  if( *err != 0){
+    snprintf( errStr, 500, "SQL-error: %s", err);
+    lielas_log((unsigned char*) errStr, LOG_LEVEL_DEBUG);
+    snprintf( errStr, 500, "executing statement: %s", st);
+    lielas_log((unsigned char*) errStr, LOG_LEVEL_DEBUG);
+  }
 	return res;
 }
+
+/********************************************************************************************************************************
+ * 		SQLTableExists(char *name)
+ ********************************************************************************************************************************/
 
 int SQLTableExists(char *name){
 	PGresult *res = 0;
@@ -103,6 +130,10 @@ int SQLTableExists(char *name){
 	return -1;
 }
 
+/********************************************************************************************************************************
+ * 		SQLRowExists( char* table, char* row)
+ ********************************************************************************************************************************/
+
 int SQLRowExists( char* table, char* row){
 	PGresult *res = 0;
 	char buf[SQL_BUFFER_SIZE];
@@ -123,6 +154,10 @@ int SQLRowExists( char* table, char* row){
 		return 0;
 	return -1;
 }
+
+/********************************************************************************************************************************
+ * 		SQLCellExists(char* table, char* column, char* val)
+ ********************************************************************************************************************************/
 
 int SQLCellExists(char* table, char* column, char* val){
 	PGresult *res = 0;
@@ -147,6 +182,36 @@ int SQLCellExists(char* table, char* column, char* val){
 	}
 	PQclear(res);
 	return -1;
+}
+
+/********************************************************************************************************************************
+ * 		SQLColumnExists(char* table, char* column)
+ ********************************************************************************************************************************/
+
+int SQLColumnExists(char* table, char* column){
+	PGresult *res = 0;
+	char buf[SQL_BUFFER_SIZE];
+
+	snprintf(buf, SQL_BUFFER_SIZE, 
+    "SELECT column_name FROM information_schema.columns WHERE table_name='%s' AND column_name='%s'"
+    , table, column);
+
+	res = SQLexec(buf);
+    
+  if(PQresultStatus(res) != PGRES_TUPLES_OK){
+    PQclear(res);
+    return -1;
+	}
+	if(PQntuples(res) == 0){
+		PQclear(res);
+		return -1;
+	}
+	if(!strcmp(column, PQgetvalue(res, 0, 0))){
+		PQclear(res);
+		return 0;
+	}
+  
+  return -1;
 }
 
 

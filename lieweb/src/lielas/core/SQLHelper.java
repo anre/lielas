@@ -42,7 +42,7 @@ public class SQLHelper implements Serializable {
 		LoadSettings();
 		
 		//String url = "jdbc:postgresql://192.168.0.100:5432/lielas";
-		String url = "jdbc:postgresql://192.168.0.21:5432/lielas";
+		String url = "jdbc:postgresql://192.168.0.15:5432/lielas";
 		String user = dbUser;
 		String password = dbPass;
 		
@@ -246,7 +246,7 @@ public class SQLHelper implements Serializable {
 			ResultSet rs = st.executeQuery("SELECT id, address, mac, registered, name, dev_group, mint, pint, aint, moduls  FROM lielas.devices ORDER BY id");
 			
 			if(rs.next()){
-				while(rs.getInt(1) <= ID){
+				while(rs.getInt(1) < ID){
 					if(!rs.next()){
 						rs.close();
 						st.close();

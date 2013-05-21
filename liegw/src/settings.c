@@ -49,7 +49,7 @@ int set_load(){
 	FILE *fp;
 	int linenr = 0;
 
-	fp = fopen("lielasgw.conf", "r");
+	fp = fopen("lielas.conf", "r");
 	if( fp == NULL){
 		return -1;
 	}

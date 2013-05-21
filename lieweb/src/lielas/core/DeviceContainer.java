@@ -26,7 +26,7 @@ public class DeviceContainer extends BeanItemContainer<Device> implements Serial
 			d = sql.GetDevice(id);
 			while(d != null){
 				dc.addItem(d);
-				id = d.getID();
+				id = d.getID() + 1;
 				d = sql.GetDevice(id);
 			}
 		}catch(Exception e){

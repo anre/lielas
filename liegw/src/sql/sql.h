@@ -38,5 +38,6 @@ PGresult *SQLexec(char *cmd);
 int SQLTableExists(char *name);
 int SQLRowExists( char* table, char* row);
 int SQLCellExists(char* table, char* column, char* val);
+int SQLColumnExists(char* table, char* column);
 
 #endif /* SQL_H_ */

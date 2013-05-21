@@ -35,7 +35,7 @@ int lielas_createTables(){
   error -= lielas_createChannelsTbl();
   error -= lielas_createDataTbl();
   error -= lielas_createSettingsTbl();
-
+  
   return error;
 }
 

@@ -31,7 +31,7 @@
 #define MYCOAP_METHOD_PUT		3
 #define MYCOAP_METHOD_DELETE	4
 
-
+#define MYCOAP_TRIES  3
 
 #define COAP_STATUS_CONTENT	69
 
@@ -46,6 +46,7 @@ typedef struct {
 	char *buf;
 	int status;
 	int len;
+  int bufSize;
 } coap_buf;
 
 

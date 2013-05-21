@@ -8,6 +8,7 @@ src/lielas/deviceevent.c \
 src/lielas/modul.c \
 src/lielas/lbus.c \
 src/lielas/ldb.c \
+src/lielas/lwp.c \
 
 OBJS += \
 src/lielas/channel.o \
@@ -17,6 +18,7 @@ src/lielas/deviceevent.o \
 src/lielas/modul.o \
 src/lielas/lbus.o \
 src/lielas/ldb.o \
+src/lielas/lwp.o \
 
 C_DEPS += \
 src/lielas/channel.d \
@@ -26,6 +28,7 @@ src/lielas/deviceevent.d \
 src/lielas/modul.d \
 src/lielas/lbus.d \
 src/lielas/ldb.d \
+src/lielas/lwp.d \
 
 %.o: %.c
 	@echo 'Building file: $<'

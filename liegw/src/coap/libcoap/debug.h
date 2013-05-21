@@ -42,8 +42,6 @@ void coap_log_impl(coap_log_t level, const char *format, ...);
 #define coap_log(...) coap_log_impl(__VA_ARGS__)
 #endif
 
-
-
 #ifndef NDEBUG
 
 /* A set of convenience macros for common log levels. */

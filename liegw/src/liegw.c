@@ -92,9 +92,9 @@ int main(void) {
 		//COAPhandleServer();
 		lbus_handler();
 		if(lielas_getRunmode() == RUNMODE_NORMAL){
-			//HandleDevices();
+			HandleDevices();
+			LDCcheckForNewDevices();
 		}else if(lielas_getRunmode() == RUNMODE_REGISTER){
-			//LDCcheckForNewDevices();
 			lielas_runmodeHandler();
 		}
 	}

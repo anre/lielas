@@ -22,6 +22,8 @@
 */
 
 #include "mycoap.h"
+#include "../log.h"
+
 #include <stdio.h>
 #include <netdb.h>
 #include <sys/socket.h>
@@ -328,11 +330,10 @@ void message_handler(struct coap_context_t  *ctx,
 	      if (coap_get_data(received, &len, &databuf)){
 	    	  //append_to_output(databuf, len);
 	    	  if( mycoapbuf->buf != 0){
-	    		  mycoapbuf->status = received->hdr->code;
-				  for( i = 0; i < len; i++){
-					  mycoapbuf->buf[mycoapbuf->len++] = databuf[i];
-				  }
-				  mycoapbuf->buf[mycoapbuf->len +1] = 0;
+		    	  for( i = 0; i < len && (mycoapbuf->len < mycoapbuf->bufSize-1); i++){
+              mycoapbuf->buf[mycoapbuf->len++] = databuf[i];
+            }
+            mycoapbuf->buf[mycoapbuf->len] = 0;
 	    	  }
 	      }
 
@@ -342,15 +343,17 @@ void message_handler(struct coap_context_t  *ctx,
 	    	/* TODO: check if we are looking at the correct block number */
 	    	if (coap_get_data(received, &len, &databuf)){
 		    	  if( mycoapbuf->buf != 0){
-		    	    for( i = 0; i < len; i++){
+		    	    for( i = 0; i < len && (mycoapbuf->len < mycoapbuf->bufSize-1); i++){
 		    	      mycoapbuf->buf[mycoapbuf->len++] = databuf[i];
 		    	    }
-		    	    mycoapbuf->buf[mycoapbuf->len +1] = 0;
+		    	    mycoapbuf->buf[mycoapbuf->len] = 0;
 		    	  }
 	    	}
 
 	    	if (COAP_OPT_BLOCK_MORE(block_opt)) {
 	    		/* more bit is set */
+	    		printf("found the M bit, block size is %u, block nr. %u\n",
+	    			COAP_OPT_BLOCK_SZX(block_opt), COAP_OPT_BLOCK_NUM(block_opt));
 	    		debug("found the M bit, block size is %u, block nr. %u\n",
 	    			COAP_OPT_BLOCK_SZX(block_opt), COAP_OPT_BLOCK_NUM(block_opt));
 
@@ -385,6 +388,7 @@ void message_handler(struct coap_context_t  *ctx,
 	    				tid = coap_send(ctx, remote, pdu);
 
 	    			if (tid == COAP_INVALID_TID) {
+              printf("message_handler: error sending new request\n");
 	    				debug("message_handler: error sending new request");
 	    				coap_delete_pdu(pdu);
 	    			} else {
@@ -429,6 +433,7 @@ coap_buf *coap_create_buf(){
 	cb->len = 0;
 	cb->status = 0;
 	cb->buf = 0;
+  cb->bufSize = 0;
 	return cb;
 }
 
@@ -463,6 +468,7 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
 	coap_tick_t now;
 	struct timeval tv;
 	char port_str[10] = "0";
+  int tries = 0;
 
 	ready = 0;
 	mycoapbuf = cb;
@@ -621,8 +627,16 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
 		 } else { /* timeout */
 		   coap_ticks(&now);
 		   if (max_wait <= now) {
+        tries += 1;
+        if( tries >= MYCOAP_TRIES){
+          break;
+        }else{
+          coap_retransmit( ctx, coap_pop_next( ctx ));
+          nextpdu = coap_peek_next( ctx );
+          lielas_log((unsigned char*)"retransmitting coap msg", LOG_LEVEL_DEBUG);
+        }
 			  info("timeout\n");
-			  break;
+			  //break;
 		   }
 		 }
      }
@@ -631,7 +645,7 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
      //free(optlist->data);
      //free(optlist);
      optlist = NULL;
- 	mycoapbuf = 0;
+     mycoapbuf = 0;
 
      coap_free_context( ctx );
      return 1;

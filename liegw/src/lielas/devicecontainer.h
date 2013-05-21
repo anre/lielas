@@ -27,7 +27,7 @@
 #include "device.h"
 
 
-#define CLIENT_BUFFER_LEN	250
+#define CLIENT_BUFFER_LEN	1000
 #define IPV6_ADR_BUF_LEN	50
 
 #define ID_TYPE_DEVICE	0

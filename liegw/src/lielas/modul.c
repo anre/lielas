@@ -56,9 +56,10 @@ void LaddChannel(Lmodul *m, Lchannel *channel){
 		lielas_log((unsigned char*)"Can't add channel, maximum number of channels reached", LOG_LEVEL_WARN);
 		return;
 	}
-	m->channel[m->channels++] = channel;
+	m->channel[m->channels+1] = channel;
+  m->channels += 1;
 	if(m->channels <= MAX_CHANNELS){
-		m->channel[m->channels] = NULL;
+		m->channel[m->channels+1] = NULL;
 	}
 }
 
