@@ -62,7 +62,7 @@ public class LiewebUI extends UI {
 		sql = new SQLHelper();
 		sql.Connect();
 		
-		coap = new CoapHelper("192.168.0.18", 5683);
+		//coap = new CoapHelper("192.168.0.18", 5683);
 		
 		deviceContainer = DeviceContainer.loadDevices(sql);
 		

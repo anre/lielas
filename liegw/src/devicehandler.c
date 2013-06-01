@@ -189,6 +189,7 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 	char st[CMDBUFFER_SIZE];
 	char cmd[CMDBUFFER_SIZE];
 	char adrStr[CMDBUFFER_SIZE];
+  compdatetime cdt;
 	coap_buf *cb;
 	int cnr;
 	datapaket *dp;
@@ -259,17 +260,15 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 	}
 
   while(pos < cb->len && !eof){
-    //search dataset, skip spaces
-    while(cb->buf[pos] == ' ' && pos < cb->len){pos += 1;}
-    
-    //dataset has to begin with year, check for numeric char
-    if(cb->buf[pos] < '0' || cb->buf[pos] > '9'){
-      lielas_log((unsigned char*) "error parsing log data, dataset doesn't start with a numeric value", LOG_LEVEL_WARN);
-      eof = 1;
-      break;
+
+    //parse date
+    for(i=0; i < LWP_COMP_DT_LEN; i++){
+      cdt.byte[0] = cb->buf[pos++];
     }
     
-    //parse date
+    snprintf(datetimestr, CMDBUFFER_SIZE, "%4u.%2u.%2u %2u:%2u:%2u", cdt.year + 2000, cdt.month, cdt.day, cdt.hour, cdt.min, cdt.sec);
+    printf("dt: %s\n", datetimestr);
+    exit(0);
 		strptime((char*)&cb->buf[pos], "%Y.%m.%d %H:%M:%S", &dt);
     strncpy(cmd, &cb->buf[pos], 20);
     cmd[20] = 0;
@@ -344,7 +343,8 @@ int DeviceSetDatetime(Ldevice *d){
 
 	time(&rawtime);
 	now = gmtime(&rawtime);
-
+  
+  
 	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/device", d->address);
 	strftime(datetime, DATABUFFER_SIZE, "datetime=%Y.%m.%d %H:%M:%S", now);
 	coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)datetime);

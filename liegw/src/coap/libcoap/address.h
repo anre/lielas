@@ -28,12 +28,15 @@
 #include <string.h>
 
 #ifdef HAVE_NETINET_IN_H
-#include <netinet/in.h>
+  #ifdef WINDOWS
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+  #else
+    #include <netinet/in.h>
+    #include <sys/socket.h>
+  #endif
 #endif
 
-#ifdef HAVE_NETINET_IN_H
-#include <sys/socket.h>
-#endif
 
 #ifdef WITH_CONTIKI
 #include "uip.h"

@@ -30,6 +30,8 @@ public class CSVHelper implements Serializable{
 		cfg.LoadSettings();
 		
 		csvFiletypeEnding = cfg.getCsvFiletypeEnding();
+		
+		this.app = app;
 	}
 	
 	public StreamResource GetCSVFile(String filename){

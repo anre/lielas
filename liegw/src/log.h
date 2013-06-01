@@ -10,6 +10,8 @@
 #define LOG_TO_FILE			1
 #define LOG_TO_SYSLOG		2
 
+#define LOG_BUF_LEN     5000
+
 void lielas_log(unsigned char *msg, int level);
 
 #endif

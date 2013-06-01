@@ -2,6 +2,7 @@
 #define LWP_H
 
 #include "lielas.h"
+#include <stdint.h>
 
 #define LWP_RESOURCE_WKC                ".well-known/core"
 #define LWP_RESOURCE_CHANNEL            "channel"
@@ -42,6 +43,8 @@
 #define LWP_MAX_RES_NAME_LEN    100
 #define LWP_MAX_WKC_LEN         2000
 
+#define LWP_COMP_DT_LEN         4
+
 typedef struct lwp_attr_struct{
   char name[LWP_MAX_ATTR_NAME_LEN];
 } lwp_attr;
@@ -62,6 +65,24 @@ typedef struct lwp_wkc_struct{
   lwp_resource channel[MAX_CHANNELS];
   int channels;
 } lwp_wkc;
+
+typedef union
+{
+ uint8_t  byte[4];
+ uint32_t array;
+ 
+ struct
+ {
+  uint8_t sec   : 6;
+  uint8_t min   : 6;
+  uint8_t hour  : 5;
+  
+  uint8_t day   : 5;
+  uint8_t month : 4;
+  uint8_t year  : 6;
+ };
+ 
+} compdatetime;
 
 void lwp_init_wkc(lwp_wkc *wkc);
 void lwp_init_resource(lwp_resource *res);

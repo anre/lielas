@@ -8,8 +8,8 @@ import java.util.Properties;
 
 public class Config {
 
-	static String appPath = "E:\\Firma\\SVN\\Lielas\\";
-	//static String appPath = "/usr/local/lielas/";
+	//static String appPath = "E:\\Firma\\SVN\\Lielas\\";
+	static String appPath = "/usr/local/lielas/";
 
 	//static String dbUser = "lielas";
 	//static String dbPass = "lielas";

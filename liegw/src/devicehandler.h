@@ -58,6 +58,8 @@ typedef struct datapaketcontainer_struct{
 	int dec;	// number of digits after decimal point
 } datapaketcontainer;
 
+
+
 #define RUNMODE_NORMAL          0
 #define RUNMODE_REGISTER        1
 

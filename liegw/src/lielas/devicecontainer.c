@@ -184,11 +184,12 @@ int LDCloadDevices(){
 	int i;
 	char moduls[500];
 	char msg[500];
+  char wkc[CLIENT_BUFFER_LEN];
 	char st[SQL_STATEMENT_BUF_SIZE];
 
 	//query devices table
   
-	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mac, mint, pint, aint, moduls, registered FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
+	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mac, mint, pint, aint, moduls, registered, wkc FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
 	res = SQLexec(st);
 
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
@@ -205,6 +206,7 @@ int LDCloadDevices(){
 			return LDC_FAILED_TO_ALOCATE_MEMORY;
 		}
 
+    //load device settings
 		d->id = atoi(PQgetvalue(res, i, 0));
 		//d->registered = 1;
 		strcpy(d->address, PQgetvalue(res,i, 1));
@@ -213,7 +215,19 @@ int LDCloadDevices(){
 		strcpy(d->pint, PQgetvalue(res, i, 4));
 		strcpy(d->aint, PQgetvalue(res, i, 5));
 		strcpy(moduls,  PQgetvalue(res, i, 6));
+    //load .well-known/core
+		strcpy(moduls,  PQgetvalue(res, i, 7));
+    
+    //parse wkc
+    if(lwp_parse_wkc(wkc, &d->wkc) != 0){
+      lielas_log((unsigned char*)"failed to parse .well-known/core", LOG_LEVEL_WARN);
+      return -1;
+    }
+    
+    //load Moduls
 		loadModuls(d, moduls);
+    
+    //add device to container
 		LDCadd(d);
 		sprintf(msg, "Device %s loaded", d->address);
 		lielas_log((unsigned char*)msg, LOG_LEVEL_DEBUG);
@@ -410,6 +424,7 @@ Ldevice *loadDeviceById(unsigned int id){
 int LDCsaveNewDevice(Ldevice *d){
 	PGresult *res;
 	char st[SQL_BUFFER_SIZE];
+  char log[LOG_BUF_LEN];
 	int id;
 
 	id = getNewId(ID_TYPE_DEVICE);
@@ -425,7 +440,8 @@ int LDCsaveNewDevice(Ldevice *d){
 
 	PQclear(res);
 
-	printf("Device %s gespeichert \n", d->address);
+  snprintf(log, LOG_BUF_LEN, "device %s saved \n", d->address);
+  lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
 	d->id = id;
 
 	return 0;
@@ -594,7 +610,6 @@ int LDCsaveUpdatedDevice(Ldevice *d){
     
     
 		for(j = 1; j < MAX_CHANNELS && d->modul[i]->channel[j] != NULL; j++){
-      printf("Saving %i of %i\n", j, d->modul[i]->channels);
 			c = d->modul[i]->channel[j];
 			if(oldDevice->modul[i] == NULL){
 				oldChannel = NULL;
@@ -755,8 +770,10 @@ void LDCcheckForNewDevices(){
 	char buf[CLIENT_BUFFER_LEN];
 	char adr[IPV6_ADR_BUF_LEN];
   char attr[CLIENT_BUFFER_LEN];
+  char rplTable[CLIENT_BUFFER_LEN];
+  char wkc[CLIENT_BUFFER_LEN];
   unsigned char payload[CLIENT_BUFFER_LEN];
-  char log[5000];
+  char log[LOG_BUF_LEN];
 	Ldevice *d;
 	Lmodul *m[MAX_MODULS];
 	Lchannel *c[MAX_CHANNELS];
@@ -805,7 +822,7 @@ void LDCcheckForNewDevices(){
     lielas_log((unsigned char*)"failed to create coap buf", LOG_LEVEL_WARN);
 		return;
 	}
-	cb->buf = (char*)buf;
+	cb->buf = (char*)rplTable;
   cb->bufSize = CLIENT_BUFFER_LEN;
   
   snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/rpl", set_getGatewaynodeAddr(), set_getGatewaynodePort());
@@ -818,16 +835,19 @@ void LDCcheckForNewDevices(){
 	
   jsmn_init(&json);
   nextToken = 0;
-	r = jsmn_parse(&json, cb->buf, tokens, MAX_JSON_TOKENS);
+	r = jsmn_parse(&json, rplTable, tokens, MAX_JSON_TOKENS);
 	if(r != JSMN_SUCCESS && r != JSMN_ERROR_PART){
     lielas_log((unsigned char*)"failed to parse routing table", LOG_LEVEL_WARN);
 		return;
 	}
+  
+  cb->buf = (char*)buf;
+  cb->bufSize = CLIENT_BUFFER_LEN;
 
-	while(nextToken < json.toknext && buf[tokens[nextToken].start] != 0){
+	while(nextToken < json.toknext && rplTable[tokens[nextToken].start] != 0){
 		if(state == 0){ // "Routes" not yet found
       if( tokens[nextToken].type == JSMN_STRING){
-        if(!strncmp(&buf[tokens[nextToken].start], "Routes", strlen("Routes"))){
+        if(!strncmp(&rplTable[tokens[nextToken].start], "Routes", strlen("Routes"))){
           nextToken += 1;
           if(tokens[nextToken].type != JSMN_ARRAY){
             lielas_log((unsigned char*)"error parsing routing table", LOG_LEVEL_WARN);
@@ -839,21 +859,22 @@ void LDCcheckForNewDevices(){
             lielas_log((unsigned char*)"routing table parsed, no routes found", LOG_LEVEL_DEBUG);
             return;
           }
-          state += 1;
+          state += 1; 
           nextToken += 1;
         }
-      }
+      } 
 		}
 		if(state == 1){	// "Routes" found, read and parse addresses
       if( tokens[nextToken].type == JSMN_STRING){
-        //copy address to buffer, cut off additional information after space
+        //copy address to buffer
         for(i=0; i < tokens[nextToken].end - tokens[nextToken].start; i++){
-          if(buf[i + tokens[nextToken].start] == ' '){
+          if(rplTable[i + tokens[nextToken].start] == ' '){
             adr[i]= 0;
             break;
           }
-          adr[i] = buf[i + tokens[nextToken].start];
+          adr[i] = rplTable[i + tokens[nextToken].start];
         }
+
         //check if address is already registered
         LDCgetDeviceByAddress(adr, &d);
 				if(d == NULL){
@@ -869,7 +890,6 @@ void LDCcheckForNewDevices(){
             lielas_log((unsigned char*)"error parsing ipv6 to mac address", LOG_LEVEL_WARN);
             return;
           }
-          printf("mac %s\n", d->mac);
           
           //get wkc
           snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/.well-known/core", adr, set_getGatewaynodePort());
@@ -921,13 +941,14 @@ void LDCcheckForNewDevices(){
             lielas_log((unsigned char*)"failed to parse .well-known/core: /device/module_cnt", LOG_LEVEL_WARN);
             return;
           }
-          moduls = strtol(attr, NULL, 10) + 1;
+          moduls = strtol(attr, NULL, 10);
           if(moduls > MAX_MODULS){
             lielas_log((unsigned char*)"failed to parse .well-known/core: /device/module_cnt, too big", LOG_LEVEL_WARN);
             return;
           }
           
-          printf("found Device with name %s and version %s is running on %s with %i modul(s)\n", d->name, d->sw_ver, d->supply, moduls);
+          snprintf(log, LOG_BUF_LEN, "found Device with name %s and version %s is running on %s with %i modul(s)", d->name, d->sw_ver, d->supply, moduls);
+          lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
           
           //scan moduls
           for(i=1; i <= moduls; i++){
@@ -957,7 +978,8 @@ void LDCcheckForNewDevices(){
               return;
             }
 						LaddModul(d, m[i]);
-            printf("found Modul %s with %i channels\n", m[i]->address, channels);
+            snprintf(log, LOG_BUF_LEN, "found Modul %s with %i channels", m[i]->address, channels);
+            lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
             
             //scan channels
             for(j=1; j <= channels ; j++){
@@ -969,31 +991,32 @@ void LDCcheckForNewDevices(){
                 coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
                 
                 if(cb->status != COAP_STATUS_CONTENT){
-                  sprintf(log, "failed to get /channel%i", j);
+                  snprintf(log, LOG_BUF_LEN, "failed to get /channel%i", j);
                   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
                   return;
                 }
                 
                 if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_UNIT, c[j]->unit, CHANNEL_ATTR_STR_LEN)){
-                  sprintf(log, "failed to parse .well-known/core: /channel%i/unit", j);
+                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/unit", j);
                   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
                   return;
                 }
                 
                 if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_TYPE, c[j]->type, CHANNEL_ATTR_STR_LEN)){
-                  sprintf(log, "failed to parse .well-known/core: /channel%i/type", j);
+                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/type", j);
                   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
                   return;
                 }   
                 
                 if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_CLASS, c[j]->class, CHANNEL_ATTR_STR_LEN)){
-                  sprintf(log, "failed to parse .well-known/core: /channel%i/class", j);
+                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/class", j);
                   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
                   return;
                 }  
                 
 								LaddChannel(m[i], c[j]);
-                printf("found channel%i with unit %s, type %s and class %s\n", j, c[j]->unit, c[j]->type, c[j]->class);
+                snprintf(log, LOG_BUF_LEN, "found channel%i with unit %s, type %s and class %s", j, c[j]->unit, c[j]->type, c[j]->class);
+                lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
                 
             }
           }
@@ -1008,19 +1031,16 @@ void LDCcheckForNewDevices(){
 					LDCsaveUpdatedDevice(d);
           
           // set datetime
+          lielas_log((unsigned char*)"setting device date and time", LOG_LEVEL_DEBUG);
           DeviceSetDatetime(d);
           
           // set logger state
+          lielas_log((unsigned char*)"setting device logger on", LOG_LEVEL_DEBUG);
           snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
           snprintf((char*)payload, DATABUFFER_SIZE, "state=on");
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
           
-          printf("Sending put command %s and status is %i\n", cmd, cb->status);
-          printf("Got: %s\n", cb->buf);
-          
-        
         }
-
       }
 		}
     

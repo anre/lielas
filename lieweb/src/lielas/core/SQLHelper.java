@@ -42,7 +42,7 @@ public class SQLHelper implements Serializable {
 		LoadSettings();
 		
 		//String url = "jdbc:postgresql://192.168.0.100:5432/lielas";
-		String url = "jdbc:postgresql://192.168.0.15:5432/lielas";
+		String url = "jdbc:postgresql://localhost:5432/lielas";
 		String user = dbUser;
 		String password = dbPass;
 		
@@ -645,7 +645,7 @@ public class SQLHelper implements Serializable {
 					for( int k = 1; k <= m.getChannels(); k++){
 						Channel c = m.getChannel(k);
 						if(!ColumnExists(d.getAddress() + "." + m.getAddress() + "." + c.getAddress() )){
-							st.execute("ALTER TABLE lielas.data ADD COLUMN \""+ d.getAddress() + "." + m.getAddress() + "." + c.getAddress() + "\" text");
+							st.execute("ALTER TABLE lielas.log_data ADD COLUMN \""+ d.getAddress() + "." + m.getAddress() + "." + c.getAddress() + "\" text");
 						}
 						tableOrder += ", \"" + d.getAddress() + "." + m.getAddress() + "." + c.getAddress() + "\"";
 					}
@@ -727,8 +727,8 @@ public class SQLHelper implements Serializable {
 				d = dc.nextItemId(d);
 			}		
 			
-			if(TableExists("data")){
-				rs = st.executeQuery("SELECT " + tableOrder + " FROM lielas.data ORDER BY datetime ASC");
+			if(TableExists("log_data")){
+				rs = st.executeQuery("SELECT " + tableOrder + " FROM lielas.log_data ORDER BY datetime ASC");
 			}else{
 				return csvStr;
 			}
@@ -969,7 +969,7 @@ public class SQLHelper implements Serializable {
 		try{
 			Statement st = conn.createStatement();
 			st = conn.createStatement();
-			rs = st.executeQuery("SELECT column_name FROM information_schema.columns WHERE table_name='data' and column_name='" + column + "'");
+			rs = st.executeQuery("SELECT column_name FROM information_schema.columns WHERE table_name='log_data' and column_name='" + column + "'");
 			if(rs.next()){
 				st.close();
 				rs.close();

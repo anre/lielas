@@ -478,7 +478,7 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
 	mycoapbuf->len = 0;
 
 	coap_split_uri((unsigned char*)uriStr, strlen( uriStr), &uri);
-
+  
 	if(uri.path.length){
 		buflen = BUFSIZE;
 

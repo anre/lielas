@@ -35,7 +35,7 @@
 #define GET_FIRST_DEVICE_DATA_INTERVAL  1200
 #define MAX_GET_DEVICE_DATA_INTERVAL	  3600
 
-#define MAX_TIME_DIFF						  2
+#define MAX_TIME_DIFF						  4
 
 #define LIELAS_STD_MINT					  60
 #define LIELAS_STD_PINT						 2

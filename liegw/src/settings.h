@@ -41,11 +41,11 @@
 #define SET_STD_SQL_USER	"lielas"
 #define SET_STD_SQL_PASS	"lieweb"
 #define SET_STD_SQL_DB		"lielas"
-#define SET_STD_SQL_HOST	"192.168.0.15"
+#define SET_STD_SQL_HOST	"192.168.0.26"
 #define SET_STD_SQL_PORT	"5432"
 #define SET_STD_COAP_ADDR	"::"
 #define SET_STD_COAP_PORT	"5683"
-#define SET_STD_GW_ADDR		"2001:15c0:666d:1:221:2eff:ff00:2707"
+#define SET_STD_GW_ADDR		"2001:15c0:666d:101:221:2eff:ff00:2707"
 #define SET_STD_GW_PORT		"5683"
 #define SET_STD_REGMODE_PANID     43981
 #define SET_STD_NORMALMODE_PANID  40000

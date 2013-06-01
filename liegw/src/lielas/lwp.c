@@ -224,7 +224,7 @@ int lwp_get_attr_value(char *str, lwp_resource *res, char *attr_name, char *val,
   int rank;
   int pos =0 ;
   int i;
-  
+
   //get attriubte rank
   for(rank=0; rank < res->attributes && rank < LWP_MAX_ATTRIBUTES; rank++){
     if(strcmp(res->attr[rank].name, attr_name)== 0){
@@ -236,7 +236,7 @@ int lwp_get_attr_value(char *str, lwp_resource *res, char *attr_name, char *val,
   }
   
   while(rank > 0){
-    if(str[pos] == ' ' || str[pos] == '\n' || str[pos] == 0){
+    if(str[pos] == '\t' || str[pos] == '\n' || str[pos] == 0){
       rank -= 1;
     }
     pos += 1;
@@ -245,16 +245,17 @@ int lwp_get_attr_value(char *str, lwp_resource *res, char *attr_name, char *val,
     }
   }
   for( i = 0; pos < size; i++){
-    if(str[pos+i] == ' ' || str[pos+i] == '\n' || str[pos+i] == 0){
+    if(str[pos+i] == '\t' || str[pos+i] == '\n' || str[pos+i] == 0){
       break;
     }
     val[i] = str[pos + i];
   }
+  
   if((pos+i) >= size){
     val[0] = 0;
     return -1;
   }
-  val[pos+i] = 0;
+  val[i] = 0;
   return 0;
 }
  

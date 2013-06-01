@@ -11,6 +11,7 @@ import lielas.ui.HeaderScreen;
 import lielas.*;
 
 import com.vaadin.data.Item;
+import com.vaadin.server.FileDownloader;
 import com.vaadin.server.StreamResource;
 import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Panel;
@@ -108,13 +109,22 @@ public class DownloadScreen extends Panel{
 		secondSplitLayout.setComponentAlignment(downloadBttn, Alignment.TOP_RIGHT);
 		secondSplitLayout.setExpandRatio(downloadBttn, 1.0f);
 		
-		downloadBttn.addClickListener(new ClickListener(){
+		CSVHelper csv = new CSVHelper(app);
+		
+		StreamResource sr = csv.GetCSVFile("data");
+		FileDownloader fileDownloader = new FileDownloader(sr);
+		fileDownloader.extend(downloadBttn);
+		
+		/*downloadBttn.addClickListener(new ClickListener(){
 			@Override
 			public void buttonClick(ClickEvent event) {
 				// TODO Auto-generated method stub
 				BttnDownloadClicked(event);
 			}
-		});
+		});*/
+		
+
+
 		
 		hLayout.addComponent(vSplit);
 		hLayout.setComponentAlignment(vSplit, Alignment.TOP_CENTER);
@@ -133,7 +143,7 @@ public class DownloadScreen extends Panel{
 		downloadTable.setColumnHeader(LanguageHelper.DL_TABLE_COL_SENSOR, app.langHelper.GetString(LanguageHelper.DL_TABLE_COL_SENSOR));
 		
 		downloadHelpText.setValue(app.langHelper.GetString(LanguageHelper.DL_HELPTEXT_MULTISELECT));
-		
+
 	}
 	
 	public void Activate(){
@@ -195,9 +205,11 @@ public class DownloadScreen extends Panel{
 	}
 	
 	private void BttnDownloadClicked(ClickEvent event){
+		
 		CSVHelper csv = new CSVHelper(app);
 		
 		StreamResource sr = csv.GetCSVFile("data");
+		FileDownloader fileDownloader = new FileDownloader(sr);
 		//app.getPage().open(sr);
 		csv = null;
 	}
