@@ -43,7 +43,7 @@ public class CSVHelper implements Serializable{
 					if(app == null || app.deviceContainer == null || DeviceContainer.sql == null){
 						return new ByteArrayInputStream("Error".getBytes());
 					}
-					StringBuilder csvStr = DeviceContainer.sql.GetDataTable(app.deviceContainer);
+					StringBuilder csvStr = DeviceContainer.sql.GetDataTable(app.deviceContainer, app.user.getTimezone());
 					if(csvStr == null){
 						return new ByteArrayInputStream("Error".getBytes());
 					}

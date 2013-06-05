@@ -54,6 +54,7 @@ public class LiewebUI extends UI {
 	public UserContainer userContainer = null;
 	
 	public CoapHelper coap;
+	public User user;
 	
 	
 	@Override
@@ -88,13 +89,13 @@ public class LiewebUI extends UI {
 		boolean loggedIn = false;
 		
 		for(int i = 0; i < userContainer.size(); i++){
-			User u = userContainer.getIdByIndex(i);
-			if(u != null){
-				if(u.getLogin().equals(username)){
-					if(u.getPassword().equals(SQLHelper.getMD5Hash(pw))){
+			user = userContainer.getIdByIndex(i);
+			if(user != null){
+				if(user.getLogin().equals(username)){
+					if(user.getPassword().equals(SQLHelper.getMD5Hash(pw))){
 						setMainComponent(getDeviceManagerScreen());
 						headerScreen.setPermisson(1);
-						Notification.show("Welcome " + u.getForename() + " " + u.getName(),Notification.Type.WARNING_MESSAGE);
+						Notification.show("Welcome " + user.getForename() + " " + user.getName(),Notification.Type.WARNING_MESSAGE);
 						loggedIn = true;
 					}
 				}

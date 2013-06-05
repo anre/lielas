@@ -5,6 +5,7 @@ import java.security.MessageDigest;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 import javax.xml.bind.DatatypeConverter;
 
@@ -622,7 +623,7 @@ public class SQLHelper implements Serializable {
 		}		
 	}
 	
-	public StringBuilder GetDataTable(DeviceContainer dc){
+	public StringBuilder GetDataTable(DeviceContainer dc, Integer dtOffset){
 
 		String tableOrder = "datetime";
 		StringBuilder csvStr = new StringBuilder(" ");
@@ -735,11 +736,18 @@ public class SQLHelper implements Serializable {
 		
 			
 			csvStr.append("\r\n");
-			if(!tableOrder.equals("datetime")){	// add data if a data was queried
+			if(!tableOrder.equals("datetime")){	// add data if data was queried
 				ResultSetMetaData rsMetaData = rs.getMetaData();
 				int columnCount = rsMetaData.getColumnCount();
 				while(rs.next()){
-					csvStr.append(rs.getString(1));
+					//creat date and time String
+					SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy hh:mm:ss");
+					Calendar cal = Calendar.getInstance();
+					TimeZone tz = TimeZone.getTimeZone("UTC");
+					cal.setTimeZone(tz);
+					cal.setTime(rs.getTimestamp(1));
+					csvStr.append(sdf.format(cal.getTime()));
+					//add data
 					for( int i = 1; i < columnCount; i++){
 						data = rs.getString(i + 1);
 						if(data == null){
@@ -781,7 +789,7 @@ public class SQLHelper implements Serializable {
 				user.setForename(rs.getString(3));
 				user.setName(rs.getString(4));
 				user.setUsergroup(rs.getString(5));
-				user.setTimezone(rs.getString(6));
+				user.setTimezone(Integer.parseInt(rs.getString(6)));
 				user.setPassword(rs.getString(7));
 			}
 			
@@ -810,7 +818,7 @@ public class SQLHelper implements Serializable {
 				user.setForename(rs.getString(3));
 				user.setName(rs.getString(4));
 				user.setUsergroup(rs.getString(5));
-				user.setTimezone(rs.getString(6));
+				user.setTimezone(Integer.parseInt(rs.getString(6)));
 				user.setPassword(rs.getString(7));
 				uc.addItem(user);
 			}

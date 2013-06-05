@@ -10,7 +10,7 @@ public class User implements Serializable{
 	private String forename = null;
 	private String name = null;
 	private String usergroup = null;
-	private String timezone = null;
+	private Integer timezone = 0;
 	private String password = null;
 	
 	public User(int id){
@@ -51,10 +51,10 @@ public class User implements Serializable{
 	public void setUsergroup(String usergroup) {
 		this.usergroup = usergroup;
 	}
-	public String getTimezone() {
+	public Integer getTimezone() {
 		return timezone;
 	}
-	public void setTimezone(String timezone) {
+	public void setTimezone(Integer timezone) {
 		this.timezone = timezone;
 	}
 	public String getPassword() {

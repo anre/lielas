@@ -300,7 +300,7 @@ public class OptionsUserDetailsScreen extends VerticalLayout{
 		newUser.setLogin(dlCLoginTx.getValue().toString());
 		newUser.setForename(dlCForenameTx.getValue().toString());
 		newUser.setName(dlCNameTx.getValue().toString());
-		newUser.setTimezone(dlCTimezoneSel.getValue().toString());
+		newUser.setTimezone(Integer.parseInt(dlCTimezoneSel.getValue().toString()));
 		
 		// Password 
 		String p1 = dlCPasswordTx.getValue().toString();
