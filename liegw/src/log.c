@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define LOG_LEVEL	LOG_LEVEL_DEBUG
-#define LOG_TO		LOG_TO_STDOUT
+#define LOG_TO		LOG_TO_FILE
 
 void lielas_log(unsigned char *msg, int level){
 	char timestamp[50];
@@ -32,9 +32,9 @@ void lielas_log(unsigned char *msg, int level){
 		printf("%s%s%s\n", timestamp, lvlStr, msg);
 		fflush(stdout);
 	#elif LOG_TO == LOG_TO_FILE
-		FILE *f = fopen("lielas.log", "a");
+		FILE *f = fopen("/usr/local/lielas/logs/liegw.log", "a");
 		if(f != NULL){
-			fprintf("%s%s\n", timestamp, msg);
+			fprintf(f, "%s%s%s\n", timestamp, lvlStr, msg);
 			fclose(f);
 		}else{
 			printf("error: failed to open logfile\n");
