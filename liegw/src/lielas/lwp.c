@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "lwp.h"
 #include "../log.h"
@@ -48,6 +49,12 @@ int lwp_parse_wkc(char *str, lwp_wkc *wkc){
   int i;
   lwp_resource *res;
   char wkcstr[LWP_MAX_WKC_LEN];
+  
+  
+  if(str[0] == 0){
+    lielas_log((unsigned char*)"error parsing wkc, empty wkc string", LOG_LEVEL_WARN);
+    return -1;
+  }
   
   str = strchr(&str[1], '<');
   len = strlen(str);
@@ -202,7 +209,7 @@ void lwp_print_wkc(lwp_wkc *wkc, char* str){
   for(i = 0; i < res->attributes; i++){
     pos += snprintf(&str[pos], LWP_MAX_WKC_LEN - pos, "\t Attribute %s with rank %i of %i\n", res->attr[i].name, i, res->attributes);
   }
-  for(j = 0; j < wkc->channels && j < MAX_CHANNELS; j++){
+  for(j = 1; j <= wkc->channels && j < MAX_CHANNELS; j++){
     res = &wkc->channel[j];
     pos += snprintf(&str[pos], LWP_MAX_WKC_LEN - pos, "Resource %s:\n", res->name);
     for(i = 0; i < res->attributes; i++){
@@ -214,7 +221,6 @@ void lwp_print_wkc(lwp_wkc *wkc, char* str){
   for(i = 0; i < res->attributes; i++){
     pos += snprintf(&str[pos], LWP_MAX_WKC_LEN - pos, "\t Attribute %s with rank %i of %i\n", res->attr[i].name, i, res->attributes);
   } 
-
 }
 
 /********************************************************************************************************************************
@@ -258,8 +264,55 @@ int lwp_get_attr_value(char *str, lwp_resource *res, char *attr_name, char *val,
   val[i] = 0;
   return 0;
 }
- 
- 
+
+/********************************************************************************************************************************
+ * 		lwp_compdt_to_struct_tm
+ * 
+ *  convert compressed dt to struct tm
+ ********************************************************************************************************************************/  
+void lwp_compdt_to_struct_tm(uint8_t *cdt, struct tm *dt){
+  dt->tm_sec=cdt[0]&0x3f;
+  dt->tm_min=((cdt[0]&0xC0)>>6)+((cdt[1]&0x0F)<<2);
+  dt->tm_hour=((cdt[1]&0xF0)>>4)+((cdt[2]&0x01)<<4);
+  dt->tm_mday=(cdt[2]&0x3E)>>1;
+  dt->tm_mon=((cdt[2]&0xC0)>>6)+((cdt[3]&0x03)<<2)-1;
+  dt->tm_year=((cdt[3]&0xFC)>>2)+LWP_CENTURY_OFFSET;
+  dt->tm_wday=0;
+  dt->tm_yday=0;
+  dt->tm_isdst=0;
+}
+
+/********************************************************************************************************************************
+ * 		lwp_macto std_mac
+ * 
+ *  convert lwp mac to std mac format string
+ ********************************************************************************************************************************/  
+void lwp_mac_to_std_mac(char* dest, char* src){
+  dest[0] = toupper(src[0]);
+  dest[1] = toupper(src[1]);
+  dest[2] = ':';
+  dest[3] = toupper(src[2]);
+  dest[4] = toupper(src[3]);
+  dest[5] = ':';
+  dest[6] = toupper(src[4]);
+  dest[7] = toupper(src[5]);
+  dest[8] = ':';
+  dest[9] = toupper(src[6]);
+  dest[10] = toupper(src[7]);
+  dest[11] = ':';
+  dest[12] = toupper(src[8]);
+  dest[13] = toupper(src[9]);
+  dest[14] = ':';
+  dest[15] = toupper(src[10]);
+  dest[16] = toupper(src[11]);
+  dest[17] = ':';
+  dest[18] = toupper(src[12]);
+  dest[19] = toupper(src[13]);
+  dest[20] = ':';
+  dest[21] = toupper(src[14]);
+  dest[22] = toupper(src[15]);
+  dest[23] = 0; 
+}
  
  
  

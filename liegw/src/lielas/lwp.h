@@ -3,6 +3,7 @@
 
 #include "lielas.h"
 #include <stdint.h>
+#include <time.h>
 
 #define LWP_RESOURCE_WKC                ".well-known/core"
 #define LWP_RESOURCE_CHANNEL            "channel"
@@ -26,10 +27,11 @@
 #define LWP_ATTR_NETWORK_KEY            "key"
 #define LWP_ATTR_NETWORK_CYCLING_MODE   "cycling_mode"
 #define LWP_ATTR_NETWORK_CYCLING_TIME   "cycling_time"
+#define LWP_ATTR_NETWORK_MAC            "mac"
 #define LWP_ATTR_DATABASE_DATETIME      "datetime"
 #define LWP_ATTR_CHANNEL_VALUE          "value"
 #define LWP_ATTR_CHANNEL_UNIT           "unit"
-#define LWP_ATTR_CHANNEL_TYPE            "type"
+#define LWP_ATTR_CHANNEL_TYPE           "type"
 #define LWP_ATTR_CHANNEL_CLASS          "class"
 #define LWP_ATTR_LOGGER_STATE           "state"
 #define LWP_ATTR_LOGGER_INTERVAL        "interval"
@@ -44,6 +46,11 @@
 #define LWP_MAX_WKC_LEN         2000
 
 #define LWP_COMP_DT_LEN         4
+
+#define LWP_CENTURY_OFFSET      100
+
+#define LWP_CYCLE_MODE_OFF      0
+#define LWP_CYCLE_MODE_ON       1
 
 typedef struct lwp_attr_struct{
   char name[LWP_MAX_ATTR_NAME_LEN];
@@ -66,23 +73,7 @@ typedef struct lwp_wkc_struct{
   int channels;
 } lwp_wkc;
 
-typedef union
-{
- uint8_t  byte[4];
- uint32_t array;
- 
- struct
- {
-  uint8_t sec   : 6;
-  uint8_t min   : 6;
-  uint8_t hour  : 5;
-  
-  uint8_t day   : 5;
-  uint8_t month : 4;
-  uint8_t year  : 6;
- };
- 
-} compdatetime;
+
 
 void lwp_init_wkc(lwp_wkc *wkc);
 void lwp_init_resource(lwp_resource *res);
@@ -92,6 +83,8 @@ lwp_resource *lwp_get_res_by_name( char* str, lwp_wkc *wkc);
 int lwp_add_attr(char* name, lwp_resource *res);
 void lwp_print_wkc(lwp_wkc *wkc, char* str);
 int lwp_get_attr_value(char *str, lwp_resource *res, char *attr_name, char *val, int size);
+void lwp_compdt_to_struct_tm(uint8_t *cdt, struct tm *dt);
+void lwp_mac_to_std_mac(char* dest, char* src);
 #endif
 
 
