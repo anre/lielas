@@ -47,7 +47,7 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc);
 datapaketcontainer *CreateDatapaketcontainer();
 void DeleteDatapaketcontainer(datapaketcontainer *dpc);
 int DeviceSetDatetime(Ldevice *d);
-int deactivateCycleMode(Ldevice *d);
+int setCycleMode(Ldevice *d, int mode);
 datapaket *CreateDatapaket();
 
 int runmode;
@@ -69,6 +69,7 @@ void HandleDevices(){
 	static Ldevice *lastDevice;
 	Ldevice *d;
 	int nextScanInt;
+  char log[LOG_BUF_LEN];
 
 
 	memset(&lastPaketTime, 0, sizeof(struct tm));
@@ -130,11 +131,11 @@ void HandleDevices(){
 	}
 
 	//turn cycle mode off and sync if out of sync
-	//deactivateCycleMode(d);
+  //setCycleMode(d, LWP_CYCLE_MODE_OFF);
 	sleep(5);
 
-
-	printf("Start device scanning: %s\n", d->address);
+  snprintf(log, LOG_BUF_LEN, "Start device scanning: %s\n**********\n", d->address);
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
 	fflush(stdout);
 
 	dpc = CreateDatapaketcontainer();
@@ -142,16 +143,17 @@ void HandleDevices(){
 		return;
 
 	if(!getDeviceData(d, dpc)){
-
 		SaveDataPaketContainerToDatabase(dpc);
-
 	}
 	DeleteDatapaketcontainer(dpc);
 
-
+  //set device date and time
 	DeviceSetDatetime(d);
 
-	printf("End device scanning\n\n\n");
+  //turn cycle mode on again
+  //setCycleMode(d, LWP_CYCLE_MODE_ON);
+  
+  lielas_log((unsigned char*)"End device scanning\n**********\n", LOG_LEVEL_DEBUG);
 	fflush(stdout);
 
 }
@@ -189,13 +191,14 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 	char st[CMDBUFFER_SIZE];
 	char cmd[CMDBUFFER_SIZE];
 	char adrStr[CMDBUFFER_SIZE];
-  compdatetime cdt;
 	coap_buf *cb;
 	int cnr;
 	datapaket *dp;
 	PGresult *res;
   int pos = 0;
   int eof = 0;
+  uint16_t val;
+  
 
 	dpc->datapakets = 0;
 	dpc->dec = 0;
@@ -208,8 +211,7 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 	}
 	cb->buf = (char*)buf;
   cb->bufSize = DATABUFFER_SIZE;
-
-
+  
 	time(&rawtime);
 	now = gmtime(&rawtime);
 	memcpy(&timeout, now, sizeof(struct tm));
@@ -262,19 +264,10 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
   while(pos < cb->len && !eof){
 
     //parse date
-    for(i=0; i < LWP_COMP_DT_LEN; i++){
-      cdt.byte[0] = cb->buf[pos++];
-    }
+    lwp_compdt_to_struct_tm((unsigned char*)&cb->buf[pos], &dt);
+    mktime(&dt);
     
-    snprintf(datetimestr, CMDBUFFER_SIZE, "%4u.%2u.%2u %2u:%2u:%2u", cdt.year + 2000, cdt.month, cdt.day, cdt.hour, cdt.min, cdt.sec);
-    printf("dt: %s\n", datetimestr);
-    exit(0);
-		strptime((char*)&cb->buf[pos], "%Y.%m.%d %H:%M:%S", &dt);
-    strncpy(cmd, &cb->buf[pos], 20);
-    cmd[20] = 0;
-    
-    //skip date , YYYY.MM.DD HH:MM:SS plus space, 20 chars
-    pos += 20;
+    pos += 4;
       
     //test date
     if(testDatetime(&dt)){
@@ -288,14 +281,10 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 				dp->m = d->modul[1];
 				dp->c = d->modul[1]->channel[cnr];
         
-        for(i = 0; i < 4; i++){
-          if(cb->buf[pos + i] == ' ' || cb->buf[pos + i] == '\n' || cb->buf[pos + i] == 0 ){
-            break;
-          }
-					dp->value[i] = cb->buf[pos + i];
-				}
-        pos += i + 2;
-				dp->value[i] = 0;
+        val = ((uint8_t)cb->buf[pos+1]<<8) + (uint8_t)cb->buf[pos];
+        snprintf(dp->value, VALUEBUFFER_SIZE, "%u,%u", (val/10), (val%10));
+        
+        pos += 2;
 				memcpy(dp->dt, &dt, sizeof(struct tm));
 				dpc->dp[dpc->datapakets] = dp;
 				dpc->datapakets += 1;
@@ -306,11 +295,7 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
       eof = 1;
       break;
     }
-    
-    // go to next line
-    while(cb->buf[pos] == '\n' && pos < cb->len){pos += 1;}
-    pos += 1;
-    
+ 
   }
   
 	return 0;
@@ -389,6 +374,7 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 	PGresult *res;
 	char dtStr[CMDBUFFER_SIZE];
 	char adrStr[CMDBUFFER_SIZE];
+  char log[LOG_BUF_LEN];
 	int success = 0;
 
 	if(SQLTableExists(LDB_TBL_NAME_DATA)){
@@ -418,15 +404,16 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 			//creat new row
 			snprintf(st, CMDBUFFER_SIZE, "INSERT INTO %s.%s ( datetime, \"%s\" ) VALUES ( '%s', '%s')", 
                 LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dtStr, dpc->dp[i]->value);
-			printf("Save data: Address:%s Time:%s Value:%s°C\n", adrStr, dtStr, dpc->dp[i]->value);
-			fflush(stdout);
+      snprintf(log, LOG_BUF_LEN, "Saved data: Address:%s Time:%s Value:%s°C", adrStr, dtStr, dpc->dp[i]->value);
+			lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
 			res = SQLexec(st);
 			PQclear(res);
 			success += 1;
 		}else{
 			snprintf(st, CMDBUFFER_SIZE, "UPDATE %s.%s SET \"%s\"='%s' WHERE datetime='%s'", 
                 LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dpc->dp[i]->value, dtStr );
-			printf("Save data: Address:%s Time:%s Value:%s°C\n", adrStr, dtStr, dpc->dp[i]->value);
+      snprintf(log, LOG_BUF_LEN, "Saved data: Address:%s Time:%s Value:%s°C", adrStr, dtStr, dpc->dp[i]->value);
+			lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
 			fflush(stdout);
 			res = SQLexec(st);
 			PQclear(res);
@@ -434,7 +421,8 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 		}
 	}
 
-	printf("%i Paket(s) successfully safed\n", success);
+  snprintf(log, LOG_BUF_LEN, "%i Paket(s) successfully safed\n", success);
+	lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
 	fflush(stdout);
 
 	return 0;
@@ -443,7 +431,7 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
  * 		void deactivateCycleMode(Ldevice *d)
  ********************************************************************************************************************************/
 
-int deactivateCycleMode(Ldevice *d){
+int setCycleMode(Ldevice *d, int mode){
 	char cmd[CMDBUFFER_SIZE];
 	char payload[CMDBUFFER_SIZE];
 	char buf[CMDBUFFER_SIZE];
@@ -454,23 +442,35 @@ int deactivateCycleMode(Ldevice *d){
 	if(cb == NULL){
 		return -1;
 	}
+  
+  if(mode != LWP_CYCLE_MODE_ON && mode != LWP_CYCLE_MODE_OFF){
+	  lielas_log((unsigned char*)"error setting cycle mode: unknown cycle mode", LOG_LEVEL_WARN);
+    return -1;
+  }
+  
 	cb->buf = buf;
+  
+	snprintf(cmd, CMDBUFFER_SIZE, "coap://[%s]:5683/network", d->address);
+	snprintf(payload, CMDBUFFER_SIZE,"cycling_mode=%i", mode);
+  coap_set_retries(0);
 
-	snprintf(cmd, CMDBUFFER_SIZE, "coap://[%s]:5683/network/cycling", d->address);
-	snprintf(payload, CMDBUFFER_SIZE,"cycling=off");
 
 	for(i = 0; i < tries; i++){
-	  lielas_log((unsigned char*)"turn power cycle off", LOG_LEVEL_DEBUG);
-
-		coap_send_cmd(cmd, cb, MYCOAP_METHOD_POST, (unsigned char*)payload);
+		coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
 		if(cb->status == COAP_STATUS_CONTENT){
-	    lielas_log((unsigned char*)"successfully turned power cycle off", LOG_LEVEL_DEBUG);
-			sleep(2);
+      if(mode == LWP_CYCLE_MODE_ON){
+        lielas_log((unsigned char*)"successfully turned power cycle on", LOG_LEVEL_DEBUG);
+      }else{
+        lielas_log((unsigned char*)"successfully turned power cycle off", LOG_LEVEL_DEBUG);
+      }
+      coap_set_retries(MYCOAP_STD_TRIES);
 			return 0;
 		}
+    sleep(2);
 		buf[0] = 0;
 	}
 	sleep(2);
+  coap_set_retries(MYCOAP_STD_TRIES);
 	return -1;
 }
 

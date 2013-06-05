@@ -27,6 +27,8 @@
 #include "lielas/lielas.h"
 #include "lielas/device.h"
 
+#include <stdint.h>
+
 void HandleDevices();
 
 
