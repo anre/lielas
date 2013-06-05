@@ -79,7 +79,7 @@ void SQLclose(){
 PGresult *SQLexec(char *st){
 	PGresult *res;
   char *err;
-  char errStr[500];
+  char errStr[1000];
   
 	if(PQstatus(con) != CONNECTION_OK){
 		SQLconnect();
@@ -91,9 +91,9 @@ PGresult *SQLexec(char *st){
   
   err = PQresultErrorMessage(res);
   if( *err != 0){
-    snprintf( errStr, 500, "SQL-error: %s", err);
+    snprintf( errStr, 1000, "SQL-error: %s", err);
     lielas_log((unsigned char*) errStr, LOG_LEVEL_DEBUG);
-    snprintf( errStr, 500, "executing statement: %s", st);
+    snprintf( errStr, 1000, "executing statement: %s", st);
     lielas_log((unsigned char*) errStr, LOG_LEVEL_DEBUG);
   }
 	return res;
