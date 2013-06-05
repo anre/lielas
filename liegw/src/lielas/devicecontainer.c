@@ -216,7 +216,7 @@ int LDCloadDevices(){
 		strcpy(d->aint, PQgetvalue(res, i, 5));
 		strcpy(moduls,  PQgetvalue(res, i, 6));
     //load .well-known/core
-		strcpy(moduls,  PQgetvalue(res, i, 7));
+		strcpy(wkc,  PQgetvalue(res, i, 8));
     
     //parse wkc
     if(lwp_parse_wkc(wkc, &d->wkc) != 0){
@@ -418,6 +418,24 @@ Ldevice *loadDeviceById(unsigned int id){
 }
 
 /********************************************************************************************************************************
+ * 		LDCsaveWKC: write .well-known/core to database
+ ********************************************************************************************************************************/
+int LDCsaveWKC(char *wkc, Ldevice *d){
+	PGresult *res;
+	char st[SQL_STATEMENT_BUF_SIZE];
+ 
+  snprintf(st, SQL_STATEMENT_BUF_SIZE, "UPDATE %s.%s SET wkc='%s' WHERE id=%u", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, wkc, d->id);
+	res = SQLexec(st);
+	if(!res){
+		lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
+		PQclear(res);
+		return -1;
+	}
+	PQclear(res);
+  return 0;
+}
+
+/********************************************************************************************************************************
  * 		LDCsaveNewDevice: write new device to database
  ********************************************************************************************************************************/
 
@@ -433,7 +451,7 @@ int LDCsaveNewDevice(Ldevice *d){
 		return -1;
 	}
 
-	snprintf(st, 200, "INSERT INTO %s.%s (id, address, mac, registered, name,  mint, pint, aint) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s')",
+	snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mac, registered, name,  mint, pint, aint) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s')",
 	         LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id, d->address, d->mac, "true", d->name, d->mint, d->pint, d->aint);
 
 	res = SQLexec(st);
@@ -772,6 +790,7 @@ void LDCcheckForNewDevices(){
   char attr[CLIENT_BUFFER_LEN];
   char rplTable[CLIENT_BUFFER_LEN];
   char wkc[CLIENT_BUFFER_LEN];
+  char mac[MAC_STR_LEN];
   unsigned char payload[CLIENT_BUFFER_LEN];
   char log[LOG_BUF_LEN];
 	Ldevice *d;
@@ -885,13 +904,12 @@ void LDCcheckForNewDevices(){
 					sprintf(d->mint, "%d", LIELAS_STD_MINT);
 					sprintf(d->pint, "%d", LIELAS_STD_PINT);
 					sprintf(d->aint, "%d", LIELAS_STD_AINT);
-          
-          if(ipv6ToMac(d->address, d->mac)){
-            lielas_log((unsigned char*)"error parsing ipv6 to mac address", LOG_LEVEL_WARN);
-            return;
-          }
-          
+      
           //get wkc
+          
+          cb->buf = (char*)wkc;
+          cb->bufSize = CLIENT_BUFFER_LEN;
+          
           snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/.well-known/core", adr, set_getGatewaynodePort());
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
           
@@ -900,6 +918,7 @@ void LDCcheckForNewDevices(){
             return;
           }
           
+          
           //parse wkc
           if(lwp_parse_wkc(cb->buf, &d->wkc) != 0){
             lielas_log((unsigned char*)"failed to parse .well-known/core", LOG_LEVEL_WARN);
@@ -907,6 +926,10 @@ void LDCcheckForNewDevices(){
           }
           
           //get resource info
+          
+          cb->buf = (char*)buf;
+          cb->bufSize = CLIENT_BUFFER_LEN;
+          
           snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/info", adr, set_getGatewaynodePort());
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
           
@@ -923,6 +946,21 @@ void LDCcheckForNewDevices(){
             lielas_log((unsigned char*)"failed to parse .well-known/core: /info/sw_ver", LOG_LEVEL_WARN);
             return;
           }
+          
+          //get resource network
+          snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/network", adr, set_getGatewaynodePort());
+          coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);     
+              
+          if(cb->status != COAP_STATUS_CONTENT){
+            lielas_log((unsigned char*)"failed to get /network", LOG_LEVEL_WARN);
+            return;
+          }
+          
+          if(lwp_get_attr_value(cb->buf, &d->wkc.network, LWP_ATTR_NETWORK_MAC, mac, MAC_STR_LEN)){
+            lielas_log((unsigned char*)"failed to parse .well-known/core: /network/mac", LOG_LEVEL_WARN);
+            return;
+          }
+          lwp_mac_to_std_mac(d->mac, mac);
           
           //get resource device
           snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/device", adr, set_getGatewaynodePort());
@@ -1022,17 +1060,28 @@ void LDCcheckForNewDevices(){
           }
           
           // basic device settings finished, save device
-          LprintDeviceStructure(d, log, 5000, 0);
           lielas_log((unsigned char*)"saving new Device:", LOG_LEVEL_DEBUG);
-          lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
           
 					LDCadd(d);
 					LDCsaveNewDevice(d);
+          
+          LprintDeviceStructure(d, log, LOG_BUF_LEN, 0);
+          lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+          
+          
 					LDCsaveUpdatedDevice(d);
+          LDCsaveWKC(wkc, d);
           
           // set datetime
           lielas_log((unsigned char*)"setting device date and time", LOG_LEVEL_DEBUG);
           DeviceSetDatetime(d);
+          
+          // set logger interval
+          lielas_log((unsigned char*)"setting device logger interval to 60", LOG_LEVEL_DEBUG);
+          snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
+          snprintf((char*)payload, DATABUFFER_SIZE, "interval=60");
+          coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
+          
           
           // set logger state
           lielas_log((unsigned char*)"setting device logger on", LOG_LEVEL_DEBUG);
@@ -1047,7 +1096,6 @@ void LDCcheckForNewDevices(){
     nextToken += 1;
 	}
 
-	//j = 1;
 }
 
 int ipv6ToMac(const char* ip, char *mac){
