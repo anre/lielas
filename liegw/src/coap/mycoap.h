@@ -31,7 +31,7 @@
 #define MYCOAP_METHOD_PUT		3
 #define MYCOAP_METHOD_DELETE	4
 
-#define MYCOAP_TRIES  3
+#define MYCOAP_STD_TRIES  3
 
 #define COAP_STATUS_CONTENT	69
 
@@ -51,6 +51,8 @@ typedef struct {
 
 
 int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned char *post);
+
+void coap_set_retries(int retries);
 
 coap_buf *coap_create_buf();
 void coap_delete_buf(coap_buf *cb);

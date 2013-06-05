@@ -34,6 +34,8 @@
 
 int flags = 0;
 
+static int coap_retries = MYCOAP_STD_TRIES;
+
 #define FLAGS_BLOCK 0x01
 
 unsigned char method = MYCOAP_METHOD_GET; /* the method we are using in our requests */
@@ -295,7 +297,7 @@ void message_handler(struct coap_context_t  *ctx,
 	  }
 	#endif
 
-    mycoapbuf->status = received->hdr->code;
+    mycoapbuf->status = 0;
 
 	  /* check if this is a response to our original request */
 	  if (!check_token(received)) {
@@ -320,12 +322,15 @@ void message_handler(struct coap_context_t  *ctx,
 
 	  /* output the received data, if any */
 	  if (received->hdr->code == COAP_RESPONSE_CODE(205)) {
+      
+      mycoapbuf->status = received->hdr->code;
 
 
 	    /* Got some data, check if block option is set. Behavior is undefined if
 	     * both, Block1 and Block2 are present. */
 	    block_opt = get_block(received, &opt_iter);
 	    if (!block_opt) {
+        mycoapbuf->status = received->hdr->code;
 	      /* There is no block option set, just read the data and we are done. */
 	      if (coap_get_data(received, &len, &databuf)){
 	    	  //append_to_output(databuf, len);
@@ -339,6 +344,7 @@ void message_handler(struct coap_context_t  *ctx,
 
 	    } else {
 	    	unsigned short blktype = opt_iter.type;
+        mycoapbuf->status = received->hdr->code;
 
 	    	/* TODO: check if we are looking at the correct block number */
 	    	if (coap_get_data(received, &len, &databuf)){
@@ -351,9 +357,11 @@ void message_handler(struct coap_context_t  *ctx,
 	    	}
 
 	    	if (COAP_OPT_BLOCK_MORE(block_opt)) {
+          
+          mycoapbuf->status = 0;  //set status only when all pakets are received;
 	    		/* more bit is set */
-	    		printf("found the M bit, block size is %u, block nr. %u\n",
-	    			COAP_OPT_BLOCK_SZX(block_opt), COAP_OPT_BLOCK_NUM(block_opt));
+	    		//printf("found the M bit, block size is %u, block nr. %u\n",
+	    		//	COAP_OPT_BLOCK_SZX(block_opt), COAP_OPT_BLOCK_NUM(block_opt));
 	    		debug("found the M bit, block size is %u, block nr. %u\n",
 	    			COAP_OPT_BLOCK_SZX(block_opt), COAP_OPT_BLOCK_NUM(block_opt));
 
@@ -437,6 +445,10 @@ coap_buf *coap_create_buf(){
 	return cb;
 }
 
+void coap_set_retries(int retries){
+  coap_retries = retries;
+}
+
 void coap_delete_buf(coap_buf *cb){
 	if(cb->buf != NULL){
 		free(cb->buf);
@@ -494,14 +506,14 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
 		}
 	}
 
-    if (uri.query.length) {
-      buflen = BUFSIZE;
-      buf = _buf;
-      res = coap_split_query(uri.query.s, uri.query.length, buf, &buflen);
+  if (uri.query.length) {
+    buflen = BUFSIZE;
+    buf = _buf;
+    res = coap_split_query(uri.query.s, uri.query.length, buf, &buflen);
 
-      while (res--) {
-    	  coap_insert(&optlist, new_option_node(COAP_OPTION_URI_QUERY,
-					      	  	  	  	  	  	COAP_OPT_LENGTH(buf),
+    while (res--) {
+  	  coap_insert(&optlist, new_option_node(COAP_OPTION_URI_QUERY,
+                                      COAP_OPT_LENGTH(buf),
 					      	  	  	  	  	  	COAP_OPT_VALUE(buf)),
     			  	  order_opts);
 
@@ -587,8 +599,14 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
      } else
        tid = coap_send(ctx, &dst, pdu);
 
-     if (pdu->hdr->type != COAP_MESSAGE_CON || tid == COAP_INVALID_TID)
-       coap_delete_pdu(pdu);
+     if (pdu->hdr->type != COAP_MESSAGE_CON || tid == COAP_INVALID_TID){ 
+      coap_delete_list(optlist);
+      optlist = NULL;
+      mycoapbuf = 0;
+
+      coap_free_context( ctx );
+      return 0;
+     }
 
      while(!(ready && coap_can_exit(ctx))){
 		 FD_ZERO(&readfds);
@@ -628,7 +646,7 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
 		   coap_ticks(&now);
 		   if (max_wait <= now) {
         tries += 1;
-        if( tries >= MYCOAP_TRIES){
+        if( tries >= coap_retries){
           break;
         }else{
           coap_retransmit( ctx, coap_pop_next( ctx ));
