@@ -35,7 +35,7 @@ void HandleDevices();
 #define CMDBUFFER_SIZE			500
 #define DATABUFFER_SIZE			20000
 #define VALUEBUFFER_SIZE		20
-#define MAX_VALUES_IN_PAKET		1000
+#define MAX_VALUES_IN_PAKET		5000
 
 #define MAX_DATA_SEND_TIME		40
 
