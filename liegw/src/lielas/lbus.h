@@ -13,7 +13,7 @@
 #define LBUS_TOK_USER     "user"
 #define LBUS_TOK_CMD			"cmd"
 #define LBUS_TOK_PAYLOAD	"payload"
-#define LBUS_TOK_TARGET   "target"
+#define LBUS_TOK_DEVICE   "device"
 #define LBUS_TOK_RUNMODE  "runmode"
 
 #define LBUS_CMD_CHG          "chg"
@@ -47,7 +47,8 @@ typedef struct Lbuscontainer_struct{
 
 int lbus_init();
 int lbus_add(Lbuscmd *cmd, int saveToDb);
-Lbuscmd *lbus_createCmd();
+int lbus_load();
+Lbuscmd *lbus_createCmd(int id);
 void lbus_deleteCmd(Lbuscmd *cmd);
 void lbus_remove(Lbuscmd *cmd);
 Lbuscmd *lbus_getFirstCmd();
