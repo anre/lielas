@@ -132,8 +132,8 @@ int lwp_parse_wkc(char *str, lwp_wkc *wkc){
     pos += 1;
   }
   
-  lwp_print_wkc(wkc, wkcstr);
-  lielas_log((unsigned char*) wkcstr, LOG_LEVEL_DEBUG);
+  //lwp_print_wkc(wkc, wkcstr);
+  //lielas_log((unsigned char*) wkcstr, LOG_LEVEL_DEBUG);
   
   return 0;
 }
