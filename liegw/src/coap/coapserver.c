@@ -258,10 +258,12 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 	int len;
 	int parseError = 0;
 	unsigned char payload[MAX_PAYLOAD_SIZE];
+  unsigned char *requestData;
+  size_t requestLen;
   Lbuscmd *cmd;
   time_t rawtime;
   struct tm *tmnow;
-
+  
 	response->hdr->code = COAP_RESPONSE_CODE(205);
 
 	coap_add_option(response, COAP_OPTION_CONTENT_TYPE, coap_encode_var_bytes(buf, COAP_MEDIATYPE_APPLICATION_JSON), buf);
@@ -286,20 +288,32 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 		response->length += snprintf((char*)response->data, response->max_size - response->length, "%u", (unsigned int) now);
 	}else{
 		//parse cmd
+    
+    
+    if(!coap_get_data(request, &requestLen, &requestData)){
+			lielas_log((unsigned char*)"failed to get request data", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(500);
+			return;
+    }
+    requestData[requestLen] = 0;
+    
+    requestData[requestLen] = 0;
 		jsmn_init(&json);
 		r = jsmn_parse(&json, (char*)request->data, tokens, MAX_JSON_TOKENS);
 
 		if(r != JSMN_SUCCESS){
-			lielas_log((unsigned char*)"JSON parse error parsing put lbus cmd", LOG_LEVEL_WARN);
+			lielas_log((unsigned char*)"JSON parse error parsing put lbus cmd:", LOG_LEVEL_WARN);
 			response->hdr->code = COAP_RESPONSE_CODE(400);
+      exit(0);
 			return;
 		}
 
-		cmd = lbus_createCmd();
+		cmd = lbus_createCmd(0);
 		if(cmd == NULL) {
 			lielas_log((unsigned char*)"Couldn't create lbus cmd", LOG_LEVEL_WARN);
 			response->hdr->code = COAP_RESPONSE_CODE(500);
 			return;
+      
 		}
 
 		for(tok = 0; tok< json.toknext && !parseError; tok++){
@@ -354,6 +368,30 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 			response->hdr->code = COAP_RESPONSE_CODE(400);
 			return;
 		}
+    
+    if(cmd->cmd[0] == 0){
+			lielas_log((unsigned char*)"Error parsing lbus cmd, no command given", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(400);
+			return;
+    }
+    
+    if(cmd->address[0] == 0){
+			lielas_log((unsigned char*)"Error parsing lbus cmd, no address given", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(400);
+			return;
+    }
+    
+    if(cmd->user[0] == 0){
+			lielas_log((unsigned char*)"Error parsing lbus cmd, no user given", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(400);
+			return;
+    }
+        
+    if(cmd->payload[0] == 0){
+			lielas_log((unsigned char*)"Error parsing lbus cmd, no payload given", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(400);
+			return;
+    }
 
 	  //create timestamp
 	  time(&rawtime);
@@ -361,6 +399,7 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 	  cmd->tmrecv = *tmnow;
 
     lbus_add(cmd, 1);
+    free(cmd);
 
 
 
@@ -429,7 +468,7 @@ coap_context_t *get_context(){
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_flags = AI_PASSIVE | AI_NUMERICHOST;
 
-	s = getaddrinfo("::", "5683", &hints, &result);
+	s = getaddrinfo("::", "5684", &hints, &result);
 	if( s!= 0){
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
 		return NULL;
