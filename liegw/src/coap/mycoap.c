@@ -59,6 +59,8 @@ static FILE *file = NULL;	/* output file stream */
 
 static coap_buf *mycoapbuf;
 
+int handle_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned char *post);
+
 static inline void
 set_timeout(coap_tick_t *timer, const unsigned int seconds) {
   coap_ticks(timer);
@@ -457,6 +459,18 @@ void coap_delete_buf(coap_buf *cb){
 }
 
 int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned char *post){
+  int i;
+  int r = 0;
+  
+  for(i=0; i<coap_retries; i++){
+    r = handle_send_cmd(uriStr, cb, methode, post);
+    if(cb->status != 0)
+      break;
+  }
+  return r;
+}
+
+int handle_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned char *post){
 
 
 	unsigned char _buf[BUFSIZE];
@@ -646,6 +660,11 @@ int coap_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned ch
 		   coap_ticks(&now);
 		   if (max_wait <= now) {
         tries += 1;
+        coap_delete_list(optlist);
+     optlist = NULL;
+     mycoapbuf = 0;
+     coap_free_context( ctx );
+     return 1;
         if( tries >= coap_retries){
           break;
         }else{
