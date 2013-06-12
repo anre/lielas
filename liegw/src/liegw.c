@@ -71,17 +71,23 @@ int main(void) {
 		lielas_log((unsigned char*)"Error initializing lbus", LOG_LEVEL_ERROR);
 		return -2;
 	}
+ 
+  lielas_log((unsigned char*)"load lbus commands", LOG_LEVEL_DEBUG);
+	if(lbus_load() != 0){
+		lielas_log((unsigned char*)"Error loading lbus commands", LOG_LEVEL_ERROR);
+		return -4;
+	} 
 	
 	lielas_log((unsigned char*)"init coap", LOG_LEVEL_DEBUG);
 	if(COAPinit() != 0){
 		lielas_log((unsigned char*)"Error initializing COAP Server", LOG_LEVEL_ERROR);
-		return -3;
+		return -5;
 	}
 
   lielas_log((unsigned char*)"set runmode to normal mode", LOG_LEVEL_DEBUG);
 	if(lielas_setRunmode(RUNMODE_NORMAL) != 0){
     lielas_log((unsigned char*)"Error setting runmode to normal mode", LOG_LEVEL_ERROR);
-    return -4;
+    return -6;
 	}
 
   lielas_log((unsigned char*)"Starting coap server thread", LOG_LEVEL_DEBUG);
