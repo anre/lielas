@@ -24,21 +24,21 @@
 #ifndef LIELAS_H_
 #define LIELAS_H_
 
-#define IPV6_STR_LEN						50
-#define CHANNEL_ATTR_STR_LEN		50
-#define INT_STR_LEN							50
-#define MAC_STR_LEN						  50
+#define IPV6_STR_LEN						    50
+#define CHANNEL_ATTR_STR_LEN				50
+#define INT_STR_LEN						      50
+#define MAC_STR_LEN						      50
 
-#define SCAN_NEW_DEVICES_INTERVAL		    300
-#define MAX_SCAN_NEW_DEVICES_INTERVAL	  3600
-#define GET_NEXT_DEVICE_DATA_INTERVAL	  60
-#define GET_FIRST_DEVICE_DATA_INTERVAL  1200
-#define MAX_GET_DEVICE_DATA_INTERVAL	  3600
+#define SCAN_NEW_DEVICES_INTERVAL		      300
+#define MAX_SCAN_NEW_DEVICES_INTERVAL	  	3600
+#define GET_NEXT_DEVICE_DATA_INTERVAL	  	60
+#define GET_FIRST_DEVICE_DATA_INTERVAL  	1800
+#define MAX_GET_DEVICE_DATA_INTERVAL	  	3600
 
 #define MAX_TIME_DIFF						  4
 
-#define LIELAS_STD_MINT					  60
-#define LIELAS_STD_PINT						 2
+#define LIELAS_STD_MINT					  600
+#define LIELAS_STD_PINT						2
 #define LIELAS_STD_AINT						60
 
 #define MAX_MODULS							  20
