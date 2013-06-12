@@ -49,6 +49,7 @@ int LDCadd(Ldevice *d);
 int LDCremove(Ldevice *d);
 int LDCloadDevices();
 int LDCgetDeviceByAddress(const char* adr, Ldevice **d);
+int LDCgetDeviceById(int id, Ldevice **d);
 void LDCcheckForNewDevices();
 Ldevice *LDCgetFirstDevice();
 Ldevice *LDCgetNextDevice();

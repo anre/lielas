@@ -186,6 +186,7 @@ int LDCloadDevices(){
 	char msg[500];
   char wkc[CLIENT_BUFFER_LEN];
 	char st[SQL_STATEMENT_BUF_SIZE];
+  char log[LOG_BUF_LEN];
 
 	//query devices table
   
@@ -234,6 +235,10 @@ int LDCloadDevices(){
 
 	}
 	PQclear(res);
+  
+  snprintf(log, LOG_BUF_LEN, "%i devices loaded", i);
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+  
 	return 0;
 }
 
@@ -267,7 +272,7 @@ void loadModuls(Ldevice *d, char *moduls){
 			//load modul
 			mstr[j] = 0;
 		  snprintf(st, SQL_STATEMENT_BUF_SIZE,
-		            "SELECT id, address, channels FROM %s.%s WHERE id=%s",
+		            "SELECT id, address, channels, mint FROM %s.%s WHERE id=%s",
 		            LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS, mstr);
 
 			res = SQLexec(st);
@@ -280,6 +285,7 @@ void loadModuls(Ldevice *d, char *moduls){
 			modul->id = atoi(PQgetvalue(res, 0, 0));
 			strcpy(modul->address, PQgetvalue(res, 0, 1));
 			strcpy(channels, PQgetvalue(res, 0, 2));
+			strcpy(modul->mint, PQgetvalue(res, 0, 3));
 			loadChannels(modul, channels);
 			LaddModul(d, modul);
 
@@ -751,6 +757,38 @@ int LDCgetDeviceByAddress(const char* adr, Ldevice **d){
 }
 
 /********************************************************************************************************************************
+ * 		LDCgetDeviceById: searchs in devicecontainer for device with id
+ ********************************************************************************************************************************/
+
+int LDCgetDeviceById(int id, Ldevice **d){
+	static struct Ldc_struct *dc;
+
+	if(deviceContainer == NULL){
+		if(LDCinit() != 0){
+			lielas_log((unsigned char*)"Can't search for device, devicecontainer not initialized", LOG_LEVEL_WARN);
+			return -1;
+		}
+	}
+
+	if(deviceContainer->d == NULL){	// no devices in devicelist
+		*d = NULL;
+		return 0;
+	}
+
+	dc = deviceContainer;
+	while(dc->d->id != id){
+		if(dc->ndc == NULL){
+			*d = NULL;
+			return 0;
+		}
+		dc = dc->ndc;
+	}
+	*d = dc->d;
+	return 0;
+}
+
+
+/********************************************************************************************************************************
  * 		LDCgetFirstDevice: returns first device in devicecontainer
  ********************************************************************************************************************************/
 
@@ -1077,9 +1115,9 @@ void LDCcheckForNewDevices(){
           DeviceSetDatetime(d);
           
           // set logger interval
-          lielas_log((unsigned char*)"setting device logger interval to 60", LOG_LEVEL_DEBUG);
+          lielas_log((unsigned char*)"setting device logger interval to 600", LOG_LEVEL_DEBUG);
           snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
-          snprintf((char*)payload, DATABUFFER_SIZE, "interval=60");
+          snprintf((char*)payload, DATABUFFER_SIZE, "interval=600");
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
           
           
