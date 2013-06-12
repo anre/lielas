@@ -15,6 +15,7 @@ import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickEvent;
 
 import lielas.core.CoapHelper;
+import lielas.core.Config;
 import lielas.core.Device;
 import lielas.core.DeviceContainer;
 import lielas.core.NewDeviceContainer;
@@ -56,6 +57,7 @@ public class LiewebUI extends UI {
 	public CoapHelper coap;
 	public User user;
 	
+	public Config config;
 	
 	@Override
 	protected void init(VaadinRequest request) {
@@ -63,7 +65,6 @@ public class LiewebUI extends UI {
 		sql = new SQLHelper();
 		sql.Connect();
 		
-		//coap = new CoapHelper("192.168.0.18", 5683);
 		
 		deviceContainer = DeviceContainer.loadDevices(sql);
 		
@@ -73,15 +74,16 @@ public class LiewebUI extends UI {
 
 		langHelper = new LanguageHelper("lang_en.properties");
 		
-		
+		config = new Config();
+		config.LoadSettings();
 		
 		BuildMainLayout();
 		
 		loginScreen = new LoginScreen(this);
-		setMainComponent(loginScreen);
-		//setMainComponent(getDeviceManagerScreen());
-		//headerScreen.setPermisson(1);
-		
+		//setMainComponent(loginScreen);
+		user = userContainer.getIdByIndex(0);
+		setMainComponent(getDeviceManagerScreen());
+		headerScreen.setPermisson(1);
 		
 	}
 	

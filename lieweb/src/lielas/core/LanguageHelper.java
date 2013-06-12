@@ -41,6 +41,7 @@ public class LanguageHelper  implements Serializable{
 	public static String DM_TABLE_DL_DETAILS_MIN_VAL = "DM_TABLE_DL_DETAILS_MIN_VAL";
 	public static String DM_TABLE_DL_DETAILS_MAX_VAL = "DM_TABLE_DL_DETAILS_MAX_VAL";
 	public static String DM_TABLE_DL_SAVE_BTTN = "DM_TABLE_DL_SAVE_BTTN";
+	public static String DM_TABLE_DL_DELETE_BTTN = "DM_TABLE_DL_DELETE_BTTN";
 	public static String AT_PINT_OPT_LIFETIME  = "AT_PINT_OPT_LIFETIME";
 	public static String AT_PINT_OPT_NORMAL  = "AT_PINT_OPT_NORMAL";
 	public static String AT_PINT_OPT_FAST_GATHER  = "AT_PINT_OPT_FAST_GATHER";

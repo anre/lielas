@@ -687,7 +687,7 @@ public class OptionsScreen extends Panel{
 		usersTable.removeAllItems();
 		User user = app.userContainer.firstItemId();
 		for(int i = 0; i < app.userContainer.size(); i++){
-			usersTable.addItem(new Object[]{user.getLogin(), "", user.getTimezone()}, user.getID());
+			usersTable.addItem(new Object[]{user.getLogin(), "", user.getTimezone().toString()}, user.getID());
 			user = app.userContainer.nextItemId(user);
 		}
 	}

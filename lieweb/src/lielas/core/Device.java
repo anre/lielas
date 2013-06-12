@@ -126,7 +126,7 @@ public class Device implements Serializable {
 	}
 
 	public void addModul(int id, Modul m){
-		modul[m.getAddress()] = new Modul(id, this.meassurementIntervall, this.processIntervall, this.alarmIntervall);
+		modul[m.getAddress()] = new Modul(id, m.getMeassurementIntervall(), m.getProcessIntervall(), m.getAlarmIntervall());
 		modul[m.getAddress()].setAddress(m.getAddress());
 		moduls += 1;
 	}

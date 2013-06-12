@@ -28,6 +28,8 @@ public class SQLHelper implements Serializable {
 	private String dbUser;
 	private String dbPass;
 	private String csvDelimiter;
+	private String serverAddress;
+	private Integer serverPort;
 	
 	public SQLHelper(){
 			
@@ -42,8 +44,7 @@ public class SQLHelper implements Serializable {
 		
 		LoadSettings();
 		
-		//String url = "jdbc:postgresql://192.168.0.100:5432/lielas";
-		String url = "jdbc:postgresql://localhost:5432/lielas";
+		String url = "jdbc:postgresql://" + serverAddress + ":" + serverPort.toString() + "/lielas";
 		String user = dbUser;
 		String password = dbPass;
 		
@@ -64,6 +65,8 @@ public class SQLHelper implements Serializable {
 		cfg.LoadSettings();
 		dbUser = cfg.getDbUser();
 		dbPass = cfg.getDbPass();
+		serverAddress = cfg.getSqlServerAddress();
+		serverPort = cfg.getSqlServerPort();
 		csvDelimiter = cfg.getCsvDelimiter();
 	}
 	
@@ -510,7 +513,7 @@ public class SQLHelper implements Serializable {
 			update = "UPDATE lielas.channels SET name = '" + c.getName() + "' WHERE id = " +  c.getID();
 			st.executeUpdate(update);
 
-			update = "UPDATE lielas.channels SET dev_group = '" + c.getGroup() + "' WHERE id = " + c.getID();
+			update = "UPDATE lielas.channels SET channel_group = '" + c.getGroup() + "' WHERE id = " + c.getID();
 			st.executeUpdate(update);
 			
 			st.close();
@@ -741,7 +744,7 @@ public class SQLHelper implements Serializable {
 				int columnCount = rsMetaData.getColumnCount();
 				while(rs.next()){
 					//creat date and time String
-					SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy hh:mm:ss");
+					SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss");
 					Calendar cal = Calendar.getInstance();
 					TimeZone tz = TimeZone.getTimeZone("UTC");
 					cal.setTimeZone(tz);
@@ -943,7 +946,7 @@ public class SQLHelper implements Serializable {
 			String adr = d.getAddress() + "." + m.getAddress() + "." + c.getAddress();
 			if(ColumnExists(adr)){
 				Statement st = conn.createStatement();
-				ResultSet rs = st.executeQuery("SELECT datetime, \"" + adr + "\" FROM lielas.data WHERE  \"" + adr + "\" NOT LIKE '' ORDER BY datetime DESC LIMIT 1");
+				ResultSet rs = st.executeQuery("SELECT datetime, \"" + adr + "\" FROM lielas.log_data WHERE  \"" + adr + "\" NOT LIKE '' ORDER BY datetime DESC LIMIT 1");
 				if(rs.next()){
 					dt = rs.getTimestamp(1);
 					value = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(dt) + "\t" + rs.getString(2);

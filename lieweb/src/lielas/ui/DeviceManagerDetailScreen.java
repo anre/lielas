@@ -32,6 +32,7 @@ import lielas.core.Device;
 import lielas.core.DeviceContainer;
 import lielas.core.Channel;
 import lielas.core.ExceptionHandler;
+import lielas.core.LBus;
 import lielas.core.Modul;
 import lielas.core.LanguageHelper;
 import lielas.core.NewDeviceContainer;
@@ -61,6 +62,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 	private Label dlCSupplyLbl = null;
 
 	private NativeButton dlSaveBttn = null;
+	private NativeButton dlDeleteBttn = null;
 	
 	private static final int detailVSpacerHeight = 5;
 	
@@ -445,7 +447,6 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		// Save Button
 
 		Label dlFooterVSpacer = new Label();
-		dlFooterVSpacer.setWidth(245, Unit.PIXELS);
 		detailListFooterLayout.addComponent(dlFooterVSpacer);
 		detailListFooterLayout.setComponentAlignment(dlFooterVSpacer, Alignment.TOP_RIGHT);
 		
@@ -457,15 +458,28 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		dlSaveBttn.addClickListener(new ClickListener(){
 			@Override
 			public void buttonClick(ClickEvent event) {
-				// TODO Auto-generated method stub
 				DlSaveBttnClicked(event);
 			}
 		});
 		
+
+		
+		// Delete Button
+		
+		dlDeleteBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DELETE_BTTN));
+		dlDeleteBttn.addStyleName("detaillist-footer");
+		detailListFooterLayout.addComponent(dlDeleteBttn);
+		detailListFooterLayout.setComponentAlignment(dlDeleteBttn, Alignment.TOP_RIGHT);	
+		
+		dlDeleteBttn.addClickListener(new ClickListener(){
+			@Override
+			public void buttonClick(ClickEvent event) {
+				DlDeleteBttnClicked(event);
+			}
+		});
+		
 		this.addComponent(detailListBodyLayout);
-		this.addComponent(detailListFooterLayout);
-		
-		
+		this.addComponent(detailListFooterLayout);	
 		
 		
 		LoadContent();
@@ -477,11 +491,12 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		if(str.matches("\\d+")){
 			try{
 				mInt = Integer.parseInt(str);
-				if(mInt < 10){
-					Notification.show(type + "Inteterval is to small, minimum is 10s", Notification.Type.WARNING_MESSAGE);
+				if(mInt < 60){
+					Notification.show(type + "Inteterval is to small, minimum is 60s", Notification.Type.WARNING_MESSAGE);
 					return -1;
 				}else if(mInt > 43200){
 					Notification.show(type + "Inteterval is to big, maximum is 43200s", Notification.Type.WARNING_MESSAGE);
+					return -1;
 				}
 				return mInt;
 			}catch(Exception e){
@@ -492,7 +507,28 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		
 		return -1;
 	}
-
+	
+	private void DlDeleteBttnClicked(ClickEvent event){
+		YesNoPopupScreen ackPopup = new YesNoPopupScreen(app, "Delete Device", "Are you sure you want to delete the device? Device Data is not deleted.");
+		ackPopup.addListener(new PopupClosedListener(){
+			@Override
+			public void popupClosedEvent(YesNoPopupScreen e) {
+				if(e.isYesClicked()){
+					LBus lbus = new LBus(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
+					lbus.setCmd(lbus.LBUS_CMD_DEL);
+					lbus.setUser(app.user.getID());
+					lbus.setAddress("liegw");
+					lbus.setPayload("\"device\":\"" + device.getID().toString() + "\"");
+					lbus.send();
+					app.deviceContainer.removeItem(device);
+					device = null;
+				}
+				app.Update();
+			}
+		});
+	}
+	
+	
 	private void DlSaveBttnClicked(ClickEvent event){
 		
 		boolean error = false;
@@ -559,13 +595,18 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 					if(e.isYesClicked()){
 						if(app.deviceContainer.SaveDevice(device)){
 							Notification.show("Settings successfully saved");
+							LBus lbus = new LBus(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
+							lbus.setCmd(lbus.LBUS_CMD_CHG);
+							lbus.setUser(app.user.getID());
+							lbus.setAddress("liegw");
+							lbus.setPayload("\"device\":\"" + device.getID().toString() + "\"");
+							lbus.send();
 						}else{
 							Notification.show("Error: Couldn't save settings");
 						}
 						if(!registered){
 							if(app.sql.RegisterDevice(device)){
 								device.setRegistered(true);
-								
 							}
 						}
 					}
@@ -573,11 +614,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 				}
 			});
 		}
-		
-		
-		
 	}
-		
 }
 
 

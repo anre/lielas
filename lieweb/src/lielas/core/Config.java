@@ -8,8 +8,8 @@ import java.util.Properties;
 
 public class Config {
 
-	//static String appPath = "E:\\Firma\\SVN\\Lielas\\";
-	static String appPath = "/usr/local/lielas/";
+	static String appPath = "E:\\VM Share\\lielas\\lieweb\\";
+	//static String appPath = "/usr/local/lielas/";
 
 	//static String dbUser = "lielas";
 	//static String dbPass = "lielas";
@@ -30,6 +30,12 @@ public class Config {
 	String sixLowPanUART = "";
 	String sixLowPanBaudrate = "";
 	String sixLowPanTunnel = "";
+	
+	String lbusServerAddress = "";
+	Integer lbusServerPort = 5684;
+	
+	String sqlServerAddress = "localhost";
+	Integer sqlServerPort = 5432;
 	
 	public Config(){
 		
@@ -71,6 +77,13 @@ public class Config {
 		sixLowPanUART = configFile.getProperty("6LowPanUart");
 		sixLowPanBaudrate = configFile.getProperty("6LowPanBaudrate");
 		sixLowPanTunnel = configFile.getProperty("6LowPanTun");
+		
+		lbusServerAddress = configFile.getProperty("lbusServerAddress");
+		lbusServerPort = Integer.parseInt(configFile.getProperty("lbusServerPort"));
+
+		sqlServerAddress = configFile.getProperty("sqlServerAddress");
+		sqlServerPort = Integer.parseInt(configFile.getProperty("sqlServerPort"));
+		
 		
 	}
 	
@@ -180,6 +193,22 @@ public class Config {
 		this.sixLowPanUART = sixLowPanUART;
 	}
 
+	public String getLbusServerAddress() {
+		return lbusServerAddress;
+	}
+
+	public void setLbusServerAddress(String lbusServerAddress) {
+		this.lbusServerAddress = lbusServerAddress;
+	}
+
+	public Integer getLbusServerPort() {
+		return lbusServerPort;
+	}
+
+	public void setLbusServerPort(Integer lbusServerPort) {
+		this.lbusServerPort = lbusServerPort;
+	}
+
 	public String getSixLowPanBaudrate() {
 		return sixLowPanBaudrate;
 	}
@@ -194,5 +223,21 @@ public class Config {
 
 	public void setSixLowPanTunnel(String sixLowPanTunnel) {
 		this.sixLowPanTunnel = sixLowPanTunnel;
+	}
+
+	public String getSqlServerAddress() {
+		return sqlServerAddress;
+	}
+
+	public void setSqlServerAddress(String sqlServerAddress) {
+		this.sqlServerAddress = sqlServerAddress;
+	}
+
+	public Integer getSqlServerPort() {
+		return sqlServerPort;
+	}
+
+	public void setSqlServerPort(Integer sqlServerPort) {
+		this.sqlServerPort = sqlServerPort;
 	}
 }

@@ -186,6 +186,10 @@ public class DeviceManagerScreen extends Panel{
 		
 		setDeviceListHeight();
 		
+		if(deviceList.getValue() == null){
+			dmDetailScreen.setVisible(false);
+		}
+		
 		dmDetailScreen.Update();
 		
 			
