@@ -41,7 +41,7 @@
 #define SET_STD_SQL_USER	"lielas"
 #define SET_STD_SQL_PASS	"lieweb"
 #define SET_STD_SQL_DB		"lielas"
-#define SET_STD_SQL_HOST	"192.168.0.26"
+#define SET_STD_SQL_HOST	"localhost"
 #define SET_STD_SQL_PORT	"5432"
 #define SET_STD_COAP_ADDR	"::"
 #define SET_STD_COAP_PORT	"5683"

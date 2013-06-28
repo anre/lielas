@@ -29,12 +29,15 @@
 #include <sys/types.h>
 #include <pthread.h>
 
+
 #include "lielas/devicecontainer.h"
 #include "coap/coapserver.h"
 #include "log.h"
 #include "devicehandler.h"
 #include "lielas/lbus.h"
 #include "lielas/ldb.h"
+
+#include "rtc/rtc.h"
 
 /*
  * 		main
@@ -43,14 +46,20 @@ int main(void) {
   pthread_t coapserverThread;
 
   //pid = fork();
-
+  
   //setbuf(stdout, NULL);
   lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);
 
   lielas_log((unsigned char*)"setting timezone", LOG_LEVEL_DEBUG);
   putenv("TZ=CUT0");
   tzset();
-
+  
+  lielas_log((unsigned char*)"init rtc", LOG_LEVEL_DEBUG);
+  if(rtc_init()){
+    lielas_log((unsigned char*)"Error initializing rtc", LOG_LEVEL_ERROR);
+    return -1;
+  }
+  
   lielas_log((unsigned char*)"init database", LOG_LEVEL_DEBUG);
   if(lielas_createTables() != 0){
     lielas_log((unsigned char*)"Error initializing database", LOG_LEVEL_ERROR);

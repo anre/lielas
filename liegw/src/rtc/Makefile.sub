@@ -1,27 +1,24 @@
 include Makefile.inc
 
 C_SRCS += \
-src/devicehandler.c \
-src/liegw.c \
-src/settings.c \
-src/log.c 
+src/rtc/a10i2c.c \
+src/rtc/rtc4162.c \
+src/rtc/rtc.c 
 
 OBJS += \
-src/devicehandler.o \
-src/liegw.o \
-src/settings.o \
-src/log.o 
+src/rtc/a10i2c.o \
+src/rtc/rtc4162.o \
+src/rtc/rtc.o 
 
 C_DEPS += \
-src/devicehandler.d \
-src/liegw.d \
-src/settings.d \
-src/log.d 
+src/rtc/a10i2c.d \
+src/rtc/rtc4162.d \
+src/rtc/rtc.d 
 
 # Each subdirectory must supply rules for building sources it contributes
 %.o: %.c
 	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C Compiler'
+	@echo 'Invoking: GCC C Compiler $(CC) $(CFLAGS) -c  -o $@ $<'
 	$(CC) $(CFLAGS) -c  -o $@ $<
 	@echo 'Finished building: $<'
 	@echo ' '  
