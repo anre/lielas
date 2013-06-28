@@ -20,10 +20,20 @@ static Lbuscontainer *lbusconPtr;
 
 static int handleDelCmd(Lbuscmd *cmd);
 static int handleChgCmd(Lbuscmd *cmd);
+static int handleLoginCmd(Lbuscmd *cmd);
 static int parsePayload(char *payload, jsmn_parser *json, jsmntok_t *tokens, int maxtokens);
 static int getNewId();
 static int saveCmd(Lbuscmd *cmd);
 static int setCmdHandled(Lbuscmd *cmd);
+
+static int changeDevice(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens);
+static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens);
+
+
+// netTypeChanged
+// set to 1 if changing netType and to 0 after successfully login
+// if after LBUS_NET_RELOGIN_TIME netTypeChanged is 1, reset net settings
+static int netTypeChanged;
 
 pthread_mutex_t mutex;
 
@@ -44,6 +54,8 @@ int lbus_init(){
   lbuscon->lcmd = NULL;
   lbusconPtr = lbuscon;
   
+  netTypeChanged = 1;
+  
   pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);
   if(pthread_mutex_init(&mutex, &mutexAttr) != 0){
 		lielas_log((unsigned char*)"Couldn't initialize mutex for lbus container", LOG_LEVEL_ERROR);
@@ -58,7 +70,9 @@ int lbus_init(){
  ********************************************************************************************************************************/
 int lbus_load(){
   PGresult *res;
+  PGresult *resDel;
   char st[SQL_STATEMENT_BUF_SIZE];
+  char stDel[SQL_STATEMENT_BUF_SIZE];
   char dt[50];
   int rows;
   int i;
@@ -68,7 +82,7 @@ int lbus_load(){
   
   pthread_mutex_lock(&mutex);
   
-  snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, tmrecv, usr, address, cmd, payload FROM %s.%s WHERE handled='false'", LDB_TBL_SCHEMA, LDB_TBL_NAME_LBUS);
+  snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, tmrecv, usr, address, cmd, payload, tmnexthandle FROM %s.%s WHERE handled='false'", LDB_TBL_SCHEMA, LDB_TBL_NAME_LBUS);
   res = SQLexec(st);
   
   if(PQresultStatus(res) != PGRES_TUPLES_OK){
@@ -105,15 +119,37 @@ int lbus_load(){
     strcpy(lbuscmd->address, PQgetvalue(res,  i, 3));
     strcpy(lbuscmd->cmd, PQgetvalue(res,  i, 4));
     strcpy(lbuscmd->payload, PQgetvalue(res, i, 5));
+    strcpy(dt, PQgetvalue(res,  i, 6));
+    if(strlen(dt) == 0){
+      lbuscmd->tmnexthandle = 0;
+    }else{
+      lbuscmd->tmnexthandle = malloc(sizeof(struct tm));
+      if(lbuscmd->tmnexthandle == 0){
+        lielas_log((unsigned char*)"Error parsing lbus command: failed to allocate space for lbus tmnexthandle", LOG_LEVEL_WARN);
+        PQclear(res);
+        pthread_mutex_unlock(&mutex);
+        return -1;
+      }
+      strptime(dt, "%Y-%m-%d %H:%M:%S", lbuscmd->tmnexthandle);
+    }
     lbuscmd->handled = 0;
     
-    lbus_add(lbuscmd, 0);
+    if(lbuscmd->cmd[0] == 0){
+      //empty entry, delete it  
+      snprintf(stDel, SQL_STATEMENT_BUF_SIZE, "DELETE FROM %s.%s WHERE id=%li", LDB_TBL_SCHEMA, LDB_TBL_NAME_LBUS, id);
+      resDel = SQLexec(stDel);
+      PQclear(resDel);
+      
+    }else{
+      lbus_add(lbuscmd, 0);
+    }
     free(lbuscmd);
   }
   
   snprintf(log, LOG_BUF_LEN, "%i lbus commands loaded", i);
   lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
+  PQclear(res);
   pthread_mutex_unlock(&mutex);
   
   return 0;
@@ -196,6 +232,9 @@ int lbus_add(Lbuscmd *cmd, int saveToDb){
   return 0;
 }
 
+/********************************************************************************************************************************
+ * 		void lbus_remove(Lbuscmd *cmd)
+ ********************************************************************************************************************************/
 void lbus_remove(Lbuscmd *cmd){
   Lbuscontainer *con;
   
@@ -274,6 +313,7 @@ Lbuscmd *lbus_createCmd(int id){
 	cmd->address[0] = 0;
 	cmd->cmd[0] = 0;
 	cmd->payload[0] = 0;
+  cmd->tmnexthandle = 0;
   pthread_mutex_unlock(&mutex);
 
 	return cmd;
@@ -283,6 +323,10 @@ Lbuscmd *lbus_createCmd(int id){
  *    void lbus_deleteCmd(Lbuscmd *cmd)
  ********************************************************************************************************************************/
 void lbus_deleteCmd(Lbuscmd *cmd){
+  
+  if(cmd->tmnexthandle != NULL)
+    free(cmd->tmnexthandle);
+  
   free(cmd);
   cmd = 0;
 }
@@ -333,21 +377,38 @@ Lbuscmd *lbus_getNextCmd(){
  *    void lbus_handler()
  ********************************************************************************************************************************/
 void lbus_handler(){
-  Lbuscmd *cmd;
+  static Lbuscmd *cmd;
   pthread_mutex_lock(&mutex);
+	time_t rawtime;
+	struct tm *now;
 
   // look if unhandled cmd are in the buffer
-  cmd = lbus_getFirstCmd();
+  if(cmd == NULL){
+    cmd = lbus_getFirstCmd();
+  }else{
+    cmd = lbus_getNextCmd();
+  }
+  
   if(cmd == NULL){
     pthread_mutex_unlock(&mutex);
     return;
   }
 
-  //unhandled cmd found
-  if(!strcmp(cmd->cmd, LBUS_CMD_DEL )){
-    handleDelCmd(cmd);
-  }else if(!strcmp(cmd->cmd, LBUS_CMD_CHG )){
-    handleChgCmd(cmd);
+	time(&rawtime);
+	now = gmtime(&rawtime);
+
+  if(cmd->tmnexthandle == NULL || (difftime(mktime(now), mktime(cmd->tmnexthandle) < 1.0))){
+    //unhandled cmd found
+    if(!strcmp(cmd->cmd, LBUS_CMD_DEL )){
+      handleDelCmd(cmd);
+    }else if(!strcmp(cmd->cmd, LBUS_CMD_CHG )){
+      handleChgCmd(cmd);
+    }else if(!strcmp(cmd->cmd, LBUS_CMD_LOGIN )){
+      handleLoginCmd(cmd);
+    }else{
+      lielas_log((unsigned char*)"unknown lbus command", LOG_LEVEL_WARN);
+      setCmdHandled(cmd);
+    }
   }
 
   pthread_mutex_unlock(&mutex);
@@ -381,6 +442,19 @@ int lbus_printCmd(char *s, int maxLen, Lbuscmd *cmd){
 
   return len;
 }
+
+/********************************************************************************************************************************
+ * 		static int handleLoginCmd(Lbuscmd *cmd)
+ ********************************************************************************************************************************/
+static int handleLoginCmd(Lbuscmd *cmd){
+  
+  pthread_mutex_lock(&mutex);
+  setCmdHandled(cmd);
+  netTypeChanged = 0;
+  pthread_mutex_unlock(&mutex);
+  return 0;
+}
+
 
 /********************************************************************************************************************************
  * 		static int handleDelCmd(Lbuscmd *cmd)
@@ -476,20 +550,15 @@ static int handleChgCmd(Lbuscmd *cmd){
   jsmntok_t tokens[MAX_JSON_TOKENS];
   jsmn_parser json;
   char errStr[LBUF_MAX_ERR_STR_SIZE];
-  char idStr[SQL_STATEMENT_BUF_SIZE];
-  char log[LOG_BUF_LEN];
-  char st[SQL_STATEMENT_BUF_SIZE];
   int tok;
   int parseError = 0;
-  int i;
-  int id;
 
-  PGresult *res;
   pthread_mutex_lock(&mutex);
   
   //parse address
   if(!strcmp(cmd->address, LBUS_ADDRESS_LIEGW)){
     //address: liegw
+    // parse payload
     if(parsePayload(cmd->payload, &json, tokens, MAX_JSON_TOKENS) != 0){
       lielas_log((unsigned char*)"JSON parse error parsing lbus payload:", LOG_LEVEL_WARN);
       lbus_printCmd(errStr, LBUF_MAX_ERR_STR_SIZE, cmd);
@@ -501,61 +570,24 @@ static int handleChgCmd(Lbuscmd *cmd){
     for(tok = 0; tok< json.toknext && !parseError; tok++){
       if(tokens[tok].type == JSMN_STRING){
         if(strncmp((char*)&cmd->payload[tokens[tok].start], LBUS_TOK_DEVICE, strlen(LBUS_TOK_DEVICE)) == 0){
+          
           //device changed, reload it
-          tok+=1;
-          strncpy(idStr, (char*)&cmd->payload[tokens[tok].start], tokens[tok].end - tokens[tok].start);
-          id = atoi(idStr);
-          
-          if(id <= 0){
-            lielas_log((unsigned char*)"Error parsing lbus command: change device: error parsing device id", LOG_LEVEL_WARN);
+          if(changeDevice(cmd, tok, tokens, MAX_JSON_TOKENS)){
+            lielas_log((unsigned char*)"Error handling change device command", LOG_LEVEL_WARN);
             pthread_mutex_unlock(&mutex);
-            return 0;
+            return -1;
           }
           
-          Ldevice *d;
-          LDCgetDeviceById(id, &d);
+        }else if(strncmp((char*)&cmd->payload[tokens[tok].start], LBUS_TOK_NET_TYPE, strlen(LBUS_TOK_NET_TYPE)) == 0){
           
-          if(d != NULL){
-          
-            snprintf(log, LOG_BUF_LEN, "reloading device %s", d->mac);
-            lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-            
-            for(i = 1; i <= d->moduls; i++){
-              snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT mint FROM %s.%s WHERE id=%i", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS, d->modul[i]->id);
-              res = SQLexec(st);
-              
-              if(PQntuples(res) > 0){
-                strcpy(d->modul[i]->mint, PQgetvalue(res, 0, 0));
-                snprintf(log, LOG_BUF_LEN, "reloaded %s.%s: new mint is %s", d->mac, d->modul[i]->address, d->modul[i]->mint);
-                lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-              }else{
-                snprintf(log, LOG_BUF_LEN, "can't reload modul %s.%s, modul not found", d->mac, d->modul[i]->address);
-                lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-              }
-              
-              PQclear(res);
-              snprintf(log, LOG_BUF_LEN, "reloaded modul %s.%s", d->mac, d->modul[i]->address);
-              lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-            }
-            setCmdHandled(cmd);
-          }else{
-            lielas_log((unsigned char*) "can't reload device, device not found", LOG_LEVEL_DEBUG);
-            setCmdHandled(cmd);
+          //change ip
+          if(changeNetType(cmd, tok, tokens, MAX_JSON_TOKENS)){
+            lielas_log((unsigned char*)"Error handling change net type", LOG_LEVEL_WARN);
+            pthread_mutex_unlock(&mutex);
+            return -1;
           }
+          
         }
-        /*if(strncmp((char*)&cmd->payload[tokens[tok].start], LBUS_TOK_RUNMODE, strlen(LBUS_TOK_TARGET)) == 0){
-          tok+=1;
-          if(strncmp((char*)&cmd->payload[tokens[tok].start], LBUS_PAYLOAD_RUNMODE_NORMAL, strlen(LBUS_PAYLOAD_RUNMODE_NORMAL)) == 0){
-            lielas_setRunmode(RUNMODE_NORMAL);
-            printf("setting runmode\n");
-            setCmdHandled(cmd);
-            return 0;
-          }else if(strncmp((char*)&cmd->payload[tokens[tok].start], LBUS_PAYLOAD_RUNMODE_REGISTER, strlen(LBUS_PAYLOAD_RUNMODE_REGISTER)) == 0){
-            lielas_setRunmode(RUNMODE_REGISTER);
-            setCmdHandled(cmd);
-            return 0;
-          }
-        }*/
       } //if token == JSMN_STRING
     } // for every token
   }
@@ -685,6 +717,157 @@ static int saveCmd(Lbuscmd *cmd){
   pthread_mutex_unlock(&mutex);
   return 0;
 }
+
+/********************************************************************************************************************************
+ *    int setNextHandle(Lbuscmd *cmd, int offset)
+ ********************************************************************************************************************************/
+static int setNextHandle(Lbuscmd *cmd, int offset){
+  time_t rawtime;
+  struct tm *now;
+    
+  if(cmd->tmnexthandle == NULL){
+    cmd->tmnexthandle = malloc(sizeof(struct tm));
+    if(cmd->tmnexthandle == NULL){
+      return -1;
+    }
+  }
+    
+	time(&rawtime);
+  now = gmtime(&rawtime);
+  *cmd->tmnexthandle = *now;
+  cmd->tmnexthandle->tm_sec += offset;
+  mktime(cmd->tmnexthandle);
+  
+  return 0;
+}
+
+/********************************************************************************************************************************
+ *    int changeDeviceHandler(char *cmd, char *id, int len)
+ * 
+ * handle lbus command change device
+ ********************************************************************************************************************************/
+static int changeDevice(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens){
+    
+  char idStr[SQL_STATEMENT_BUF_SIZE];
+  int id;
+  Ldevice *d;
+  char st[SQL_STATEMENT_BUF_SIZE];
+  PGresult *res;
+  char log[LOG_BUF_LEN];
+  int i;
+  
+  tok += 1;
+  if(tok > maxTokens){
+    return -1;
+  }
+  
+  strncpy(idStr, (char*)&cmd->payload[tokens[tok].start], tokens[tok].end - tokens[tok].start);
+  id = atoi(idStr);
+  
+  if(id <= 0){
+    lielas_log((unsigned char*)"Error parsing lbus command: change device: error parsing device id", LOG_LEVEL_WARN);
+    pthread_mutex_unlock(&mutex);
+    return -1;
+  }  
+  
+  LDCgetDeviceById(id, &d);
+  
+  if(d != NULL){
+          
+    snprintf(log, LOG_BUF_LEN, "reloading device %s", d->mac);
+    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+            
+    for(i = 1; i <= d->moduls; i++){
+      snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT mint FROM %s.%s WHERE id=%i", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS, d->modul[i]->id);
+      res = SQLexec(st);
+              
+      if(PQntuples(res) > 0){
+        strcpy(d->modul[i]->mint, PQgetvalue(res, 0, 0));
+        snprintf(log, LOG_BUF_LEN, "reloaded %s.%s: new mint is %s", d->mac, d->modul[i]->address, d->modul[i]->mint);
+          lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+      }else{
+        snprintf(log, LOG_BUF_LEN, "can't reload modul %s.%s, modul not found", d->mac, d->modul[i]->address);
+        lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
+      }
+              
+      PQclear(res);
+      snprintf(log, LOG_BUF_LEN, "reloaded modul %s.%s", d->mac, d->modul[i]->address);
+      lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+    }
+    setCmdHandled(cmd);
+  }else{
+    lielas_log((unsigned char*) "can't reload device, device not found", LOG_LEVEL_DEBUG);
+    setCmdHandled(cmd);
+  } 
+  return 0;
+}
+
+/********************************************************************************************************************************
+ *    int changeNetType(char *id)
+ * 
+ * handle lbus command change net type
+ ********************************************************************************************************************************/
+static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens){
+  char net_type[LBUS_BUF_SIZE];
+  char net_address[LBUS_BUF_SIZE];
+  char net_mask[LBUS_BUF_SIZE];
+  char net_gw[LBUS_BUF_SIZE];
+  char bashCmd[LBUS_BUF_SIZE];
+   
+  if(cmd->tmnexthandle == 0){
+    //first time handling this command, load settings from database and change them
+    
+    lielas_getLDBSetting(net_type, LDB_SQL_SET_NAME_NET_TYPE, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_address, LDB_SQL_SET_NAME_NET_ADR, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_MASK, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_GATEWAY, LBUS_BUF_SIZE);
+    
+    printf("net_Type: %s\n", net_type);
+    if(!strcmp(net_type, "static")){
+      snprintf(bashCmd, LBUS_BUF_SIZE, "sudo /usr/local/lielas/bin/ipchanger set %s %s %s %s", net_type, net_address, net_mask, net_gw);
+      if(system(bashCmd)){
+        lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
+        setCmdHandled(cmd);
+        return -1;
+      }
+    }else if(!strcmp(net_type, "dhcp")){
+      snprintf(bashCmd, LBUS_BUF_SIZE, "sudo /usr/local/lielas/bin/ipchanger set %s", net_type);
+      if(system(bashCmd)){
+        lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
+        setCmdHandled(cmd);
+        return -1;
+      }
+    }else{
+      lielas_log((unsigned char*)"Failed to change network settings, unknown net_type", LOG_LEVEL_WARN);
+      setCmdHandled(cmd);
+      return -1;
+    }
+    
+    setNextHandle(cmd, LBUS_NET_RELOGIN_TIME);
+    netTypeChanged = 1;
+  }else{
+    printf("10 min spaeter\n");
+    setCmdHandled(cmd);
+    
+    if(netTypeChanged == 1){
+      //no successfull relogin, reset network settings
+      if(system("sudo /usr/local/lielas/bin/ipchanger restore")){
+        lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
+
+
+
+
+
+
+
+
 
 
 

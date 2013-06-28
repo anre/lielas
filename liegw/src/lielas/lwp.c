@@ -48,7 +48,7 @@ int lwp_parse_wkc(char *str, lwp_wkc *wkc){
   int len;
   int i;
   lwp_resource *res;
-  char wkcstr[LWP_MAX_WKC_LEN];
+  //char wkcstr[LWP_MAX_WKC_LEN];
   
   
   if(str[0] == 0){
