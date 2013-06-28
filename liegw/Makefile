@@ -25,7 +25,8 @@ src \
 src/coap \
 src/lielas \
 src/sql \
-src/jsmn
+src/jsmn \
+src/rtc
 
 all: $(BIN)
 
@@ -34,6 +35,7 @@ include src/coap/Makefile.sub
 include src/lielas/Makefile.sub
 include src/sql/Makefile.sub
 include src/jsmn/Makefile.sub
+include src/rtc/Makefile.sub
 
 $(BIN): $(OBJS) 
 	@echo 'Building target: $@'
