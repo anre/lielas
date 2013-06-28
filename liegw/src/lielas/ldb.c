@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ldb.h"
 #include "../sql/sql.h"
+#include "../log.h"
 
 
 /********************************************************************************************************************************
@@ -165,7 +167,7 @@ int lielas_createDataTbl(){
 }
 
 /********************************************************************************************************************************
- *    int lielas_createDataTbl()
+ *    int lielas_createSettingsTbl()
  ********************************************************************************************************************************/
 int lielas_createSettingsTbl(){
   char st[LDB_SQL_BUFFER_SIZE];
@@ -196,9 +198,69 @@ int lielas_createSettingsTbl(){
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'REG_AINT', '600') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
     res = SQLexec(st);
     PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_TYPE', 'DHCP') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_ADR', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_MASK', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_GATEWAY', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
   }
   return 0;
 }
+
+/********************************************************************************************************************************
+ *    int lielas_getLDBSetting(char* dest, const char* name)
+ ********************************************************************************************************************************/
+int lielas_getLDBSetting(char* dest, const char* name, int maxLen){
+  char st[LDB_SQL_BUFFER_SIZE];
+  PGresult *res;
+  
+  snprintf(st, LDB_SQL_BUFFER_SIZE, "SELECT value FROM %s.%s WHERE name='%s'", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS, name);
+  res = SQLexec(st);
+
+	if(PQresultStatus(res) != PGRES_TUPLES_OK){
+		lielas_log((unsigned char*)"Failed to get LDB Setting", LOG_LEVEL_WARN);
+		PQclear(res);
+		return -1;
+	}
+  
+  if(PQntuples(res) != 1){
+		lielas_log((unsigned char*)"Failed to get LDB Setting, Setting not found or failure in database", LOG_LEVEL_WARN);
+		PQclear(res);
+		return -1;
+  }
+  
+  strncpy(dest, PQgetvalue(res, 0, 0), maxLen);
+  
+  PQclear(res);
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

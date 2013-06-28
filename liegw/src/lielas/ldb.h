@@ -15,7 +15,7 @@
 #define LDB_TBL_NAME_DATA           "log_data"
 #define LDB_TBL_NAME_SETTINGS       "settings"
 
-#define LDB_TBL_CONTENT_LBUS            "(id integer NOT NULL, tmrecv timestamp, usr text, address text, cmd text, payload text, handled boolean, tmhandled timestamp, PRIMARY KEY(id))"
+#define LDB_TBL_CONTENT_LBUS            "(id integer NOT NULL, tmrecv timestamp, usr text, address text, cmd text, payload text, handled boolean, tmnexthandle timestamp, tmhandled timestamp, PRIMARY KEY(id))"
 #define LDB_TBL_CONTENT_USERS           "(id integer NOT NULL, login text, first_name text, last_name text, usergroup text, timezone text, password text, PRIMARY KEY(id))"
 #define LDB_TBL_CONTENT_DEVICE_GROUPS   "(id integer NOT NULL, name text, PRIMARY KEY(id))"
 #define LDB_TBL_CONTENT_USER_GOUPS      "(id integer NOT NULL, user_group text, delete_devices boolean, register_devices boolean, download boolean, PRIMARY KEY(id))"
@@ -24,6 +24,20 @@
 #define LDB_TBL_CONTENT_CHANNELS        "(id integer NOT NULL, address text, class text, type text, unit text, name text, channel_group text, PRIMARY KEY(id))"
 #define LDB_TBL_CONTENT_DATA            "(datetime timestamp NOT NULL, PRIMARY KEY(datetime))"
 #define LDB_TBL_CONTENT_SETTINGS        "(name text NOT NULL, value text, PRIMARY KEY(name))"
+
+
+#define LDB_SQL_SET_NAME_DB_VER           "DB_VER"
+#define LDB_SQL_SET_NAME_PANID            "PANID"
+#define LDB_SQL_SET_NAME_REGMODE_LEN      "REGMODE_LEN"
+#define LDB_SQL_SET_NAME_MAX_REGMODE_LEN  "MAX_REGMODE_LEN"
+#define LDB_SQL_SET_NAME_REG_MINT         "REG_MINT"
+#define LDB_SQL_SET_NAME_REG_PINT         "REG_PINT"
+#define LDB_SQL_SET_NAME_REG_AINT         "REG_AINT"
+#define LDB_SQL_SET_NAME_NET_TYPE         "NET_TYPE"
+#define LDB_SQL_SET_NAME_NET_ADR          "NET_ADR"
+#define LDB_SQL_SET_NAME_NET_MASK         "NET_MASK"
+#define LDB_SQL_SET_NAME_NET_GATEWAY      "NET_GATEWAY"
+
 
 
 int lielas_deleteTable(char* tblname);
@@ -38,6 +52,8 @@ int lielas_createModulsTbl();
 int lielas_createChannelsTbl();
 int lielas_createDataTbl();
 int lielas_createSettingsTbl();
+
+int lielas_getLDBSetting(char* dest, const char* name, int maxLen);
 
 #endif
 
