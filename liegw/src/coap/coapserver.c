@@ -386,12 +386,7 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 			response->hdr->code = COAP_RESPONSE_CODE(400);
 			return;
     }
-        
-    if(cmd->payload[0] == 0){
-			lielas_log((unsigned char*)"Error parsing lbus cmd, no payload given", LOG_LEVEL_WARN);
-			response->hdr->code = COAP_RESPONSE_CODE(400);
-			return;
-    }
+
 
 	  //create timestamp
 	  time(&rawtime);
