@@ -71,121 +71,12 @@ public class SQLHelper implements Serializable {
 	}
 	
 	public void InitDatabase(boolean withTestData){
-		String createTableStr = null;
 		
 		
 		if( conn == null){
 			Connect();
 		}
 		
-		try{
-			Statement st = conn.createStatement();
-			
-			if(!TableExists("devices")){
-				createTableStr = "CREATE TABLE lielas.devices( ID integer NOT NULL, address text, registered boolean, name text, dev_group text, " +
-						"mint text, pint text, aint text, moduls text, PRIMARY KEY(ID))";
-				st.executeUpdate(createTableStr);
-				
-				if(withTestData){
-					PreparedStatement pst = conn.prepareStatement("INSERT INTO devices ( id, address, registered, mint, pint, aint, moduls) VALUES ( ?, ?, ?, ?, ? ,?, ?)");
-					
-					String moduls[] = new String[10];
-					moduls[1] = "1";
-					
-					for( int i=1; i<=1; i++){
-						pst.setInt(1, i);
-						pst.setString(2,  "aaab::ff:fe00:3");
-						pst.setBoolean(3, true);
-						pst.setString(4, "60");
-						pst.setString(5,  "2");
-						pst.setString(6, "60");
-						pst.setString(7, moduls[i]);
-						pst.executeUpdate();
-					}
-					pst.close();
-				}
-			}
-
-			if(!TableExists("channels")){
-				createTableStr = "CREATE TABLE lielas.channels( ID integer NOT NULL, address text, type text, unit text, name text, dev_group text, PRIMARY KEY(ID))";
-				st.executeUpdate(createTableStr);
-				
-				if(withTestData){
-					PreparedStatement pst = conn.prepareStatement("INSERT INTO channels ( id, address, type, unit, name, dev_group) VALUES (? ,?, ?, ?, ?, ?)");
-					
-					int[] adr = { 0, 1, 2, 3, 1, 1, 2, 1, 2, 3, 4, 1, 2, 1, 2, 3, 4, 1, 2, 1, 1, 1, 2, 1, 2};
-					
-					String type[] = new String[30];
-					int j = 1;
-					type[j++] = "SHT_T";
-					type[j++] = "SHT_H";
-					type[j++] = "LPS_P";
-					
-					String unit[] = new String[30];
-					j = 1;
-					unit[j++] = "°C";
-					unit[j++] = "%";
-					unit[j++] = "mBar";
-					
-					for( int i=1; i<=j; i++){
-						pst.setInt(1, i);
-						pst.setString(2, Integer.toString(adr[i]));
-						pst.setString(3, type[i]);
-						pst.setString(4,  unit[i]);
-						pst.setString(5,  "");
-						pst.setString(6,  "");
-						pst.executeUpdate();
-					}
-				}
-			}
-
-			if(!TableExists("moduls")){
-				createTableStr = "CREATE TABLE lielas.moduls( ID integer NOT NULL, address text, channels text, mint text, pint text, aint text,PRIMARY KEY(ID))";
-				st.executeUpdate(createTableStr);
-				
-				if(withTestData){
-					PreparedStatement pst = conn.prepareStatement("INSERT INTO moduls ( id, address, channels, mint, pint, aint) VALUES ( ?, ?, ?, ?, ?, ?)");
-					
-					int[] adr = { 0, 0, 1, 2, 0, 1, 0, 1, 0, 1, 2, 0, 1 };
-					
-					String channels[] = new String[30];
-					int j = 1;
-					channels[j++] = "1;2;3";
-					
-					
-					for( int i=1; i<=j; i++){
-						pst.setInt(1, i);
-						pst.setString(2,  Integer.toString(adr[i]));
-						pst.setString(3, channels[i]);
-						pst.setString(4, "60");
-						pst.setString(5, "2");
-						pst.setString(6, "60");
-						pst.executeUpdate();
-					}
-					pst.close();
-				}
-			}
-			
-
-			if(!TableExists("groups")){
-				createTableStr = "CREATE TABLE lielas.groups( ID integer NOT NULL, user_group text, delete_devices boolean, register_devices boolean, download boolean, PRIMARY KEY(ID))";
-				st.executeUpdate(createTableStr);
-			}
-			
-			if(!TableExists("users")){
-				createTableStr = "CREATE TABLE lielas.users( ID integer NOT NULL, login text, \"first name\" text, \"family name\" text, usergroup text, timezone text, password text, PRIMARY KEY(ID))";
-				st.executeUpdate(createTableStr);
-				
-				if(withTestData){
-					st.executeUpdate("INSERT INTO lielas.users ( id, login, \"first name\", \"family name\", usergroup, " +
-									 "timezone, password) VALUES(1, 'demo', '', '', 'admin', '+1', '" + getInternalMD5Hash("demo") + "' )");
-				}
-			}
-			
-			st.close();
-		}catch(Exception e){
-			ExceptionHandler.HandleException(e);
-		}
 	}
 		
 	public boolean DeleteDatabase(){
@@ -994,7 +885,7 @@ public class SQLHelper implements Serializable {
 		return false;
 	}
 	
-	private String getInternalMD5Hash(String str){
+/*	private String getInternalMD5Hash(String str){
 		String md5 = "";
 		MessageDigest md = null;
 		
@@ -1010,7 +901,7 @@ public class SQLHelper implements Serializable {
 			ExceptionHandler.HandleException(e);
 		}
 		return null;
-	}
+	}*/
 	
 	public static String getMD5Hash(String str){
 		String md5 = "";
@@ -1179,4 +1070,157 @@ public class SQLHelper implements Serializable {
 		
 		return time;
 	}
+	
+	public String getNetType(){
+
+		String nettype = "";
+		
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				ResultSet rs = st.executeQuery("SELECT value FROM lielas.settings WHERE name='NET_TYPE'");
+				if(rs.next()){
+					nettype = rs.getString(1);
+				}
+				rs.close();
+				st.close();
+				
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}		
+		if(nettype == null)
+			return "";
+		
+		return nettype;
+	}
+	
+	public void setNetType(String netTpye) {
+
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				if(netTpye.equals("STATIC")){
+					st.executeUpdate("UPDATE lielas.settings SET value='static' WHERE name='NET_TYPE'");
+				}else{
+					st.executeUpdate("UPDATE lielas.settings SET value='dhcp' WHERE name='NET_TYPE'");
+				}
+				st.close();
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}	
+	}
+	
+	
+	public String getNetAddress(){
+
+		String nettype = "";
+		
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				ResultSet rs = st.executeQuery("SELECT value FROM lielas.settings WHERE name='NET_ADR'");
+				if(rs.next()){
+					nettype = rs.getString(1);
+				}
+				rs.close();
+				st.close();
+				
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}		
+		if(nettype == null)
+			return "";
+		
+		return nettype;
+	}
+	
+	public void setNetAddress(String netAddress) {
+
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				st.executeUpdate("UPDATE lielas.settings SET value='" + netAddress + "' WHERE name='NET_ADR'");
+				st.close();
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}	
+	}
+	
+	public String getNetMask(){
+
+		String nettype = "";
+		
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				ResultSet rs = st.executeQuery("SELECT value FROM lielas.settings WHERE name='NET_MASK'");
+				if(rs.next()){
+					nettype = rs.getString(1);
+				}
+				rs.close();
+				st.close();
+				
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}		
+		if(nettype == null)
+			return "";
+		
+		return nettype;
+	}
+	
+	public void setNetMask(String netMask) {
+
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				st.executeUpdate("UPDATE lielas.settings SET value='" + netMask + "' WHERE name='NET_MASK'");
+				st.close();
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}	
+	}
+	
+	public String getNetGateway(){
+
+		String nettype = "";
+		
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				ResultSet rs = st.executeQuery("SELECT value FROM lielas.settings WHERE name='NET_GATEWAY'");
+				if(rs.next()){
+					nettype = rs.getString(1);
+				}
+				rs.close();
+				st.close();
+				
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}		
+		if(nettype == null)
+			return "";
+		
+		return nettype;
+	}
+		
+		public void setNetGateway(String netGateway) {
+
+			try{
+				if(TableExists("settings")){
+					Statement st = conn.createStatement();
+					st.executeUpdate("UPDATE lielas.settings SET value='" + netGateway + "' WHERE name='NET_GATEWAY'");
+					st.close();
+				}
+			}catch(Exception e){
+				ExceptionHandler.HandleException(e);
+			}	
+		}
 }

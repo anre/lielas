@@ -11,6 +11,7 @@ import lielas.core.Config;
 import lielas.core.Device;
 import lielas.core.DeviceContainer;
 import lielas.core.ExceptionHandler;
+import lielas.core.LBus;
 import lielas.core.LanguageHelper;
 import lielas.core.SQLHelper;
 import lielas.core.CSVHelper;
@@ -18,6 +19,7 @@ import lielas.core.User;
 
 import lielas.LiewebUI;
 import lielas.ui.OptionsUserDetailsScreen;
+import lielas.ui.YesNoPopupScreen.PopupClosedListener;
 
 //import com.github.wolfie.refresher.Refresher;
 //import com.github.wolfie.refresher.Refresher.RefreshListener;
@@ -103,6 +105,7 @@ public class OptionsScreen extends Panel{
 	private NativeButton deleteDataBttn = null;
 	private NativeButton deleteDatabaseBttn  = null;
 	private NativeButton createTestDataBttn = null;
+	private NativeButton saveIPBttn = null;
 	
 	Label regCaptionLbl;
 	Label regMIntDLbl;
@@ -325,6 +328,12 @@ public class OptionsScreen extends Panel{
 		useDhcpCB.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(useDhcpCB, 1, 0);
 		
+		useDhcpCB.addValueChangeListener(new ValueChangeListener(){
+			public void valueChange(ValueChangeEvent event){
+				useDhcpCBclicked(event);
+			}
+		});
+		
 		ipAddressDLbl = new Label("IP");
 		ipAddressDLbl.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(ipAddressDLbl, 0, 1);
@@ -346,6 +355,18 @@ public class OptionsScreen extends Panel{
 		gwAddressCTx.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(gwAddressCTx, 1, 3);
 
+		saveIPBttn = new NativeButton("Save");
+		saveIPBttn.addStyleName("optionsscreen");
+		saveIPBttn.setHeight(24, Unit.PIXELS);
+		networkSettingsGridLayout.addComponent(saveIPBttn, 0, 4);
+		
+		saveIPBttn.addClickListener(new ClickListener(){
+			@Override
+			public void buttonClick(ClickEvent event) {
+				SaveIPBttnClicked(event);
+			}			
+		});
+		
 		
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		// 							6LowPan Settings
@@ -606,6 +627,7 @@ public class OptionsScreen extends Panel{
 	}
 	
 	public void Update(){
+		String str;
 		
 		Config cfg =  new Config();
 		cfg.LoadSettings();
@@ -619,6 +641,24 @@ public class OptionsScreen extends Panel{
 		// update Global settings
 		clockSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
 		languageSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_LANG_SETTINGS));
+		
+		//network settings
+		str = app.sql.getNetType();
+		if(str.equals("dhcp")){
+			useDhcpCB.setValue(true);
+			netmaskCTx.setEnabled(false);
+			ipAddressCTx.setEnabled(false);
+			gwAddressCTx.setEnabled(false);
+		}else{
+			useDhcpCB.setValue(false);
+			ipAddressCTx.setEnabled(true);
+			netmaskCTx.setEnabled(true);
+			gwAddressCTx.setEnabled(true);
+
+			ipAddressCTx.setValue(app.sql.getNetAddress());
+			netmaskCTx.setValue(app.sql.getNetMask());
+			gwAddressCTx.setValue(app.sql.getNetGateway());
+		}
 		
 		/*gwPrefixCTx.setValue(cfg.getSixLowPanPrefix());
 		gwIPCTx.setValue(cfg.getSixLowPanGatewayIP());
@@ -667,22 +707,7 @@ public class OptionsScreen extends Panel{
 		
 	}
 	
-	private String getIP(){
-		String ip = "";
-		
-		try{
-			//ProcessBuilder pb = new ProcessBuilder("sudo ifconfig eth0");
-			
-			
-			
-			
-		}catch(Exception e){
-			ExceptionHandler.HandleException(e);
-		}
-		
-		return ip;		
-	}
-	
+
 	private void FillUsersTable(){
 		usersTable.removeAllItems();
 		User user = app.userContainer.firstItemId();
@@ -732,6 +757,46 @@ public class OptionsScreen extends Panel{
 		}
 	}
 	
+	private void SaveIPBttnClicked(ClickEvent event){
+		YesNoPopupScreen ackPopup = new YesNoPopupScreen(app, "Save Network Settings", "Are you sure you want to save the network options?\nIf you do not login in 10 min. the settings will be set back.");
+		ackPopup.addListener(new PopupClosedListener(){
+			@Override
+			public void popupClosedEvent(YesNoPopupScreen e) {
+				if(e.isYesClicked()){
+					LBus lbus = new LBus(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
+					lbus.setCmd(lbus.LBUS_CMD_CHG);
+					lbus.setUser(app.user.getID());
+					lbus.setAddress("liegw");
+					
+					if(useDhcpCB.getValue()){
+						app.sql.setNetType("dhcp");
+						app.sql.setNetAddress("");
+						app.sql.setNetMask("");
+						app.sql.setNetGateway("");
+						
+						ipAddressCTx.setValue("");
+						netmaskCTx.setValue("");
+						gwAddressCTx.setValue("");
+						
+						lbus.setPayload("\"net_type\":\"dhcp\"");
+					}else{
+						app.sql.setNetType("static");
+						app.sql.setNetAddress(ipAddressCTx.getValue());
+						app.sql.setNetMask(netmaskCTx.getValue());
+						app.sql.setNetGateway(gwAddressCTx.getValue());
+						lbus.setPayload("\"net_type\":\"static\"\n");
+					}
+					
+
+					lbus.send();
+
+					Notification.show("Settings successfully saved");
+				}
+				app.Update();
+			}
+		});
+	}
+	
 	private void DeleteDatabaseBttnClicked(ClickEvent event){
 		
 		/*if(DeviceContainer.sql != null){
@@ -767,6 +832,18 @@ public class OptionsScreen extends Panel{
 				
 			}
 		}		
+	}
+	
+	private void useDhcpCBclicked(ValueChangeEvent event){
+		if(useDhcpCB.getValue()){
+			netmaskCTx.setEnabled(false);
+			ipAddressCTx.setEnabled(false);
+			gwAddressCTx.setEnabled(false);
+		}else{
+			netmaskCTx.setEnabled(true);
+			ipAddressCTx.setEnabled(true);
+			gwAddressCTx.setEnabled(true);
+		}
 	}
 }
 

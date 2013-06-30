@@ -12,6 +12,7 @@ public class LBus implements Serializable{
 	
 	public String LBUS_CMD_CHG = "chg";
 	public String LBUS_CMD_DEL = "del";
+	public String LBUS_CMD_LOGIN = "login";
 	
 	private String cmd = "";
 	private Integer user = 0;
@@ -46,7 +47,9 @@ public class LBus implements Serializable{
 		lbusCmd += "\"cmd:\":\"" + this.cmd + "\",\n";
 		lbusCmd += "\"user:\":\"" + this.user.toString() + "\",\n";
 		lbusCmd += "\"address:\":\"" + this.address + "\",\n";
-		lbusCmd += "\"payload:\":{" + this.payload + "}\n";
+		if(!this.payload.equals("")){
+			lbusCmd += "\"payload:\":{" + this.payload + "}\n";
+		}
 		lbusCmd += "}\n";
 		
 		ch.send(lbusCmd);

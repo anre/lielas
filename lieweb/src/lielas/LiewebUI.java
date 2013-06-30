@@ -18,6 +18,7 @@ import lielas.core.CoapHelper;
 import lielas.core.Config;
 import lielas.core.Device;
 import lielas.core.DeviceContainer;
+import lielas.core.LBus;
 import lielas.core.NewDeviceContainer;
 import lielas.core.SQLHelper;
 import lielas.core.User;
@@ -80,10 +81,10 @@ public class LiewebUI extends UI {
 		BuildMainLayout();
 		
 		loginScreen = new LoginScreen(this);
-		//setMainComponent(loginScreen);
+		setMainComponent(loginScreen);
 		user = userContainer.getIdByIndex(0);
-		setMainComponent(getDeviceManagerScreen());
-		headerScreen.setPermisson(1);
+		//setMainComponent(getDeviceManagerScreen());
+		//headerScreen.setPermisson(1);
 		
 	}
 	
@@ -99,6 +100,12 @@ public class LiewebUI extends UI {
 						headerScreen.setPermisson(1);
 						Notification.show("Welcome " + user.getForename() + " " + user.getName(),Notification.Type.WARNING_MESSAGE);
 						loggedIn = true;
+						LBus lbus = new LBus(this.config.getLbusServerAddress(), this.config.getLbusServerPort(), "lbus");
+						lbus.setCmd(lbus.LBUS_CMD_LOGIN);
+						lbus.setUser(this.user.getID());
+						lbus.setAddress("liegw");
+						lbus.setPayload("");
+						lbus.send();
 					}
 				}
 			}
