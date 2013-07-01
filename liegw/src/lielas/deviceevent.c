@@ -1,10 +1,10 @@
 /*
 *
 *	Copyright (c) 2013 Andreas Reder
-*	Author      : Andreas Reder <andreas@reder.eu>
+*	Author      : Andreas Reder <andreas.reder@lielas.org>
 *	File		: 
 *
-*	This File is part of lieweb, a web-gui for osd-compatible devices
+*	This File is part of lielas, see www.lielas.org for more information.
 *
 *   This program is free software: you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
