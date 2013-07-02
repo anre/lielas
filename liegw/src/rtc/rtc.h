@@ -32,8 +32,10 @@
 #define RTC_STATE_OK            1
 #define RTC_STATE_NOT_SYNCED    2
 
+
 int rtc_init();
 int rtc_get_state();
+const char *rtc_get_state_text();
 
 #endif
 

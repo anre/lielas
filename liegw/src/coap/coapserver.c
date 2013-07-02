@@ -48,6 +48,7 @@
 #include "../jsmn/jsmn.h"
 #include "../log.h"
 #include "../devicehandler.h"
+#include "../rtc/rtc.h"
 
 static time_t my_clock_base = 0;
 static coap_context_t *ctx;
@@ -86,16 +87,20 @@ void hnd_get_index(coap_context_t  *c, struct coap_resource_t *resource,
 }
 
 /********************************************************************************************************************************
- * 		hnd_get_time: time resource get handler
+ * 		hnd_get_rtc: rtc resource get handler
  ********************************************************************************************************************************/
 
-void hnd_get_time(coap_context_t  *c, struct coap_resource_t *resource,
+void hnd_get_rtc(coap_context_t  *c, struct coap_resource_t *resource,
         coap_address_t *peer, coap_pdu_t *request, str *token,
         coap_pdu_t *response){
 
 	coap_opt_iterator_t optIter;
 	unsigned char buf[5];
+  unsigned char str[500];
+  int len;
 	time_t now;
+
+  printf("found\n");
 
 	response->hdr->code = COAP_RESPONSE_CODE(205);
 
@@ -123,7 +128,14 @@ void hnd_get_time(coap_context_t  *c, struct coap_resource_t *resource,
 	}else{
 		struct tm *tmp;
 		tmp = gmtime(&now);
-		response->length += strftime((char*)response->data, response->max_size - response->length, "%d.%m.%Y %H:%M:%S", tmp);
+    snprintf((char*)str, 500 , "{\n");
+    len = strlen((char*)str);
+    snprintf((char*)&str[len], 500 - len, "\"state\":\"%s\",\n", rtc_get_state_text());
+    len = strlen((char*)str);
+		len += strftime((char*)&str[len], 500 - len, "\"time\":\"%d.%m.%Y %H:%M:%S\"\n", tmp);
+    snprintf((char*)&str[len], 500 - len, "}\n");
+    len = strlen((char*)str);
+		response->length += snprintf((char*)response->data, response->max_size - response->length, "%s", str);
 	}
 
 }
@@ -422,10 +434,10 @@ void init_resources(coap_context_t *c){
 	coap_add_attr(r, (unsigned char *) "title", 5, (unsigned char *) "\"Lielas\"", 14, 0);
 	coap_add_resource(c, r);
 
-	r = coap_resource_init((unsigned char *) "time", 4, 0);
-	coap_register_handler(r, COAP_REQUEST_GET, hnd_get_time);
+	r = coap_resource_init((unsigned char *) "rtc", 3, 0);
+	coap_register_handler(r, COAP_REQUEST_GET, hnd_get_rtc);
 	coap_add_attr(r, (unsigned char *)"ct", 2, (unsigned char*)"0", 1, 0);
-	coap_add_attr(r, (unsigned char *)"title", 2, (unsigned char*)"\"clock\"", 16, 0);
+	coap_add_attr(r, (unsigned char *)"title", 2, (unsigned char*)"\"real time clock\"", 16, 0);
 	coap_add_attr(r, (unsigned char *)"rt", 2, (unsigned char*)"\"text\"", 7, 0);
 	coap_add_resource(c, r);
 	

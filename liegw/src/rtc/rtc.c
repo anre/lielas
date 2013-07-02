@@ -32,6 +32,10 @@
 #include "../log.h"
 
 
+const char rtc_state_text_uninitialized[] = { "uninitialized" };
+const char rtc_state_text_ok[]            = { "ok" };
+const char rtc_state_text_not_synced[]    = { "not synced" };
+
 static int rtc_state;
 
 int testdt(struct tm *dt);
@@ -115,6 +119,23 @@ int rtc_init(){
 int rtc_get_state(){
   return rtc_state;
 }
+
+
+/********************************************************************************************************************************
+ * 		const char *rtc_get_state_text()
+ ********************************************************************************************************************************/
+const char *rtc_get_state_text(){
+  switch(rtc_state){
+    case RTC_STATE_UNINITIALIZED:
+      return rtc_state_text_uninitialized;
+    case RTC_STATE_OK:
+      return rtc_state_text_ok;
+    case RTC_STATE_NOT_SYNCED:
+      return rtc_state_text_not_synced;
+  }
+  return NULL;
+}
+
 
 /********************************************************************************************************************************
  * 		int testdt(struct tm *dt)
