@@ -1,0 +1,15 @@
+include Makefile.inc
+
+C_SRCS+=src/main.c
+
+OBJS+=src/main.o
+
+C_DEPS+=src/main.d
+
+%.o: %.c
+	@echo 'Building file: $<'
+	@echo 'Invoking: GCC C Compiler'
+	$(CC) $(CFLAGS) -c  -o $@ $<
+	@echo 'Finished building: $<'
+	@echo ' '  
+  

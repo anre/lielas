@@ -420,7 +420,7 @@ void lbus_handler(){
 	time(&rawtime);
 	now = gmtime(&rawtime);
 
-  if(cmd->tmnexthandle == NULL || (difftime(mktime(now), mktime(cmd->tmnexthandle) < 1.0))){
+  if(cmd->tmnexthandle == NULL || (difftime(mktime(cmd->tmnexthandle), mktime(now))< 1.0)){
     //unhandled cmd found
     if(!strcmp(cmd->cmd, LBUS_CMD_DEL )){
       handleDelCmd(cmd);
@@ -845,9 +845,10 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
     lielas_getLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_MASK, LBUS_BUF_SIZE);
     lielas_getLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_GATEWAY, LBUS_BUF_SIZE);
     
-    printf("net_Type: %s\n", net_type);
+    printf("net_Type: %s \n", net_type);
     if(!strcmp(net_type, "static")){
       snprintf(bashCmd, LBUS_BUF_SIZE, "sudo /usr/local/lielas/bin/ipchanger set %s %s %s %s", net_type, net_address, net_mask, net_gw);
+      printf("cmd: %s\n", bashCmd);
       if(system(bashCmd)){
         lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
         setCmdHandled(cmd);
@@ -855,6 +856,7 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
       }
     }else if(!strcmp(net_type, "dhcp")){
       snprintf(bashCmd, LBUS_BUF_SIZE, "sudo /usr/local/lielas/bin/ipchanger set %s", net_type);
+      printf("cmd: %s\n", bashCmd);
       if(system(bashCmd)){
         lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
         setCmdHandled(cmd);
@@ -867,6 +869,7 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
     }
     
     setNextHandle(cmd, LBUS_NET_RELOGIN_TIME);
+    printf("reset: %i:%i:%i\n", cmd->tmnexthandle->tm_hour, cmd->tmnexthandle->tm_min, cmd->tmnexthandle->tm_sec);
     netTypeChanged = 1;
   }else{
     printf("10 min spaeter\n");

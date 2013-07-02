@@ -1,5 +1,5 @@
 
-@import "../reindeer/styles.css";
+@import "../reindeer/legacy-styles.css";
 
 
 
@@ -159,6 +159,14 @@ button::-moz-focus-inner {
  *
  ***********************************************************************************************************************************************************/
 
+.header .v-panel-content > div {
+	background: url(images/background.png) repeat-x left top;
+}
+
+.header .v-scrollable {
+	overflow: hidden;
+}
+
 .v-horizontallayout-header {
 	background: url(images/background.png) repeat-x left top;
 	padding: none;
@@ -171,7 +179,6 @@ button::-moz-focus-inner {
 	color: #333333;
 	height: 28px;
 	background: transparent url(images/tab_right.png) no-repeat scroll top right;
-	float: left;
 	text-decoration: none;
 	border: none;
 	text-align: center;
@@ -202,17 +209,16 @@ button::-moz-focus-inner {
 }
 
 .v-nativebutton-header.header.v-nativebutton-active.active  {
-	display: block;
+	//display: block;
 	color: #FFFFFF;
-	height: 28px;
+	//height: 28px;
 	background: transparent url(images/tab_right.png) no-repeat scroll right -30px;
-	float: left;
-	text-decoration: none;
-	border: none;
-	text-align: center;
-	margin-right: 5px;
-	padding: 0 15px 0 0;
-	font-weight: bold;
+	//text-decoration: none;
+	//border: none;
+	//text-align: center;
+	//margin-right: 5px;
+	//padding: 0 15px 0 0;
+	//font-weight: bold;
 }
 
 .v-nativebutton-header.header.v-nativebutton-active.active span{
@@ -316,7 +322,7 @@ button::-moz-focus-inner {
 .v-verticallayout.v-verticallayout-detaillist.detaillist{
 	background: transparent;
 	border: none;
-	padding-left: 18px;
+	padding-left: 40px;
 }
 
 .v-verticallayout.v-verticallayout-detaillist-body.detaillist-body{
@@ -353,11 +359,16 @@ button::-moz-focus-inner {
 	vertical-align: middle;
 }
 
-.v-select-select {
+.v-select-dm {
 	background: #ECECEC;
 	border: none;
 }
- 
+
+ .v-select-select {
+	background: transparent;
+	border: none;
+}
+
  .v-nativebutton-detaillist-footer.detaillist-footer {
 	display: block;
 	color: #FFFFFF;
@@ -386,7 +397,12 @@ button::-moz-focus-inner {
 	font-weight: bold;
 }
 
+ .v-label-header.header {
+	margin-bottom: 15px;
+}
+
  .v-label-newmodul.newmodul {
+	margin-top: 10px;
 	border-top: 1px solid;
 	border-color: #CCCCCC;
 }
@@ -400,6 +416,17 @@ button::-moz-focus-inner {
 	font-weight: normal;
 }
 
+.v-label-dmDetailGridPadding {
+	margin-top: 6px;
+}
+
+.v-textfield-dmDetailGridPadding {
+	margin-top: 3px;
+}
+
+.v-select-dmDetailGridPadding {
+	margin-top: 3px;
+}
 
  /***********************************************************************************************************************************************************
  *
@@ -534,11 +561,13 @@ button::-moz-focus-inner {
 
 .v-panel-content-settings-block.v-scrollable {
 	background: #EEEEEE;
+	padding-bottom:10px;
 }
 
 .v-verticallayout-settings-block{
 	margin: 18px;
 	margin-bottom: 0px;
+	overflow-x: hidden;
 }
 
 .v-panel-content > div {
@@ -555,6 +584,7 @@ button::-moz-focus-inner {
 	border: none;
 	text-align: center;
 	height: 24px;
+	margin-top: 6px;
 	margin-right: 6px;
 	margin-bottom: 5px;
 	padding-right: 15px;
@@ -604,6 +634,70 @@ button::-moz-focus-inner {
 	vertical-align: middle;
 }
 
+.v-label-reg-settings {
+	margin-top: 10px;
+	margin-left: 10px;
+}
+
+.v-textfield-reg-settings {
+	margin-top: 6px;
+	margin-left: 10px;
+}
+
+ .v-nativebutton-reg-settings.reg-settings {
+	margin-top: 12px;
+	margin-left: 7px;
+	display: block;
+	color: #FFFFFF;
+	font-weight: bold;
+	background: transparent url(images/button_right_orange.png) no-repeat scroll top right;
+	float: left;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	height: 24px;
+	margin-right: 1px;
+	padding-right: 15px;
+}
+
+.v-nativebutton-reg-settings.reg-settings span {
+	display: inline;
+	background: transparent url(images/button_left_orange.png) no-repeat;
+	padding: 4px 0 6px 13px;
+	line-height: 15px;
+	height: 24px;
+	float: left;
+	cursor: pointer;
+}
+
+.v-select-reg-settings {
+	margin-top: 6px;
+	margin-left: 10px;
+	background: #FFFFFF;
+	border: solid 1px;
+	border-top-color: #A2A3A4;
+	border-right-color: #BCBDBE;
+	border-bottom-color: #D2D3D4;
+	border-left-color: #BCBDBE;
+	border-radius: 3px;
+}
+
+.v-label-settings {
+	margin-top: 10px;
+	margin-left: 10px;
+}
+
+.v-textfield-settings {
+	margin-top: 6px;
+	margin-left: 10px;
+}
+
+.v-checkbox-settings {
+	margin-top: 10px;
+	margin-left: 6px;
+}
+
+
 /***********************************************************************************************************************************************************
  *
  *				Popup
@@ -618,8 +712,22 @@ button::-moz-focus-inner {
 	border: none;
 }
 
+.v-window-contents {
+	background: transparent;
+}
+
+.v-verticallayout-popup {
+	background: #F9F9F9;
+}
+
 .v-label.v-label-popup.popup {
 	margin-bottom: 5px;
+	margin-left: 10px;
+	margin-top: 10px;
+}
+
+.v-horizontallayout-button-layout {
+	padding-right: 50px;
 }
 
 .v-nativebutton.v-nativebutton-popup.popup {

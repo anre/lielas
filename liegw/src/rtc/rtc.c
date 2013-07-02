@@ -86,11 +86,6 @@ int rtc_init(){
       rtc4162_set(now);
       
     }
-    exit(0);
-    
-    //ntp not synchronized, wait for time or sync
-    
-    
     return RTC_TIME_NOT_VALID;
   }
   

@@ -1122,7 +1122,7 @@ public class SQLHelper implements Serializable {
 		try{
 			if(TableExists("settings")){
 				Statement st = conn.createStatement();
-				if(netTpye.equals("STATIC")){
+				if(netTpye.equals("static")){
 					st.executeUpdate("UPDATE lielas.settings SET value='static' WHERE name='NET_TYPE'");
 				}else{
 					st.executeUpdate("UPDATE lielas.settings SET value='dhcp' WHERE name='NET_TYPE'");

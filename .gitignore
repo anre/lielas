@@ -1,0 +1,5 @@
+*.o
+
+/liegw/liegw
+
+/liegw/run.sh

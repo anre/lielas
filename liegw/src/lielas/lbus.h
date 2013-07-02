@@ -58,7 +58,7 @@
 #define LBUS_SQL_BUFFER_SIZE	1000
 
 
-#define LBUS_NET_RELOGIN_TIME   600
+#define LBUS_NET_RELOGIN_TIME   60
 
 
 typedef struct{
