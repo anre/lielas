@@ -100,8 +100,6 @@ void hnd_get_rtc(coap_context_t  *c, struct coap_resource_t *resource,
   int len;
 	time_t now;
 
-  printf("found\n");
-
 	response->hdr->code = COAP_RESPONSE_CODE(205);
 
 	coap_add_option(response, COAP_OPTION_CONTENT_TYPE, coap_encode_var_bytes(buf, COAP_MEDIATYPE_TEXT_PLAIN), buf);

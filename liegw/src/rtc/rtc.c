@@ -26,6 +26,7 @@
 #include <time.h>
 #include <sys/timex.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include "rtc.h"
 #include "rtc4162.h"
@@ -40,6 +41,9 @@ static int rtc_state;
 
 int testdt(struct tm *dt);
 
+
+pthread_mutex_t rtcmutex;
+
 /********************************************************************************************************************************
  * 		int rtc_init()
  ********************************************************************************************************************************/
@@ -49,10 +53,17 @@ int rtc_init(){
 	time_t rawtime;
 	struct tm *now;
   int timenotvalid = 0;
+  pthread_mutexattr_t mutexAttr;
   
   char cmd[100];
   
   rtc_state = RTC_STATE_UNINITIALIZED;
+  
+  pthread_mutexattr_settype(&mutexAttr, PTHREAD_MUTEX_RECURSIVE);
+  if(pthread_mutex_init(&rtcmutex, &mutexAttr) != 0){
+		lielas_log((unsigned char*)"Couldn't initialize mutex for rtc", LOG_LEVEL_ERROR);
+		return -1;
+  }
   
   //init rtc modul
   if(rtc4162_init()){
@@ -117,7 +128,11 @@ int rtc_init(){
  * 		int rtc_get_state()
  ********************************************************************************************************************************/
 int rtc_get_state(){
-  return rtc_state;
+  int state;
+  pthread_mutex_lock(&rtcmutex);
+  state = rtc_state;
+  pthread_mutex_unlock(&rtcmutex);
+  return state;
 }
 
 
@@ -125,7 +140,13 @@ int rtc_get_state(){
  * 		const char *rtc_get_state_text()
  ********************************************************************************************************************************/
 const char *rtc_get_state_text(){
-  switch(rtc_state){
+  int state;
+  
+  pthread_mutex_lock(&rtcmutex);
+  state = rtc_state;
+  pthread_mutex_unlock(&rtcmutex);  
+  
+  switch(state){
     case RTC_STATE_UNINITIALIZED:
       return rtc_state_text_uninitialized;
     case RTC_STATE_OK:
