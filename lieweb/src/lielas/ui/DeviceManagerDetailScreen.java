@@ -56,6 +56,7 @@ import lielas.core.DeviceContainer;
 import lielas.core.Channel;
 import lielas.core.ExceptionHandler;
 import lielas.core.LBus;
+import lielas.core.LBusSender;
 import lielas.core.Modul;
 import lielas.core.LanguageHelper;
 import lielas.core.NewDeviceContainer;
@@ -537,7 +538,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 			@Override
 			public void popupClosedEvent(YesNoPopupScreen e) {
 				if(e.isYesClicked()){
-					LBus lbus = new LBus(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
+					LBusSender lbus = new LBusSender(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
 					lbus.setCmd(lbus.LBUS_CMD_DEL);
 					lbus.setUser(app.user.getID());
 					lbus.setAddress("liegw");
@@ -618,7 +619,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 					if(e.isYesClicked()){
 						if(app.deviceContainer.SaveDevice(device)){
 							Notification.show("Settings successfully saved");
-							LBus lbus = new LBus(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
+							LBusSender lbus = new LBusSender(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
 							lbus.setCmd(lbus.LBUS_CMD_CHG);
 							lbus.setUser(app.user.getID());
 							lbus.setAddress("liegw");

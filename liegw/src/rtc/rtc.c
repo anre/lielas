@@ -34,7 +34,7 @@
 
 
 const char rtc_state_text_uninitialized[] = { "uninitialized" };
-const char rtc_state_text_ok[]            = { "ok" };
+const char rtc_state_text_ok[]            = { "running" };
 const char rtc_state_text_not_synced[]    = { "not synced" };
 
 static int rtc_state;

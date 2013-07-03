@@ -29,12 +29,16 @@ import java.net.NetworkInterface;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.Calendar;
+import java.util.TimeZone;
 
 import lielas.core.Config;
 import lielas.core.Device;
 import lielas.core.DeviceContainer;
 import lielas.core.ExceptionHandler;
 import lielas.core.LBus;
+import lielas.core.LBusReceiver;
+import lielas.core.LBusSender;
 import lielas.core.LanguageHelper;
 import lielas.core.SQLHelper;
 import lielas.core.CSVHelper;
@@ -103,6 +107,7 @@ public class OptionsScreen extends Panel{
 	
 	private CheckBox useTimeServerCB = null;
 	private TextField timeServerTxt = null;
+	private Label rtcStateTxt = null;
 	private DateField dateField = null;
 	
 	
@@ -211,20 +216,23 @@ public class OptionsScreen extends Panel{
 		FormLayout timeServerLo = new FormLayout();
 		clockSettingsLayout.addComponent(timeServerLo);
 		
-		timeServerTxt = new TextField("Time Server");
+		/*timeServerTxt = new TextField("Time Server");
 		timeServerTxt.setValue("0.at.pool.ntp.org");
-		timeServerLo.addComponent(timeServerTxt);
+		timeServerLo.addComponent(timeServerTxt);*/
 		
-		useTimeServerCB = new CheckBox("Automatically get Time");
+		rtcStateTxt = new Label("RTC Status: ");
+		timeServerLo.addComponent(rtcStateTxt);
+		
+		/*useTimeServerCB = new CheckBox("Automatically get Time");
 		useTimeServerCB.setValue(true);
 		useTimeServerCB.setImmediate(true);
-		timeServerLo.addComponent(useTimeServerCB);
+		timeServerLo.addComponent(useTimeServerCB);*/
 		
-		useTimeServerCB.addValueChangeListener(new ValueChangeListener(){
+		/*useTimeServerCB.addValueChangeListener(new ValueChangeListener(){
 			public void valueChange(ValueChangeEvent event){
 				UseTimeServerCBClickHandler(event);
 			}
-		});
+		});*/
 				
 		dateField = new DateField();
 		dateField.setValue(new Date());
@@ -232,13 +240,20 @@ public class OptionsScreen extends Panel{
 		dateField.setEnabled(false);
 		timeServerLo.addComponent(dateField);
 		
+		dateField.addValueChangeListener(new ValueChangeListener(){
+			@Override
+			public void valueChange(ValueChangeEvent event) {
+				handleDateFieldValueChange(event);
+			}
+		});
+		
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		// 						Language Settings 
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		
 		
 		//create panel
-		Panel languageSettingsPanel = new Panel();
+		/*Panel languageSettingsPanel = new Panel();
 		languageSettingsPanel.addStyleName("settings-block");
 		globalSettingsLayout.addComponent(languageSettingsPanel);
 		
@@ -250,7 +265,7 @@ public class OptionsScreen extends Panel{
 		//header
 		languageSettingsLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_LANG_SETTINGS));
 		languageSettingsLbl.addStyleName("bold");
-		languageSettingsLayout.addComponent(languageSettingsLbl);
+		languageSettingsLayout.addComponent(languageSettingsLbl);*/
 		
 		//content
 		
@@ -396,7 +411,7 @@ public class OptionsScreen extends Panel{
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		
 		//create panel
-		Panel sixLowPanSettingsPanel = new Panel();
+		/*Panel sixLowPanSettingsPanel = new Panel();
 		sixLowPanSettingsPanel.addStyleName("settings-block");
 		globalSettingsLayout.addComponent(sixLowPanSettingsPanel);
 		
@@ -419,7 +434,7 @@ public class OptionsScreen extends Panel{
 		sixLowPanSettingsGridLayout.addComponent(slpPanIdDLbl, 0, 3);
 		slpPanIdCTx = new TextField();
 		slpPanIdCTx.addStyleName("settings");
-		sixLowPanSettingsGridLayout.addComponent(slpPanIdCTx, 1, 3);		
+		sixLowPanSettingsGridLayout.addComponent(slpPanIdCTx, 1, 3);	*/	
 		
 		
 		
@@ -636,7 +651,7 @@ public class OptionsScreen extends Panel{
 		settingsTab.addTab(globalSettingsLayout, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL));
 		settingsTab.addTab(userSettingsLayout, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_USER));
 		//settingsTab.addTab(groupSettingsLayout, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GROUP));
-		settingsTab.addTab(updateSettingsLayout, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_UPDATE));
+		//settingsTab.addTab(updateSettingsLayout, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_UPDATE));
 		settingsTab.addTab(registerSettingsLayout, "Registration");		
 		hLayout.addComponent(settingsTab);
 		hLayout.setComponentAlignment(settingsTab, Alignment.TOP_CENTER);
@@ -658,12 +673,22 @@ public class OptionsScreen extends Panel{
 		settingsTab.getTab(globalSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL));
 		settingsTab.getTab(userSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_USER));
 		//settingsTab.getTab(groupSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GROUP));
-		settingsTab.getTab(updateSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_UPDATE));
+		//settingsTab.getTab(updateSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_UPDATE));
 		settingsTab.getTab(registerSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_REG));
 		
 		// update Global settings
 		clockSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
-		languageSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_LANG_SETTINGS));
+		//languageSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_LANG_SETTINGS));
+		
+		//rtc settings
+		LBusReceiver lbus = new LBusReceiver(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "rtc", "state");
+		
+		
+		String rtcState = lbus.get();
+		rtcStateTxt.setValue("RTC State: " + rtcState);
+		if(rtcState.equals("not synced")){
+			dateField.setEnabled(true);
+		}
 		
 		//network settings
 		str = app.sql.getNetType();
@@ -697,7 +722,7 @@ public class OptionsScreen extends Panel{
 		usersTable.setColumnHeader(LanguageHelper.SET_TABSHEET_TAB_USER_TABLE_COL_TIMEZONE, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_USER_TABLE_COL_TIMEZONE));
 		
 		// 6LowPan settings
-		slpPanIdCTx.setValue(app.sql.getPanid());
+		//slpPanIdCTx.setValue(app.sql.getPanid());
 		
 		FillUsersTable();
 		
@@ -786,7 +811,7 @@ public class OptionsScreen extends Panel{
 			@Override
 			public void popupClosedEvent(YesNoPopupScreen e) {
 				if(e.isYesClicked()){
-					LBus lbus = new LBus(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
+					LBusSender lbus = new LBusSender(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
 					lbus.setCmd(lbus.LBUS_CMD_CHG);
 					lbus.setUser(app.user.getID());
 					lbus.setAddress("liegw");
@@ -867,6 +892,24 @@ public class OptionsScreen extends Panel{
 			ipAddressCTx.setEnabled(true);
 			gwAddressCTx.setEnabled(true);
 		}
+	}
+	
+	private void handleDateFieldValueChange(ValueChangeEvent event){
+		Date date = (Date) event.getProperty().getValue();
+		Calendar cal = Calendar.getInstance();
+		TimeZone tz = TimeZone.getTimeZone("UTC");
+		cal.setTimeZone(tz);
+		cal.setTime(date);
+		java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		String dt = sdf.format(cal.getTime());
+		
+		LBusSender lbus = new LBusSender(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
+		lbus.setCmd(lbus.LBUS_CMD_CHG);
+		lbus.setUser(app.user.getID());
+		lbus.setAddress("liegw");
+		lbus.setPayload("\"rtc\":\"" + dt + "\"\"");
+		lbus.send();
+		
 	}
 }
 

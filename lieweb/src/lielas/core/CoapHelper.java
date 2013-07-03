@@ -43,12 +43,17 @@ public class CoapHelper implements CoapClient {
 	public static CoapRequestCode REQUEST_GET = CoapRequestCode.GET;
 	public static CoapRequestCode REQUEST_PUT = CoapRequestCode.PUT;
 	
+	public Integer recvState;
+	private String payload;
+	
+	public static int RECV_STATE_PENDING = 0;
+	public static int RECV_STATE_OK = 1;
+	public static int RECV_STATE_FAILURE = 2;
 	
 	CoapChannelManager channelManager = null;
 	CoapClientChannel clientChannel = null;
 
 	public CoapHelper(String serverAdr, int serverPort, String uriPath, CoapRequestCode crc) {
-		super();
 		this.serverAdr = serverAdr;
 		this.serverPort = serverPort;
 		this.uriPath = uriPath;
@@ -58,6 +63,8 @@ public class CoapHelper implements CoapClient {
 
 	public void send(String payload){
 		try{
+			recvState = RECV_STATE_PENDING;
+			payload = "";
 			clientChannel = channelManager.connect(this, InetAddress.getByName(serverAdr), serverPort);
 			CoapRequest coapRequest = clientChannel.createRequest(true,  crc);
 			coapRequest.setUriPath("/" + uriPath);
@@ -70,19 +77,29 @@ public class CoapHelper implements CoapClient {
 		}
 	}
 	
+	public Integer getRecvState(){
+		return recvState;
+	}
+	
+	public String getPayload(){
+		return payload;
+	}
+	
 	@Override
 	public void onResponse(CoapClientChannel channel, CoapResponse response) {
-		// TODO Auto-generated method stub
-		String payload = new String(response.getPayload());
-		System.out.println("Coap: received response\nResponse Code: " + response.getResponseCode().toString() + "\nPayload: " + payload);
+		payload = new String(response.getPayload());
+		if(payload == null){
+			payload = "";
+		}
+		//System.out.println("Coap: received response\nResponse Code: " + response.getResponseCode().toString() + "\nPayload: " + payload);
+		recvState = RECV_STATE_OK;
 		
 	}
 
 	@Override
 	public void onConnectionFailed(CoapClientChannel channel,
 			boolean notReachable, boolean resetByServer) {
-		// TODO Auto-generated method stub
-		System.out.println("Coap: connection failed");
+		recvState = RECV_STATE_FAILURE;
 	}
 	
 }

@@ -20,7 +20,7 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 */
-spackage lielas.core;
+package lielas.core;
 
 import java.io.Serializable;
 import lielas.core.Channel;
