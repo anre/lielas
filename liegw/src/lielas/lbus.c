@@ -37,6 +37,7 @@
 #include "../log.h"
 #include "../sql/sql.h"
 #include "../jsmn/jsmn.h"
+#include "../rtc/rtc.h"
 
 static Lbuscontainer *lbuscon;
 static Lbuscontainer *lbusconPtr;
@@ -51,6 +52,7 @@ static int setCmdHandled(Lbuscmd *cmd);
 
 static int changeDevice(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens);
 static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens);
+static int changeRtcDateTime(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens);
 
 
 // netTypeChanged
@@ -213,6 +215,7 @@ int lbus_add(Lbuscmd *cmd, int saveToDb){
     }
 
     pthread_mutex_unlock(&mutex);
+		lielas_log((unsigned char*)"Successfully added lbus command", LOG_LEVEL_DEBUG);
     return 0;
 
   }else{
@@ -252,6 +255,7 @@ int lbus_add(Lbuscmd *cmd, int saveToDb){
   }
 
   pthread_mutex_unlock(&mutex);
+  lielas_log((unsigned char*)"Successfully added lbus command", LOG_LEVEL_DEBUG);
   return 0;
 }
 
@@ -298,7 +302,9 @@ void lbus_remove(Lbuscmd *cmd){
     lbuscon = con->nlbc;
   }else{
     con->llbc->nlbc = con->nlbc;
-    con->nlbc->llbc = con->llbc;
+    if( con->nlbc != NULL){
+      con->nlbc->llbc = con->llbc;
+    }
     lbus_deleteCmd(con->lcmd);
     free(con);
   }
@@ -610,6 +616,15 @@ static int handleChgCmd(Lbuscmd *cmd){
             return -1;
           }
           
+        }else if(strncmp((char*)&cmd->payload[tokens[tok].start], LBUS_TOK_RTC, strlen(LBUS_TOK_RTC)) == 0){
+          
+          //change rtc date/time
+          if(changeRtcDateTime(cmd, tok, tokens, MAX_JSON_TOKENS)){
+            lielas_log((unsigned char*)"Error handling change rtc date/time", LOG_LEVEL_WARN);
+            pthread_mutex_unlock(&mutex);
+            return -1;
+          }
+          
         }
       } //if token == JSMN_STRING
     } // for every token
@@ -840,10 +855,10 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
   if(cmd->tmnexthandle == 0){
     //first time handling this command, load settings from database and change them
     
-    lielas_getLDBSetting(net_type, LDB_SQL_SET_NAME_NET_TYPE, LBUS_BUF_SIZE);
-    lielas_getLDBSetting(net_address, LDB_SQL_SET_NAME_NET_ADR, LBUS_BUF_SIZE);
-    lielas_getLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_MASK, LBUS_BUF_SIZE);
-    lielas_getLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_GATEWAY, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_type, LDB_SQL_SET_NAME_NET_NEW_TYPE, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_address, LDB_SQL_SET_NAME_NET_NEW_ADR, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_NEW_MASK, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_NEW_GATEWAY, LBUS_BUF_SIZE);
     
     printf("net_Type: %s \n", net_type);
     if(!strcmp(net_type, "static")){
@@ -872,7 +887,6 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
     printf("reset: %i:%i:%i\n", cmd->tmnexthandle->tm_hour, cmd->tmnexthandle->tm_min, cmd->tmnexthandle->tm_sec);
     netTypeChanged = 1;
   }else{
-    printf("10 min spaeter\n");
     setCmdHandled(cmd);
     
     if(netTypeChanged == 1){
@@ -881,12 +895,64 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
         lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
         return -1;
       }
+    }else{
+      //save new network settings as standard network settings
+      
+      if(lielas_getLDBSetting(net_type, LDB_SQL_SET_NAME_NET_NEW_TYPE, LBUS_BUF_SIZE))
+        return -1;
+      if(lielas_getLDBSetting(net_address, LDB_SQL_SET_NAME_NET_NEW_ADR, LBUS_BUF_SIZE))
+        return -1;
+      if(lielas_getLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_NEW_MASK, LBUS_BUF_SIZE))
+        return -1;
+      if(lielas_getLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_NEW_GATEWAY, LBUS_BUF_SIZE))
+        return -1;
+      
+      if(lielas_setLDBSetting(net_type, LDB_SQL_SET_NAME_NET_TYPE))
+        return -1;
+      if(lielas_setLDBSetting(net_address, LDB_SQL_SET_NAME_NET_ADR))
+        return -1;
+      if(lielas_setLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_MASK))
+        return -1;
+      if(lielas_setLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_GATEWAY))
+        return -1;
+      
     }
   }
   return 0;
 }
 
+/********************************************************************************************************************************
+ *    int changeRtcDateTime(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens){
+ * 
+ * handle lbus command change rtc date and time
+ ********************************************************************************************************************************/
+static int changeRtcDateTime(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens){
+  struct tm dt;
+  
+  lielas_log((unsigned char*)"Changing RTC date/time", LOG_LEVEL_DEBUG);
+  
+  tok += 1;
+  if(tok > maxTokens){
+    lielas_log((unsigned char*)"Failed to change rtc time, error parsing date/time", LOG_LEVEL_WARN);
+    return -1;
+  }
+  
+  if(strptime((char*)&cmd->payload[tokens[tok].start], "%Y-%m-%d %H:%M:%S", &dt) == NULL){
+    lielas_log((unsigned char*)"Failed to change rtc time, error parsing date/time", LOG_LEVEL_WARN);
+    setCmdHandled(cmd);
+    return -1;
+  }
+  
+  
+  if(rtc_set_dt(&dt)){
+    lielas_log((unsigned char*)"Failed to change rtc time, error setting date/time", LOG_LEVEL_WARN);
+    setCmdHandled(cmd);
+    return -1;
+  }
+  setCmdHandled(cmd);
 
+  return 0;
+}
 
 
 

@@ -53,6 +53,7 @@ int rtc_init(){
 	time_t rawtime;
 	struct tm *now;
   int timenotvalid = 0;
+  int ntpnotsynced = 0;
   pthread_mutexattr_t mutexAttr;
   
   char cmd[100];
@@ -77,21 +78,22 @@ int rtc_init(){
     timenotvalid = testdt(&dt);
   }
   
+  timenotvalid = 1;
   if(timenotvalid){
     // time not valid, check if ntp is synchronized
     lielas_log((unsigned char*)"rtc: rtc-module time not valid, check if system time is synced", LOG_LEVEL_DEBUG);
     
     if(ntp_gettime(&ntv)){
       lielas_log((unsigned char*)"rtc: error executing ntp_gettime()", LOG_LEVEL_WARN);
-      return -1;
+      ntpnotsynced = 1;
     }
     
-    if(errno == TIME_ERROR){
+    if(ntpnotsynced || errno == TIME_ERROR){
       //ntp not synchorinzed
       lielas_log((unsigned char*)"rtc: rtc-module time not valid and ntp not synced", LOG_LEVEL_WARN);
       rtc_state = RTC_STATE_NOT_SYNCED;
-      return -1;
-      
+      return RTC_ERROR;
+            
     }else{
       //ntp synchronized, set rtc time
       lielas_log((unsigned char*)"rtc: rtc-module time not valid but ntp synced, setting rtc-module time", LOG_LEVEL_DEBUG);
@@ -99,9 +101,16 @@ int rtc_init(){
       now = gmtime(&rawtime);
       
       rtc4162_set(now);
-      
+      timenotvalid = rtc4162_get(&dt);
+      if(!timenotvalid){
+        timenotvalid = testdt(&dt);
+      }
+      if(timenotvalid){
+        return RTC_ERROR;
+      }
+      return 0;      
     }
-    return RTC_TIME_NOT_VALID;
+    return RTC_ERROR;
   }
   
   lielas_log((unsigned char*)"rtc: rtc time valid, setting system time", LOG_LEVEL_DEBUG);
@@ -122,6 +131,41 @@ int rtc_init(){
   rtc_state = RTC_STATE_OK;  
   
   return 0;
+}
+
+/********************************************************************************************************************************
+ * 		int rtc_set_dt(struct tm *dt)
+ ********************************************************************************************************************************/
+int rtc_set_dt(struct tm *dt){
+  int timenotvalid = 0;
+  char cmd[100];
+  
+  pthread_mutex_lock(&rtcmutex);
+  lielas_log((unsigned char*)"rtc: setting rtc time", LOG_LEVEL_DEBUG);
+  rtc4162_set(dt);
+  
+  timenotvalid = rtc4162_get(dt);
+  
+  if(!timenotvalid){
+    timenotvalid = testdt(dt);
+  }
+  
+  //set system time
+  lielas_log((unsigned char*)"rtc: setting system time", LOG_LEVEL_DEBUG);
+  snprintf(cmd, 100, "sudo date --set %.4i-%.2i-%.2i", (dt->tm_year+1900), (dt->tm_mon+1), dt->tm_mday);
+  if(system(cmd)){
+    return RTC_ERROR;
+  }
+  
+  snprintf(cmd, 100, "sudo date --set %.2i:%.2i:%.2i", dt->tm_hour, dt->tm_min, dt->tm_sec);
+  if(system(cmd)){
+    return RTC_ERROR;
+  }
+  
+  rtc_state = RTC_STATE_OK;  
+  
+  pthread_mutex_unlock(&rtcmutex);
+  return timenotvalid;
 }
 
 /********************************************************************************************************************************

@@ -62,6 +62,7 @@ import com.vaadin.ui.DateField;
 import com.vaadin.ui.FormLayout;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.InlineDateField;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.NativeSelect;
 import com.vaadin.ui.Notification;
@@ -108,7 +109,8 @@ public class OptionsScreen extends Panel{
 	private CheckBox useTimeServerCB = null;
 	private TextField timeServerTxt = null;
 	private Label rtcStateTxt = null;
-	private DateField dateField = null;
+	private InlineDateField dateField = null;
+	private NativeButton setDatetimeBttn = null;
 	
 	
 	private Label useDhcpDLbl = null;
@@ -234,17 +236,23 @@ public class OptionsScreen extends Panel{
 			}
 		});*/
 				
-		dateField = new DateField();
+		dateField = new InlineDateField();
 		dateField.setValue(new Date());
 		dateField.setResolution(Resolution.SECOND);
-		dateField.setEnabled(false);
+		dateField.setVisible(false);
 		timeServerLo.addComponent(dateField);
 		
-		dateField.addValueChangeListener(new ValueChangeListener(){
+		setDatetimeBttn = new NativeButton("Set Date");
+		setDatetimeBttn.addStyleName("optionsscreen");
+		setDatetimeBttn.setHeight(24, Unit.PIXELS);
+		setDatetimeBttn.setVisible(false);
+		timeServerLo.addComponent(setDatetimeBttn);
+		
+		setDatetimeBttn.addClickListener(new ClickListener(){
 			@Override
-			public void valueChange(ValueChangeEvent event) {
-				handleDateFieldValueChange(event);
-			}
+			public void buttonClick(ClickEvent event) {
+				SetDateTimeBttnClicked();
+			}			
 		});
 		
 		//////////////////////////////////////////////////////////////////////////////////////////////
@@ -683,11 +691,11 @@ public class OptionsScreen extends Panel{
 		//rtc settings
 		LBusReceiver lbus = new LBusReceiver(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "rtc", "state");
 		
-		
 		String rtcState = lbus.get();
 		rtcStateTxt.setValue("RTC State: " + rtcState);
 		if(rtcState.equals("not synced")){
-			dateField.setEnabled(true);
+			dateField.setVisible(true);
+			setDatetimeBttn.setVisible(true);
 		}
 		
 		//network settings
@@ -894,8 +902,8 @@ public class OptionsScreen extends Panel{
 		}
 	}
 	
-	private void handleDateFieldValueChange(ValueChangeEvent event){
-		Date date = (Date) event.getProperty().getValue();
+	private void SetDateTimeBttnClicked(){
+		Date date = (Date) dateField.getValue();
 		Calendar cal = Calendar.getInstance();
 		TimeZone tz = TimeZone.getTimeZone("UTC");
 		cal.setTimeZone(tz);
@@ -907,7 +915,7 @@ public class OptionsScreen extends Panel{
 		lbus.setCmd(lbus.LBUS_CMD_CHG);
 		lbus.setUser(app.user.getID());
 		lbus.setAddress("liegw");
-		lbus.setPayload("\"rtc\":\"" + dt + "\"\"");
+		lbus.setPayload("\"rtc\":\"" + dt + "\"\n");
 		lbus.send();
 		
 	}

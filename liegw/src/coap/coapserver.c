@@ -305,9 +305,15 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 			response->hdr->code = COAP_RESPONSE_CODE(500);
 			return;
     }
-    requestData[requestLen] = 0;
+    
+    if(requestData == NULL){
+			lielas_log((unsigned char*)"failed to get request data", LOG_LEVEL_WARN);
+			response->hdr->code = COAP_RESPONSE_CODE(500);
+			return;
+    }
     
     requestData[requestLen] = 0;
+    
 		jsmn_init(&json);
 		r = jsmn_parse(&json, (char*)request->data, tokens, MAX_JSON_TOKENS);
 

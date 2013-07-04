@@ -47,6 +47,9 @@ int main(void) {
 
   //pid = fork();
   
+  system("sudo /usr/local/lielas/bin/ipchanger set dhcp");
+  exit(0);
+  
   //setbuf(stdout, NULL);
   lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);
 
@@ -56,8 +59,12 @@ int main(void) {
   
   lielas_log((unsigned char*)"init rtc", LOG_LEVEL_DEBUG);
   if(rtc_init()){
-    lielas_log((unsigned char*)"Error initializing rtc", LOG_LEVEL_ERROR);
-    return -1;
+    if(rtc_get_state() == RTC_STATE_NOT_SYNCED){
+      lielas_log((unsigned char*)"RTC state not synced, starting in reduced mode", LOG_LEVEL_WARN);
+    }else{
+      lielas_log((unsigned char*)"Error initializing rtc", LOG_LEVEL_ERROR);
+      return -1;
+    }
   }
   
   lielas_log((unsigned char*)"init database", LOG_LEVEL_DEBUG);
@@ -103,8 +110,15 @@ int main(void) {
   pthread_create(&coapserverThread, NULL, COAPhandleServer, NULL);
 
 	lielas_log((unsigned char*)"Lielasd COAP server successfully started", LOG_LEVEL_DEBUG);
+  
+  while(rtc_get_state() == RTC_STATE_NOT_SYNCED){
+      sleep(1);
+      lbus_handler();
+  }
+  
+	lielas_log((unsigned char*)"Lielasd successfully started", LOG_LEVEL_DEBUG);
+  
 	while(1){
-		//COAPhandleServer();
 		lbus_handler();
 		if(lielas_getRunmode() == RUNMODE_NORMAL){
 			HandleDevices();

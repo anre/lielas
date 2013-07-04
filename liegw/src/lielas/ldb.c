@@ -233,6 +233,18 @@ int lielas_createSettingsTbl(){
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_GATEWAY', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
     res = SQLexec(st);
     PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_NEW_TYPE', 'DHCP') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_NEW_ADR', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_NEW_MASK', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_NEW_GATEWAY', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
   }
   return 0;
 }
@@ -242,19 +254,22 @@ int lielas_createSettingsTbl(){
  ********************************************************************************************************************************/
 int lielas_getLDBSetting(char* dest, const char* name, int maxLen){
   char st[LDB_SQL_BUFFER_SIZE];
+  char log[LOG_BUF_LEN];
   PGresult *res;
   
   snprintf(st, LDB_SQL_BUFFER_SIZE, "SELECT value FROM %s.%s WHERE name='%s'", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS, name);
   res = SQLexec(st);
 
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
-		lielas_log((unsigned char*)"Failed to get LDB Setting", LOG_LEVEL_WARN);
+    snprintf(log, LOG_BUF_LEN, "Failed to set LDB Setting %s", name);
+		lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
 		PQclear(res);
 		return -1;
 	}
   
   if(PQntuples(res) != 1){
-		lielas_log((unsigned char*)"Failed to get LDB Setting, Setting not found or failure in database", LOG_LEVEL_WARN);
+    snprintf(log, LOG_BUF_LEN, "Failed to set LDB Setting %s, Setting not found or failure in database", name);
+		lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
 		PQclear(res);
 		return -1;
   }
@@ -265,7 +280,26 @@ int lielas_getLDBSetting(char* dest, const char* name, int maxLen){
   return 0;
 }
 
+/********************************************************************************************************************************
+ *    int lielas_setLDBSetting(const char* val, const char* name)
+ ********************************************************************************************************************************/
+int lielas_setLDBSetting(const char* val, const char* name){
+  char st[LDB_SQL_BUFFER_SIZE];
+  char log[LOG_BUF_LEN];
+  PGresult *res;
+  
+  snprintf(st, LDB_SQL_BUFFER_SIZE, "UPDATE %s.%s SET value='%s' WHERE name='%s'", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS, val, name);
+  res = SQLexec(st);
 
+	if(PQresultStatus(res) != PGRES_TUPLES_OK){
+    snprintf(log, LOG_BUF_LEN, "Failed to set LDB Setting %s to %s", name, val);
+		lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
+		PQclear(res);
+		return -1;
+	}
+  PQclear(res);
+  return 0;
+}
 
 
 

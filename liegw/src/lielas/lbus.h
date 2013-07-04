@@ -42,6 +42,7 @@
 #define LBUS_TOK_NET_ADR  "net_address"
 #define LBUS_TOK_NET_MASK "net_mask"
 #define LBUS_TOK_NET_GW   "net_gateway"
+#define LBUS_TOK_RTC      "rtc"
 
 #define LBUS_CMD_CHG          "chg"
 #define LBUS_CMD_DEL          "del"
@@ -58,7 +59,7 @@
 #define LBUS_SQL_BUFFER_SIZE	1000
 
 
-#define LBUS_NET_RELOGIN_TIME   60
+#define LBUS_NET_RELOGIN_TIME   600
 
 
 typedef struct{

@@ -64,13 +64,13 @@ public class CoapHelper implements CoapClient {
 	public void send(String payload){
 		try{
 			recvState = RECV_STATE_PENDING;
-			payload = "";
 			clientChannel = channelManager.connect(this, InetAddress.getByName(serverAdr), serverPort);
 			CoapRequest coapRequest = clientChannel.createRequest(true,  crc);
 			coapRequest.setUriPath("/" + uriPath);
 			coapRequest.setPayload(payload);
 			clientChannel.setMaxReceiveBlocksize(CoapBlockSize.BLOCK_64);
 			clientChannel.sendMessage(coapRequest);
+			this.payload = "";
 			System.out.println("Coap: sent request to " + serverAdr + ":" + serverPort.toString() + "/" + uriPath);
 		}catch(Exception e){
 			e.printStackTrace();

@@ -1123,9 +1123,9 @@ public class SQLHelper implements Serializable {
 			if(TableExists("settings")){
 				Statement st = conn.createStatement();
 				if(netTpye.equals("static")){
-					st.executeUpdate("UPDATE lielas.settings SET value='static' WHERE name='NET_TYPE'");
+					st.executeUpdate("UPDATE lielas.settings SET value='static' WHERE name='NET_NEW_TYPE'");
 				}else{
-					st.executeUpdate("UPDATE lielas.settings SET value='dhcp' WHERE name='NET_TYPE'");
+					st.executeUpdate("UPDATE lielas.settings SET value='dhcp' WHERE name='NET_NEW_TYPE'");
 				}
 				st.close();
 			}
@@ -1164,7 +1164,7 @@ public class SQLHelper implements Serializable {
 		try{
 			if(TableExists("settings")){
 				Statement st = conn.createStatement();
-				st.executeUpdate("UPDATE lielas.settings SET value='" + netAddress + "' WHERE name='NET_ADR'");
+				st.executeUpdate("UPDATE lielas.settings SET value='" + netAddress + "' WHERE name='NET_NEW_ADR'");
 				st.close();
 			}
 		}catch(Exception e){
@@ -1201,7 +1201,7 @@ public class SQLHelper implements Serializable {
 		try{
 			if(TableExists("settings")){
 				Statement st = conn.createStatement();
-				st.executeUpdate("UPDATE lielas.settings SET value='" + netMask + "' WHERE name='NET_MASK'");
+				st.executeUpdate("UPDATE lielas.settings SET value='" + netMask + "' WHERE name='NET_NEW_MASK'");
 				st.close();
 			}
 		}catch(Exception e){
@@ -1238,7 +1238,7 @@ public class SQLHelper implements Serializable {
 			try{
 				if(TableExists("settings")){
 					Statement st = conn.createStatement();
-					st.executeUpdate("UPDATE lielas.settings SET value='" + netGateway + "' WHERE name='NET_GATEWAY'");
+					st.executeUpdate("UPDATE lielas.settings SET value='" + netGateway + "' WHERE name='NET_NEW_GATEWAY'");
 					st.close();
 				}
 			}catch(Exception e){

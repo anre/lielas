@@ -115,6 +115,7 @@ int rtc4162_get(struct tm *dt){
   
   if(read_register(RTC4162_REG_MSECOND, buf, 8)){
     lielas_log((uint8_t *)"rtc error: failed to read date/time", LOG_LEVEL_ERROR);
+    return -1;
   }
   
   dt->tm_sec = BCD2BYTE(buf[1] & RTC4162_MASK_SEC); 
@@ -146,6 +147,7 @@ int rtc4162_set(struct tm *dt){
   
   if(write_register(RTC4162_REG_MSECOND, buf, 8)){
     lielas_log((uint8_t *)"rtc error: failed to set date/time", LOG_LEVEL_ERROR);
+    return -1;
   }
   
   //clear oscfail bit
@@ -157,7 +159,7 @@ int rtc4162_set(struct tm *dt){
     }
     buf[0] &= ~BV(RTC4162_FLAG_OF);
     if(write_register(RTC4162_REG_FLAGS, buf, 1)){
-      lielas_log((uint8_t *)"rtc error: failed to read REG_FLAGS", LOG_LEVEL_ERROR);
+      lielas_log((uint8_t *)"rtc error: failed to write REG_FLAGS", LOG_LEVEL_ERROR);
       return -1;
     }
   }

@@ -60,6 +60,10 @@
 #define LDB_SQL_SET_NAME_NET_ADR          "NET_ADR"
 #define LDB_SQL_SET_NAME_NET_MASK         "NET_MASK"
 #define LDB_SQL_SET_NAME_NET_GATEWAY      "NET_GATEWAY"
+#define LDB_SQL_SET_NAME_NET_NEW_TYPE     "NET_NEW_TYPE"
+#define LDB_SQL_SET_NAME_NET_NEW_ADR      "NET_NEW_ADR"
+#define LDB_SQL_SET_NAME_NET_NEW_MASK     "NET_NEW_MASK"
+#define LDB_SQL_SET_NAME_NET_NEW_GATEWAY  "NET_NEW_GATEWAY"
 
 
 
@@ -77,6 +81,7 @@ int lielas_createDataTbl();
 int lielas_createSettingsTbl();
 
 int lielas_getLDBSetting(char* dest, const char* name, int maxLen);
+int lielas_setLDBSetting(const char* val, const char* name);
 
 #endif
 
