@@ -78,7 +78,6 @@ int rtc_init(){
     timenotvalid = testdt(&dt);
   }
   
-  timenotvalid = 1;
   if(timenotvalid){
     // time not valid, check if ntp is synchronized
     lielas_log((unsigned char*)"rtc: rtc-module time not valid, check if system time is synced", LOG_LEVEL_DEBUG);

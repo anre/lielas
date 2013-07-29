@@ -28,7 +28,7 @@
 #include "libpq-fe.h"
 
 //#include <libpq-fe.h>
-#define SQL_BUFFER_SIZE	200
+#define SQL_BUFFER_SIZE	500
 #define SQL_STATEMENT_BUF_SIZE  1000
 
 int SQLconnect();

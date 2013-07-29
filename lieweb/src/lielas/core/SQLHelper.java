@@ -662,6 +662,7 @@ public class SQLHelper implements Serializable {
 					TimeZone tz = TimeZone.getTimeZone("UTC");
 					cal.setTimeZone(tz);
 					cal.setTime(rs.getTimestamp(1));
+					cal.add(Calendar.HOUR_OF_DAY, dtOffset);
 					csvStr.append(sdf.format(cal.getTime()));
 					//add data
 					for( int i = 1; i < columnCount; i++){

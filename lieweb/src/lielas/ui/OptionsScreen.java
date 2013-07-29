@@ -700,7 +700,7 @@ public class OptionsScreen extends Panel{
 		
 		//network settings
 		str = app.sql.getNetType();
-		if(str.equals("dhcp")){
+		if(str.equals("dhcp") || str.equals("DHCP")){
 			useDhcpCB.setValue(true);
 			netmaskCTx.setEnabled(false);
 			ipAddressCTx.setEnabled(false);

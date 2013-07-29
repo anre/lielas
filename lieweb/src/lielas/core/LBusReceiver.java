@@ -47,6 +47,7 @@ public class LBusReceiver extends LBus implements Serializable{
 	
 	public String get(){
 		error = false;
+		String atr, res;
 		
 		CoapHelper ch = new CoapHelper(this.serverAddress, serverPort, uriPath, CoapRequestCode.GET);
 		ch.send("");
@@ -58,18 +59,20 @@ public class LBusReceiver extends LBus implements Serializable{
 			}
 		}
 		if(ch.getRecvState() == CoapHelper.RECV_STATE_OK){
-			String res = ch.getPayload();
+			res = ch.getPayload();
 			//if an attribute is given, parse json and return resource value
 			if(attribute != null){
 				JSONReader reader = new JSONReader();
 				Object obj = reader.read(res);
 				@SuppressWarnings("unchecked")
 				HashMap<String, String> json = (HashMap<String, String>)obj;
-				String atr = json.get(attribute);
-				if(atr != null)
-					return atr;
-				error = true;
-				return "";
+				try{
+					atr = json.get(attribute);
+				}catch(NullPointerException e){
+					error = true;
+					return "";
+				}
+				return atr;
 			}
 			return res;
 		}

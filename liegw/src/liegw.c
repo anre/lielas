@@ -47,8 +47,8 @@ int main(void) {
 
   //pid = fork();
   
-  system("sudo /usr/local/lielas/bin/ipchanger set dhcp");
-  exit(0);
+  //system("sudo /usr/local/lielas/bin/ipchanger set dhcp");
+  //exit(0);
   
   //setbuf(stdout, NULL);
   lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);

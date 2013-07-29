@@ -206,7 +206,7 @@ public class DownloadScreen extends Panel{
 		
 		// Style Table
 		
-		downloadTable.setCellStyleGenerator(new Table.CellStyleGenerator() {
+		/*downloadTable.setCellStyleGenerator(new Table.CellStyleGenerator() {
 			
 			@Override
 			public String getStyle(Table source, Object itemId,
@@ -223,7 +223,7 @@ public class DownloadScreen extends Panel{
 				}
 				return null;
 			}
-		});
+		});*/
 		
 	}
 	

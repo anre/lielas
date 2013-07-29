@@ -30,8 +30,8 @@ import java.util.Properties;
 
 public class Config {
 
-	static String appPath = "E:\\VM Share\\lielas\\lieweb\\";
-	//static String appPath = "/usr/local/lielas/";
+	//static String appPath = "E:\\VM Share\\lielas\\lieweb\\";
+	static String appPath = "/usr/local/lielas/";
 
 	//static String dbUser = "lielas";
 	//static String dbPass = "lielas";

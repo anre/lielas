@@ -131,12 +131,14 @@ void HandleDevices(){
 		return;
 	}
 
+  lielas_log((unsigned char*)"**********", LOG_LEVEL_DEBUG);
+  snprintf(log, LOG_BUF_LEN, "Start device scanning: %s", d->address);
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+  
 	//turn cycle mode off and sync if out of sync
-  //setCycleMode(d, LWP_CYCLE_MODE_OFF);
+  setCycleMode(d, LWP_CYCLE_MODE_OFF);
 	sleep(5);
 
-  snprintf(log, LOG_BUF_LEN, "**********\nStart device scanning: %s", d->address);
-  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
 
 	dpc = CreateDatapaketcontainer();
 	if(dpc == NULL)
@@ -154,9 +156,10 @@ void HandleDevices(){
   setLoggerMint(d, d->modul[1]);
 
   //turn cycle mode on again
-  //setCycleMode(d, LWP_CYCLE_MODE_ON);
+  setCycleMode(d, LWP_CYCLE_MODE_ON);
   
-  lielas_log((unsigned char*)"End device scanning\n**********", LOG_LEVEL_DEBUG);
+  lielas_log((unsigned char*)"End device scanning", LOG_LEVEL_DEBUG);
+  lielas_log((unsigned char*)"**********", LOG_LEVEL_DEBUG);
 	fflush(stdout);
 
 }
@@ -249,9 +252,13 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
         }
         snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, datetimestr);
         coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+        snprintf(log, LOG_BUF_LEN, "sended get data cmd: %s", cmd);
+        lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
       }else{
         snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
         coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+        snprintf(log, LOG_BUF_LEN, "sended get data cmd: %s", cmd);
+        lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
       }
       PQclear(res);
     }
@@ -262,10 +269,12 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 		}
 		snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
 		coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+    snprintf(log, LOG_BUF_LEN, "sended get data cmd: %s", cmd);
+    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
 	}
 
 	if(cb->status != COAP_STATUS_CONTENT){
-    lielas_log((unsigned char*) "Status error getting data\n", LOG_LEVEL_DEBUG);
+    lielas_log((unsigned char*) "Status error getting data", LOG_LEVEL_DEBUG);
 		return -1;
 	}
 
@@ -275,10 +284,16 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
     lwp_compdt_to_struct_tm((unsigned char*)&cb->buf[pos], &dt);
     mktime(&dt);
     
+    
+    snprintf(log, LOG_BUF_LEN, "found datetime: %x:%x:%x:%x ... ", (unsigned char)cb->buf[pos], (unsigned char)cb->buf[pos+1], (unsigned char)cb->buf[pos+2], (unsigned char)cb->buf[pos+3]);
+    strftime(&log[strlen(log)], LOG_BUF_LEN, "%d.%m.%Y %H:%M:%S",&dt);
+    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+    
     pos += 4;
       
     //test date
     if(testDatetime(&dt)){
+      
       
       //parse values
       for(cnr = 1; cnr <= d->modul[1]->channels; cnr++){
@@ -289,6 +304,7 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 				dp->m = d->modul[1];
 				dp->c = d->modul[1]->channel[cnr];
         
+        
         val = ((uint8_t)cb->buf[pos+1]<<8) + (uint8_t)cb->buf[pos];
         snprintf(dp->value, VALUEBUFFER_SIZE, "%u,%u", (val/10), (val%10));
         
@@ -296,6 +312,10 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 				memcpy(dp->dt, &dt, sizeof(struct tm));
 				dpc->dp[dpc->datapakets] = dp;
 				dpc->datapakets += 1;
+        
+        
+        snprintf(log, LOG_BUF_LEN, "found value: %x:%x ... %s", (unsigned char)cb->buf[pos-2], (unsigned char)cb->buf[pos-1], dp->value);
+        lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
         
         datasets += 1;
         if(datasets >= MAX_VALUES_IN_PAKET)
@@ -366,6 +386,8 @@ int DeviceSetDatetime(Ldevice *d){
   }
   dt.tm_isdst = 0;
 	strptime(recvDt, "%Y.%m.%d %H:%M:%S", &dt);
+  snprintf(log, CMDBUFFER_SIZE, "device time: %s", recvDt);
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
 	time(&rawtime);
 	now = gmtime(&rawtime);
@@ -456,7 +478,7 @@ int setCycleMode(Ldevice *d, int mode){
 	char cmd[CMDBUFFER_SIZE];
 	char payload[CMDBUFFER_SIZE];
 	char buf[CMDBUFFER_SIZE];
-	int tries = 30;
+	int tries = 27;
 	int i;
 	coap_buf *cb = coap_create_buf();
 

@@ -64,18 +64,20 @@ public class YesNoPopupScreen extends VerticalLayout{
 		
 		wnd.setModal(true);
 		wnd.setWidth(460, Unit.PIXELS);
-		wnd.setHeight(60,  Unit.PIXELS);
+		wnd.setHeight(120,  Unit.PIXELS);
 		wnd.setResizable(false);
 		wnd.setClosable(false);
 		wnd.setContent(layout);
 				
 		textLbl = new Label(text);
 		textLbl.setStyleName("popup");
+		textLbl.setWidth(96,  Unit.PERCENTAGE);
 		layout.addComponent(textLbl);
 		
 		HorizontalLayout buttonLo = new HorizontalLayout();
 		layout.addComponent(buttonLo);
 		buttonLo.setWidth(100,  Unit.PERCENTAGE);
+		buttonLo.setHeight(30,  Unit.PIXELS);
 		buttonLo.addStyleName("button-layout");
 		
 		Label spacer = new Label();

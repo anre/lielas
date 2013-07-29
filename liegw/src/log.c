@@ -28,7 +28,7 @@
 #include <string.h>
 
 #define LOG_LEVEL	LOG_LEVEL_DEBUG
-#define LOG_TO		LOG_TO_STDOUT
+#define LOG_TO		LOG_TO_FILE
 
 void lielas_log(unsigned char *msg, int level){
 	char timestamp[50];

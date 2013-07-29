@@ -202,7 +202,7 @@ public class DeviceManagerScreen extends Panel{
 		Device d = app.deviceContainer.firstItemId();
 		for( int i=0; i < app.deviceContainer.size(); i++){
 			if(d.isRegistered()){
-				deviceList.addItem(new Object[]{i+1, d.getAddress(), d.getName(), d.getGroup()}, i+1);
+				deviceList.addItem(new Object[]{i+1, d.getMac(), d.getName(), d.getGroup()}, i+1);
 			}
 			d = app.deviceContainer.nextItemId(d);
 		}
