@@ -689,14 +689,14 @@ public class OptionsScreen extends Panel{
 		//languageSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_LANG_SETTINGS));
 		
 		//rtc settings
-		LBusReceiver lbus = new LBusReceiver(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "rtc", "state");
+		/*LBusReceiver lbus = new LBusReceiver(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "rtc", "state");
 		
 		String rtcState = lbus.get();
 		rtcStateTxt.setValue("RTC State: " + rtcState);
 		if(rtcState.equals("not synced")){
 			dateField.setVisible(true);
 			setDatetimeBttn.setVisible(true);
-		}
+		}*/
 		
 		//network settings
 		str = app.sql.getNetType();

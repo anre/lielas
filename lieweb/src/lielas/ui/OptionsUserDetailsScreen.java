@@ -215,7 +215,17 @@ public class OptionsUserDetailsScreen extends VerticalLayout{
 			dlCTimezoneSel.addItem("+" + i );
 		}
 		dlCTimezoneSel.setNullSelectionAllowed(false);
-		dlCTimezoneSel.select("0");
+		if(user == null){
+			dlCTimezoneSel.select("0");
+		}else{
+			String tz;
+			if(user.getTimezone() > 1){
+				tz = "+" + user.getTimezone().toString();
+			}else{
+				tz = user.getTimezone().toString();
+			}
+			dlCTimezoneSel.select(tz);
+		}
 		dlTimezoneLo.addComponent(dlCTimezoneSel);
 		
 		//show Password
@@ -314,7 +324,7 @@ public class OptionsUserDetailsScreen extends VerticalLayout{
 		}else{
 			newUser = new User(user.getID());
 		}
-		
+
 		if( dlCLoginTx.getValue().toString() == ""){
 			Notification.show("Error: You have to specify a login", Notification.Type.WARNING_MESSAGE);
 			return;
@@ -323,11 +333,19 @@ public class OptionsUserDetailsScreen extends VerticalLayout{
 		newUser.setLogin(dlCLoginTx.getValue().toString());
 		newUser.setForename(dlCForenameTx.getValue().toString());
 		newUser.setName(dlCNameTx.getValue().toString());
-		newUser.setTimezone(Integer.parseInt(dlCTimezoneSel.getValue().toString()));
+		try{
+			String tz = dlCTimezoneSel.getValue().toString();
+			if(tz.startsWith("+")){
+				tz = tz.substring(1);
+			}
+			newUser.setTimezone(Integer.parseInt(tz));
+		}catch(Exception e){
+			newUser.setTimezone(0);
+		}
 		
 		// Password 
 		String p1 = dlCPasswordTx.getValue().toString();
-		String p2 = dlCPasswordTestTx.getValue().toString();
+		String p2 = dlCPasswordTestTx.getValue().toString(); 
 		
 		if(p1.equals("*****") && p2.equals("*****")){
 			newUser.setPassword(user.getPassword());
