@@ -638,7 +638,7 @@ public class SQLHelper implements Serializable {
 					Modul m = d.getModul(j);
 					for( int k = 1; k <= m.getChannels(); k++){
 						Channel c = m.getChannel(k);
-						csvStr.append(csvDelimiter + " " + c.getUnit());
+						csvStr.append(csvDelimiter + " " + UnitConverter.convert(c.getUnit()));
 					}
 				}
 				d = dc.nextItemId(d);
