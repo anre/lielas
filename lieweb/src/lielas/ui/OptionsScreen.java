@@ -210,7 +210,7 @@ public class OptionsScreen extends Panel{
 		
 		//header
 		//clockSettingsLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
-		clockSettingsLbl = new Label("test");
+		clockSettingsLbl = new Label("");
 		clockSettingsLbl.addStyleName("bold");
 		clockSettingsLayout.addComponent(clockSettingsLbl);
 
@@ -218,24 +218,9 @@ public class OptionsScreen extends Panel{
 		FormLayout timeServerLo = new FormLayout();
 		clockSettingsLayout.addComponent(timeServerLo);
 		
-		/*timeServerTxt = new TextField("Time Server");
-		timeServerTxt.setValue("0.at.pool.ntp.org");
-		timeServerLo.addComponent(timeServerTxt);*/
-		
 		rtcStateTxt = new Label("RTC Status: ");
 		timeServerLo.addComponent(rtcStateTxt);
 		
-		/*useTimeServerCB = new CheckBox("Automatically get Time");
-		useTimeServerCB.setValue(true);
-		useTimeServerCB.setImmediate(true);
-		timeServerLo.addComponent(useTimeServerCB);*/
-		
-		/*useTimeServerCB.addValueChangeListener(new ValueChangeListener(){
-			public void valueChange(ValueChangeEvent event){
-				UseTimeServerCBClickHandler(event);
-			}
-		});*/
-				
 		dateField = new InlineDateField();
 		dateField.setValue(new Date());
 		dateField.setResolution(Resolution.SECOND);
@@ -293,13 +278,13 @@ public class OptionsScreen extends Panel{
 		databaseSettingsPanel.setContent(databaseSettingsLayout);
 		
 		//header
-		databaseSettingsLbl = new Label("Database Settings");
+		databaseSettingsLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_SETTINGS));
 		databaseSettingsLbl.addStyleName("bold");
 		databaseSettingsLbl.addStyleName("header");
 		databaseSettingsLayout.addComponent(databaseSettingsLbl);
 
 		//content
-		deleteDataBttn = new NativeButton("Delete Data");
+		deleteDataBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE));
 		deleteDataBttn.addStyleName("optionsscreen");
 		deleteDataBttn.setHeight(24, Unit.PIXELS);
 		databaseSettingsLayout.addComponent(deleteDataBttn);
@@ -367,7 +352,7 @@ public class OptionsScreen extends Panel{
 		GridLayout networkSettingsGridLayout = new GridLayout(2, 10);
 		networkSettingsLayout.addComponent(networkSettingsGridLayout);
 
-		useDhcpDLbl = new Label("DHCP");
+		useDhcpDLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_TYPE));
 		useDhcpDLbl.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(useDhcpDLbl, 0, 0);
 		useDhcpCB = new CheckBox();
@@ -380,28 +365,28 @@ public class OptionsScreen extends Panel{
 			}
 		});
 		
-		ipAddressDLbl = new Label("IP");
+		ipAddressDLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_IP));
 		ipAddressDLbl.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(ipAddressDLbl, 0, 1);
 		ipAddressCTx = new TextField();
 		ipAddressCTx.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(ipAddressCTx, 1, 1);
 		
-		netmaskDLbl = new Label("Netzmaske");
+		netmaskDLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_NETMASK));
 		netmaskDLbl.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(netmaskDLbl, 0, 2);
 		netmaskCTx = new TextField();
 		netmaskCTx.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(netmaskCTx, 1, 2);
 
-		gwAddressDLbl = new Label("Gateway");
+		gwAddressDLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_GATEWAY));
 		gwAddressDLbl.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(gwAddressDLbl, 0, 3);
 		gwAddressCTx = new TextField();
 		gwAddressCTx.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(gwAddressCTx, 1, 3);
 
-		saveIPBttn = new NativeButton("Save");
+		saveIPBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE));
 		saveIPBttn.addStyleName("optionsscreen");
 		saveIPBttn.setHeight(24, Unit.PIXELS);
 		networkSettingsGridLayout.addComponent(saveIPBttn, 0, 4);
@@ -685,18 +670,25 @@ public class OptionsScreen extends Panel{
 		settingsTab.getTab(registerSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_REG));
 		
 		// update Global settings
-		clockSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
+		
+		//database settings
+		databaseSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_SETTINGS));
+		deleteDataBttn.setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE));
+		
+		
+		//language settings
 		//languageSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_LANG_SETTINGS));
 		
 		//rtc settings
-		/*LBusReceiver lbus = new LBusReceiver(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "rtc", "state");
+		clockSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
+		LBusReceiver lbus = new LBusReceiver(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "rtc", "state");
 		
 		String rtcState = lbus.get();
-		rtcStateTxt.setValue("RTC State: " + rtcState);
+		rtcStateTxt.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_STATE) + ": " + rtcState);
 		if(rtcState.equals("not synced")){
 			dateField.setVisible(true);
 			setDatetimeBttn.setVisible(true);
-		}*/
+		}
 		
 		//network settings
 		str = app.sql.getNetType();
@@ -715,6 +707,12 @@ public class OptionsScreen extends Panel{
 			netmaskCTx.setValue(app.sql.getNetMask());
 			gwAddressCTx.setValue(app.sql.getNetGateway());
 		}
+
+		useDhcpDLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_TYPE));
+		ipAddressDLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_IP));
+		netmaskDLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_NETMASK));
+		gwAddressDLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_GATEWAY));
+		saveIPBttn.setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE));
 		
 		/*gwPrefixCTx.setValue(cfg.getSixLowPanPrefix());
 		gwIPCTx.setValue(cfg.getSixLowPanGatewayIP());
@@ -814,7 +812,8 @@ public class OptionsScreen extends Panel{
 	}
 	
 	private void SaveIPBttnClicked(ClickEvent event){
-		YesNoPopupScreen ackPopup = new YesNoPopupScreen(app, "Save Network Settings", "Are you sure you want to save the network options?\nIf you do not login in 10 min. the settings will be set back.");
+		YesNoPopupScreen ackPopup = new YesNoPopupScreen(app, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_POP_HEADER),
+				app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_POP_TEXT));
 		ackPopup.addListener(new PopupClosedListener(){
 			@Override
 			public void popupClosedEvent(YesNoPopupScreen e) {
@@ -846,7 +845,7 @@ public class OptionsScreen extends Panel{
 
 					lbus.send();
 
-					Notification.show("Settings successfully saved");
+					Notification.show(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_SUCCESS));
 				}
 				app.Update();
 			}
@@ -867,9 +866,6 @@ public class OptionsScreen extends Panel{
 	}
 	
 	private void StartRegModeBttnClicked(ClickEvent event) {
-		//app.coap.send("bla");
-		//regCaptionLbl.setValue("bla");
-		System.out.println("bla bla");
 	}
 	
 	private void CheckRunmode(){

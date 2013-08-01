@@ -90,16 +90,35 @@ public class LanguageHelper  implements Serializable{
 	public static String DL_TABLE_COL_NAME = "DL_TABLE_COL_NAME";
 	public static String DL_TABLE_COL_GROUP = "DL_TABLE_COL_GROUP";
 	public static String DL_TABLE_COL_SENSOR = "DL_TABLE_COL_SENSOR";
+	public static String DL_CSV_MAC = "DL_CSV_MAC";
+	public static String DL_CSV_NAME = "DL_CSV_NAME";
+	public static String DL_CSV_GROUP = "DL_CSV_GROUP";
+	public static String DL_CSV_MODUL_CHANNEL_ADDRESS = "DL_CSV_MODUL_CHANNEL_ADDRESS";
+	public static String DL_CSV_UNIT = "DL_CSV_UNIT";
 	public static String DL_HELPTEXT_MULTISELECT = "DL_HELPTEXT_MULTISELECT";
+	
 	public static String SET_TABSHEET_TAB_GLOBAL = "SET_TABSHEET_TAB_GLOBAL";
 	public static String SET_TABSHEET_TAB_USER = "SET_TABSHEET_TAB_USER";
 	public static String SET_TABSHEET_TAB_GROUP = "SET_TABSHEET_TAB_GROUP";
 	public static String SET_TABSHEET_TAB_UPDATE = "SET_TABSHEET_TAB_UPDATE";
 	public static String SET_TABSHEET_TAB_REG = "SET_TABSHEET_TAB_REG";
+	
 	public static String SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS = "SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS";
+	public static String SET_TABSHEET_TAB_GLOBAL_CLOCK_STATE = "SET_TABSHEET_TAB_GLOBAL_CLOCK_STATE";
+	public static String SET_TABSHEET_TAB_GLOBAL_DB_SETTINGS = "SET_TABSHEET_TAB_GLOBAL_DB_SETTINGS";
+	public static String SET_TABSHEET_TAB_GLOBAL_DB_DELETE = "SET_TABSHEET_TAB_GLOBAL_DB_DELETE";
 	public static String SET_TABSHEET_TAB_GLOBAL_LANG_SETTINGS = "SET_TABSHEET_TAB_GLOBAL_LANG_SETTINGS";
 	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_SETTINGS = "SET_TABSHEET_TAB_GLOBAL_NETWORK_SETTINGS";
+	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_TYPE = "SET_TABSHEET_TAB_GLOBAL_NETWORK_TYPE";
+	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_IP = "SET_TABSHEET_TAB_GLOBAL_NETWORK_IP";
+	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_NETMASK = "SET_TABSHEET_TAB_GLOBAL_NETWORK_NETMASK";
+	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_GATEWAY = "SET_TABSHEET_TAB_GLOBAL_NETWORK_GATEWAY";
+	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE = "SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE";
+	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_POP_HEADER = "SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_POP_HEADER";
+	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_POP_TEXT = "SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_POP_TEXT";
+	public static String SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_SUCCESS = "SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_SUCCESS";
 	public static String SET_TABSHEET_TAB_GLOBAL_6LOWPANGW_SETTINGS = "SET_TABSHEET_TAB_GLOBAL_6LOWPANGW_SETTINGS";
+	
 	public static String SET_TABSHEET_TAB_USER_TABLE_NAME = "SET_TABSHEET_TAB_USER_TABLE_NAME";
 	public static String SET_TABSHEET_TAB_USER_TABLE_COL_USER = "SET_TABSHEET_TAB_USER_TABLE_COL_USER";
 	public static String SET_TABSHEET_TAB_USER_TABLE_COL_GROUP = "SET_TABSHEET_TAB_USER_TABLE_COL_GROUP";
@@ -116,12 +135,14 @@ public class LanguageHelper  implements Serializable{
 	public static String SET_TABSHEET_TAB_USER_DETAILS_REPEAT_PASSWORD_LBL = "SET_TABSHEET_TAB_USER_DETAILS_REPEAT_PASSWORD_LBL";
 	public static String SET_TABSHEET_TAB_USER_DETAILS_POPUP_CAPTION = "SET_TABSHEET_TAB_USER_DETAILS_POPUP_CAPTION";
 	public static String SET_TABSHEET_TAB_USER_DETAILS_POPUP_TEXT = "SET_TABSHEET_TAB_USER_DETAILS_POPUP_TEXT";
+	
 	public static String SET_TABSHEET_TAB_GROUP_TABLE_NAME = "SET_TABSHEET_TAB_GROUP_TABLE_NAME";
 	public static String SET_TABSHEET_TAB_GROUP_TABLE_COL_GROUP = "SET_TABSHEET_TAB_GROUP_TABLE_COL_GROUP";
 	public static String SET_TABSHEET_TAB_GROUP_TABLE_COL_DEL_DEVICES = "SET_TABSHEET_TAB_GROUP_TABLE_COL_DEL_DEVICES";
 	public static String SET_TABSHEET_TAB_GROUP_TABLE_COL_REG_DEVICES = "SET_TABSHEET_TAB_GROUP_TABLE_COL_REG_DEVICES";
 	public static String SET_TABSHEET_TAB_GROUP_TABLE_COL_DOWNLOAD = "SET_TABSHEET_TAB_GROUP_TABLE_COL_DOWNLOAD";
 	public static String SET_TABSHEET_TAB_GROUP_DETAILS_CAPTION = "SET_TABSHEET_TAB_GROUP_DETAILS_CAPTION";
+	
 	public static String SET_TABSHEET_TAB_REG_CAPTION = "SET_TABSHEET_TAB_REG_CAPTION";
 	public static String SET_TABSHEET_TAB_REG_MINT_LBL = "SET_TABSHEET_TAB_REG_MINT_LBL";
 	public static String SET_TABSHEET_TAB_REG_PINT_LBL = "SET_TABSHEET_TAB_REG_PINT_LBL";
@@ -152,8 +173,10 @@ public class LanguageHelper  implements Serializable{
 		
 	public void LoadLanguage(String fileName){
 		try{
-			FileReader fr = new FileReader(path + fileName);
-			BufferedReader br = new BufferedReader(fr);
+			File file = new File(path + fileName);
+			BufferedReader br = new BufferedReader(
+					new InputStreamReader(
+							new FileInputStream(file), "UTF8"));
 			String line;
 			String[] tmp;
 			String[][] tmpTokens= new String[1000][2];
@@ -161,6 +184,7 @@ public class LanguageHelper  implements Serializable{
 			int len;
 			
 			line = br.readLine();
+			line = line.replaceAll("[\uFEFF-\uFFFF]", ""); 
 			for(len=0;line != null && error == false; len++){
 				if(line.startsWith(langComment) || line.isEmpty()){
 					// comment line or empty line, do nothing

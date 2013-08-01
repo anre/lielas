@@ -539,7 +539,7 @@ public class SQLHelper implements Serializable {
 		}		
 	}
 	
-	public StringBuilder GetDataTable(DeviceContainer dc, Integer dtOffset){
+	public StringBuilder GetDataTable(DeviceContainer dc, Integer dtOffset, LanguageHelper lh){
 
 		String tableOrder = "datetime";
 		StringBuilder csvStr = new StringBuilder(" ");
@@ -573,7 +573,7 @@ public class SQLHelper implements Serializable {
 			d = dc.firstItemId();
 			
 			// create first header line
-			csvStr.append("Address");
+			csvStr.append(lh.GetString(LanguageHelper.DL_CSV_MAC));
 			for( int i = 0; i < dc.size(); i++){
 				for( int j = 1; j < (d.getModuls()+1); j++){
 					Modul m = d.getModul(j);
@@ -589,7 +589,7 @@ public class SQLHelper implements Serializable {
 			}	
 			
 			// create second header line
-			csvStr.append("\r\nName");
+			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_NAME));
 			d = dc.firstItemId();
 			for( int i = 0; i < dc.size(); i++){
 				for( int j = 1; j < (d.getModuls()+1); j++){
@@ -603,7 +603,7 @@ public class SQLHelper implements Serializable {
 			}
 
 			// create third header line
-			csvStr.append("\r\nGroup");
+			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_GROUP));
 			d = dc.firstItemId();
 			for( int i = 0; i < dc.size(); i++){
 				for( int j = 1; j < (d.getModuls()+1); j++){
@@ -616,7 +616,7 @@ public class SQLHelper implements Serializable {
 				d = dc.nextItemId(d);
 			}
 			// create fourth header line
-			csvStr.append("\r\nModul.Channel Address");
+			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_MODUL_CHANNEL_ADDRESS));
 			d = dc.firstItemId();
 			for( int i = 0; i < dc.size(); i++){
 				for( int j = 1; j < (d.getModuls()+1); j++){
@@ -631,7 +631,7 @@ public class SQLHelper implements Serializable {
 
 
 			// create fifth header line
-			csvStr.append("\r\nUnit");
+			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_UNIT));
 			d = dc.firstItemId();
 			for( int i = 0; i < dc.size(); i++){
 				for( int j = 1; j < (d.getModuls()+1); j++){

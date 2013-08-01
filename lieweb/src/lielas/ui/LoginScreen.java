@@ -67,13 +67,13 @@ public class LoginScreen extends VerticalLayout {
 		this.addComponent(vLo);
 		this.setComponentAlignment(vLo, Alignment.MIDDLE_CENTER);
 		
-		nameTxt = new TextField("Login");
+		nameTxt = new TextField(app.langHelper.GetString(LanguageHelper.LOGIN_USERNAME));
 		vLo.addComponent(nameTxt);
 		
-		passwordTxt = new PasswordField("Password");
+		passwordTxt = new PasswordField(app.langHelper.GetString(LanguageHelper.LOGIN_PASSWORD));
 		vLo.addComponent(passwordTxt);
 		
-		loginButton = new Button("Login");
+		loginButton = new Button(app.langHelper.GetString(LanguageHelper.LOGIN_SUBMIT));
 		loginButton.setClickShortcut(KeyCode.ENTER);
 		vLo.addComponent(loginButton);	
 		
@@ -89,7 +89,9 @@ public class LoginScreen extends VerticalLayout {
 	}
 
 	public void Update(){
-	
+		nameTxt.setCaption(app.langHelper.GetString(LanguageHelper.LOGIN_USERNAME));
+		passwordTxt.setCaption(app.langHelper.GetString(LanguageHelper.LOGIN_PASSWORD));
+		loginButton.setCaption(app.langHelper.GetString(LanguageHelper.LOGIN_SUBMIT));;
 	}
 	
 	private void LoginButtonPressed(){
