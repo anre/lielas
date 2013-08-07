@@ -294,12 +294,12 @@ int lwp_get_attr_value(char *str, lwp_resource *res, char *attr_name, char *val,
  *  convert compressed dt to struct tm
  ********************************************************************************************************************************/  
 void lwp_compdt_to_struct_tm(uint8_t *cdt, struct tm *dt){
-  dt->tm_sec=cdt[0]&0x3f;
-  dt->tm_min=((cdt[0]&0xC0)>>6)+((cdt[1]&0x0F)<<2);
-  dt->tm_hour=((cdt[1]&0xF0)>>4)+((cdt[2]&0x01)<<4);
-  dt->tm_mday=(cdt[2]&0x3E)>>1;
-  dt->tm_mon=((cdt[2]&0xC0)>>6)+((cdt[3]&0x03)<<2)-1;
-  dt->tm_year=((cdt[3]&0xFC)>>2)+LWP_CENTURY_OFFSET;
+  dt->tm_sec=(cdt[3]&0xFC)>>2;
+  dt->tm_min=((cdt[2]&0xF0)>>4)+((cdt[3]&0x03)<<4);
+  dt->tm_hour=((cdt[1]&0x80)>>7)+((cdt[2]&0x0F)<<1);
+  dt->tm_mday=(cdt[1]&0x7C)>>2;
+  dt->tm_mon=((cdt[0]&0xC0)>>6)+((cdt[1]&0x03)<<2)-1;
+  dt->tm_year=(cdt[0]&0x3f)+LWP_CENTURY_OFFSET;
   dt->tm_wday=0;
   dt->tm_yday=0;
   dt->tm_isdst=0;

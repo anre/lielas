@@ -45,7 +45,7 @@
 #define SET_STD_SQL_PORT	"5432"
 #define SET_STD_COAP_ADDR	"::"
 #define SET_STD_COAP_PORT	"5683"
-#define SET_STD_GW_ADDR		"fdbe:fe1c:63e9:3d52:221:2eff:ff00:355d"
+#define SET_STD_GW_ADDR		"fdbe:fe1c:63e9:3d52:221:2eff:ff00:2714"
 #define SET_STD_GW_PORT		"5683"
 #define SET_STD_REGMODE_PANID     43981
 #define SET_STD_NORMALMODE_PANID  40000

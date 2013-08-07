@@ -246,6 +246,9 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
       if(PQntuples(res) == 1){
         strcpy(datetimestr, PQgetvalue(res, 0, 0));
         for(i = 0; i < strlen(datetimestr); i++){
+          if(datetimestr[i] == ' '){
+            datetimestr[i] = '-';
+          }
           if(datetimestr[i] == '-'){
             datetimestr[i] = '.';
           }
@@ -364,7 +367,7 @@ int DeviceSetDatetime(Ldevice *d){
   
   
 	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/device", d->address);
-	strftime(datetime, DATABUFFER_SIZE, "datetime=%Y.%m.%d %H:%M:%S", now);
+	strftime(datetime, DATABUFFER_SIZE, "datetime=%Y.%m.%d-%H:%M:%S", now);
 	coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)datetime);
 	sleep(1);
 
@@ -385,7 +388,7 @@ int DeviceSetDatetime(Ldevice *d){
     return -1;
   }
   dt.tm_isdst = 0;
-	strptime(recvDt, "%Y.%m.%d %H:%M:%S", &dt);
+	strptime(recvDt, "%Y.%m.%d-%H:%M:%S", &dt);
   snprintf(log, CMDBUFFER_SIZE, "device time: %s", recvDt);
   lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
@@ -398,9 +401,9 @@ int DeviceSetDatetime(Ldevice *d){
   
   lielas_log((unsigned char*)"setting time: time difference too big", LOG_LEVEL_WARN);
   snprintf(log, CMDBUFFER_SIZE, "server time: ");
-	strftime(&log[strlen(log)], CMDBUFFER_SIZE - strlen(log), "%d.%m.%Y %H:%M:%S", now);
+	strftime(&log[strlen(log)], CMDBUFFER_SIZE - strlen(log), "%d.%m.%Y-%H:%M:%S", now);
   snprintf(&log[strlen(log)], CMDBUFFER_SIZE - strlen(log), " received time: ");
-	strftime(&log[strlen(log)], CMDBUFFER_SIZE - strlen(log), "%d.%m.%Y %H:%M:%S",&dt);
+	strftime(&log[strlen(log)], CMDBUFFER_SIZE - strlen(log), "%d.%m.%Y-%H:%M:%S",&dt);
   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
 	return -1;
 }

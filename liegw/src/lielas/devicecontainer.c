@@ -1117,14 +1117,14 @@ void LDCcheckForNewDevices(){
           // set logger interval
           lielas_log((unsigned char*)"setting device logger interval to 600", LOG_LEVEL_DEBUG);
           snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
-          snprintf((char*)payload, DATABUFFER_SIZE, "interval=600");
+          snprintf((char*)payload, DATABUFFER_SIZE, "interval=60");
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
           
           
           // set logger state
           lielas_log((unsigned char*)"setting device logger on", LOG_LEVEL_DEBUG);
           snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
-          snprintf((char*)payload, DATABUFFER_SIZE, "state=on");
+          snprintf((char*)payload, DATABUFFER_SIZE, "state=1");
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
           
         }
