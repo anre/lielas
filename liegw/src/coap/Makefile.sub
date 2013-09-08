@@ -13,9 +13,6 @@ src/coap/coapserver.d \
 src/coap/mycoap.d \
 
 %.o: %.c
-	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C Compiler'
-	$(CC) $(CFLAGS) -c -o $@ $<
-	@echo 'Finished building: $<'
-	@echo ' '
+	@echo 'CC:  $<'
+	$(CC) $(CFLAGS) -c -o $@ $<	
 

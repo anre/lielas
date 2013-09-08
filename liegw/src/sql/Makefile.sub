@@ -10,10 +10,7 @@ C_DEPS += \
 src/sql/sql.d
 
 # Each subdirectory must supply rules for building sources it contributes
-src/sql/sql.o: src/sql/sql.c
-	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C Compiler'
-	$(CC) $(CFLAGS) -c -o $@ $<
-	@echo 'Finished building: $<'
-	@echo ' '
+%.o: %.c
+	@echo 'CC:  $<'
+	$(CC) $(CFLAGS) -c -o $@ $<	
 

@@ -1,19 +1,10 @@
 include Makefile.inc
 
 BIN=liegw
-DESTDIR=
-BINDIR=/usr/bin/
+DESTDIR=lielas/
+BINDIR=bin/
 
-prefix = /usr/local
-# Prefix for each installed program, 
-# normally empty or `g'.
-binprefix = 
-
-# The directory to install tar in.
-bindir = $(prefix)/bin
-
-# The directory to install the info files in.
-infodir = $(prefix)/info
+prefix = /usr/local/
 
 LIBS := -lpq -lcoap -lpthread
 C_SRCS :=
@@ -44,13 +35,14 @@ $(BIN): $(OBJS)
 	@echo ' '
 
 install:
-	mkdir -p $(DESTDIR)$(BINDIR) 
-	cp $(BIN) $(DESTDIR)$(BINDIR)
-	chmod +x $(DESTDIR)$(BINDIR)$(BIN)
+	@echo 'installing to $(prefix)$(DESTDIR)$(BINDIR)'
+	mkdir -p $(prefix)$(DESTDIR)$(BINDIR) 
+	cp $(BIN) $(prefix)$(DESTDIR)$(BINDIR)
+	chmod +x $(prefix)$(DESTDIR)$(BINDIR)$(BIN)
 
 uninstall:
-	@echo 'deleting $(DISTDIR)$(BINDIR)$(BIN)'
-	rm -f $(DISTDIR)$(BINDIR)$(BIN)
+	@echo 'deleting $(prefix)$(DESTDIR)$(BINDIR)$(BIN)'
+	rm -f $(prefix)$(DESTDIR)$(BINDIR)$(BIN)
 
 clean:
 	rm -rf $(OBJS)

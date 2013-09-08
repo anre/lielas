@@ -31,9 +31,5 @@ src/lielas/ldb.d \
 src/lielas/lwp.d \
 
 %.o: %.c
-	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C Compiler'
-	$(CC) $(CFLAGS) -c  -o $@ $<
-	@echo 'Finished building: $<'
-	@echo ' '
-
+	@echo 'CC:  $<'
+	$(CC) $(CFLAGS) -c -o $@ $<	
