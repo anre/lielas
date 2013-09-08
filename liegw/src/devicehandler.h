@@ -70,6 +70,7 @@ int lielas_setRunmode(int mode);
 void lielas_runmodeHandler();
 struct tm *lielas_getEndRegModeTimer();
 int DeviceSetDatetime(Ldevice *d);
+int setCycleMode(Ldevice *d, int mode);
 
 #endif
 

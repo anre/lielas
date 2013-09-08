@@ -47,7 +47,6 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc);
 datapaketcontainer *CreateDatapaketcontainer();
 void DeleteDatapaketcontainer(datapaketcontainer *dpc);
 int DeviceSetDatetime(Ldevice *d);
-int setCycleMode(Ldevice *d, int mode);
 datapaket *CreateDatapaket();
 int setLoggerMint(Ldevice *d, Lmodul *m);
 

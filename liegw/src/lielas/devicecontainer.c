@@ -874,6 +874,7 @@ void LDCcheckForNewDevices(){
 	mktime(nextScan);
 
 	// get routing table
+   
   cb = coap_create_buf();
 	if( cb == NULL){
     lielas_log((unsigned char*)"failed to create coap buf", LOG_LEVEL_WARN);
@@ -882,6 +883,7 @@ void LDCcheckForNewDevices(){
 	cb->buf = (char*)rplTable;
   cb->bufSize = CLIENT_BUFFER_LEN;
   
+  #ifdef DC_USE_RPL_COAP_SERVER
   snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/rpl", set_getGatewaynodeAddr(), set_getGatewaynodePort());
   coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
   
@@ -889,7 +891,34 @@ void LDCcheckForNewDevices(){
     lielas_log((unsigned char*)"failed to get routing table", LOG_LEVEL_WARN);
     return;
   }
-	
+  
+  #else 
+  
+  FILE *fp;
+  long size;
+  
+  fp = fopen("/usr/local/lielas/rpl.tbl", "r");
+  if(fp == NULL){
+    lielas_log((unsigned char*)"failed to get routing table file", LOG_LEVEL_WARN);
+    return;
+  }
+  
+  //get file size
+  fseek(fp, 0, SEEK_END);
+  size = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  
+  if(cb->bufSize > (size + 1)){
+    fread(cb->buf, size, 1, fp);
+    cb->buf[size] = 0;
+  }else{
+    lielas_log((unsigned char*)"rpl routing table too big for buffer, skip parsing", LOG_LEVEL_WARN);
+    fclose(fp);
+    return;
+  }
+  
+  fclose(fp);
+  #endif
   jsmn_init(&json);
   nextToken = 0;
 	r = jsmn_parse(&json, rplTable, tokens, MAX_JSON_TOKENS);
@@ -900,7 +929,7 @@ void LDCcheckForNewDevices(){
   
   cb->buf = (char*)buf;
   cb->bufSize = CLIENT_BUFFER_LEN;
-
+  
 	while(nextToken < json.toknext && rplTable[tokens[nextToken].start] != 0){
 		if(state == 0){ // "Routes" not yet found
       if( tokens[nextToken].type == JSMN_STRING){
@@ -1117,7 +1146,7 @@ void LDCcheckForNewDevices(){
           // set logger interval
           lielas_log((unsigned char*)"setting device logger interval to 600", LOG_LEVEL_DEBUG);
           snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
-          snprintf((char*)payload, DATABUFFER_SIZE, "interval=60");
+          snprintf((char*)payload, DATABUFFER_SIZE, "interval=600");
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
           
           
@@ -1127,10 +1156,12 @@ void LDCcheckForNewDevices(){
           snprintf((char*)payload, DATABUFFER_SIZE, "state=1");
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
           
+          //put device to sleep
+          setCycleMode(d, LWP_CYCLE_MODE_ON);
+          
         }
       }
 		}
-    
     nextToken += 1;
 	}
 

@@ -37,6 +37,12 @@
 #define LDC_DEVICE_NOT_FOUND			-2
 #define LDC_FAILED_TO_ALOCATE_MEMORY	-3
 
+#if 1
+  #define DC_USE_RPL_WEB_SERVER
+#else
+  #define DC_USE_RPL_COAP_SERVER
+#endif
+
 
 struct Ldc_struct{
 	Ldevice *d;
