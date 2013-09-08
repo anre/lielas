@@ -36,7 +36,8 @@ public class Config {
 	//static String dbUser = "lielas";
 	//static String dbPass = "lielas";
 	String dbUser = "lielas";
-	String dbPass = "lieweb";
+	String dbPass = "lielas";
+	String dbName = "ldb";
 	
 	String langPath = "lang\\";
 	String firstLang = "en.properties";
@@ -82,8 +83,7 @@ public class Config {
 			e.printStackTrace();
 		}
 		
-		dbUser = configFile.getProperty("dbUser");
-		dbPass = configFile.getProperty("dbPassword");
+
 		
 		langPath = configFile.getProperty("languagePath");
 		firstLang = configFile.getProperty("firstLanguage");
@@ -102,7 +102,11 @@ public class Config {
 		
 		lbusServerAddress = configFile.getProperty("lbusServerAddress");
 		lbusServerPort = Integer.parseInt(configFile.getProperty("lbusServerPort"));
-
+		
+		dbUser = configFile.getProperty("dbUser");
+		dbPass = configFile.getProperty("dbPassword");
+		dbName = configFile.getProperty("dbName");
+		
 		sqlServerAddress = configFile.getProperty("sqlServerAddress");
 		sqlServerPort = Integer.parseInt(configFile.getProperty("sqlServerPort"));
 		
@@ -135,6 +139,14 @@ public class Config {
 		this.dbPass = dbPass;
 	}
 
+	public String getDbName() {
+		return dbName;
+	}
+
+	public void setDbName(String dbName) {
+		this.dbName = dbName;
+	}
+	
 	public String getLangPath() {
 		return langPath;
 	}

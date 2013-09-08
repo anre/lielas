@@ -49,6 +49,7 @@ public class SQLHelper implements Serializable {
 	
 	private String dbUser;
 	private String dbPass;
+	private String dbName;
 	private String csvDelimiter;
 	private String serverAddress;
 	private Integer serverPort;
@@ -66,7 +67,7 @@ public class SQLHelper implements Serializable {
 		
 		LoadSettings();
 		
-		String url = "jdbc:postgresql://" + serverAddress + ":" + serverPort.toString() + "/lielas";
+		String url = "jdbc:postgresql://" + serverAddress + ":" + serverPort.toString() + "/" + dbName;
 		String user = dbUser;
 		String password = dbPass;
 		
@@ -87,6 +88,7 @@ public class SQLHelper implements Serializable {
 		cfg.LoadSettings();
 		dbUser = cfg.getDbUser();
 		dbPass = cfg.getDbPass();
+		dbName = cfg.getDbName();
 		serverAddress = cfg.getSqlServerAddress();
 		serverPort = cfg.getSqlServerPort();
 		csvDelimiter = cfg.getCsvDelimiter();
