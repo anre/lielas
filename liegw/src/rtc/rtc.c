@@ -27,6 +27,7 @@
 #include <sys/timex.h>
 #include <errno.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "rtc.h"
 #include "rtc4162.h"
@@ -100,6 +101,10 @@ int rtc_init(){
       now = gmtime(&rawtime);
       
       rtc4162_set(now);
+      sleep(2);
+      if(rtc4162_init()){
+        return RTC_ERROR;
+      }
       timenotvalid = rtc4162_get(&dt);
       if(!timenotvalid){
         timenotvalid = testdt(&dt);
