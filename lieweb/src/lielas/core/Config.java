@@ -30,11 +30,9 @@ import java.util.Properties;
 
 public class Config {
 
-	static String appPath = "E:\\VM Share\\lielas\\lieweb\\";
-	//static String appPath = "/usr/local/lielas/";
+	int win = 0;
+	static String appPath;
 
-	//static String dbUser = "lielas";
-	//static String dbPass = "lielas";
 	String dbUser = "lielas";
 	String dbPass = "lielas";
 	String dbName = "ldb";
@@ -61,7 +59,11 @@ public class Config {
 	Integer sqlServerPort = 5432;
 	
 	public Config(){
-		
+		if(win == 1){
+			appPath = "E:\\VM Share\\lielas\\lieweb\\";
+		}else{
+			appPath = "/usr/local/lielas/";
+		}
 	}
 	
 	public void LoadSettings(){

@@ -31,6 +31,7 @@ import lielas.ui.DownloadScreen;
 import lielas.ui.AnalyseScreen;
 import lielas.ui.HelpScreen;
 import com.vaadin.ui.UI;
+import com.vaadin.annotations.PreserveOnRefresh;
 import com.vaadin.annotations.Theme;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.terminal.*;
@@ -52,7 +53,8 @@ import lielas.core.LanguageHelper;
 
 @SuppressWarnings({ "serial", "unused" })
 
-@Theme("reder")
+@Theme("reder")	
+@PreserveOnRefresh
 public class LiewebUI extends UI {
 	
 	/**
@@ -83,7 +85,8 @@ public class LiewebUI extends UI {
 	public User user;
 	
 	public Config config;
-	
+
+
 	@Override
 	protected void init(VaadinRequest request) {
 		
@@ -142,8 +145,8 @@ public class LiewebUI extends UI {
 	}
 	
 	public void Logout(){
-		headerScreen.setPermisson(0);
-		setMainComponent(loginScreen);
+		getUI().getPage().setLocation("lieweb");
+		getUI().getSession().close();
 	}
 	
 	public void setMainComponent(Component c){
