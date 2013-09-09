@@ -28,6 +28,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 
 #include "devicehandler.h"
 #include "lielas/devicecontainer.h"
@@ -49,6 +50,7 @@ void DeleteDatapaketcontainer(datapaketcontainer *dpc);
 int DeviceSetDatetime(Ldevice *d);
 datapaket *CreateDatapaket();
 int setLoggerMint(Ldevice *d, Lmodul *m);
+int convertValueWithExponent(char *indata, char *outval, uint8_t outValLen, double ex);
 
 int runmode;
 static struct tm *endRegModeTimer;
@@ -204,7 +206,6 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
   int pos = 0;
   int eof = 0;
   int datasets = 0;
-  uint16_t val;
   
 
 	dpc->datapakets = 0;
@@ -230,13 +231,15 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 
 
 
-	// get last value in database
+	// get last value in database and create coap get command
 	snprintf(adrStr, DATABUFFER_SIZE, "%s.1.1", d->address);
-	if(SQLTableExists(LDB_TBL_NAME_DATA) == 0){    
+	if(SQLTableExists(LDB_TBL_NAME_DATA) == 0){  
+      
     //Table exists, check if column exists
     if(SQLColumnExists(LDB_TBL_NAME_DATA, adrStr)){ //column does not exist, get all data
 			snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
 			coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+      
     }else{ // column exists, get new data
       snprintf(st, DATABUFFER_SIZE, 
                   "SELECT datetime \"%s\" FROM %s.%s WHERE \"%s\" NOT LIKE '' ORDER BY datetime DESC LIMIT 1", 
@@ -280,6 +283,8 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 		return -1;
 	}
 
+
+  //parse data
   while(pos < cb->len && !eof){
 
     //parse date
@@ -306,11 +311,9 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 				dp->m = d->modul[1];
 				dp->c = d->modul[1]->channel[cnr];
         
-        
-        val = ((uint8_t)cb->buf[pos+1]<<8) + (uint8_t)cb->buf[pos];
-        snprintf(dp->value, VALUEBUFFER_SIZE, "%u,%u", (val/10), (val%10));
-        
+        convertValueWithExponent(&cb->buf[pos], dp->value, VALUEBUFFER_SIZE, dp->c->exponent);
         pos += 2;
+        
 				memcpy(dp->dt, &dt, sizeof(struct tm));
 				dpc->dp[dpc->datapakets] = dp;
 				dpc->datapakets += 1;
@@ -446,21 +449,18 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 
 		// create datetime string
 		strftime(dtStr, CMDBUFFER_SIZE, "%Y-%m-%d %H:%M:%S", dpc->dp[i]->dt);
+    
 		//check, if datetime-row exists
 		if(SQLCellExists(LDB_TBL_NAME_DATA, "datetime", dtStr)){
 			//creat new row
 			snprintf(st, CMDBUFFER_SIZE, "INSERT INTO %s.%s ( datetime, \"%s\" ) VALUES ( '%s', '%s')", 
                 LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dtStr, dpc->dp[i]->value);
-      //snprintf(log, LOG_BUF_LEN, "Saved data: Address:%s Time:%s Value:%s°C", adrStr, dtStr, dpc->dp[i]->value);
-			//lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
 			res = SQLexec(st);
 			PQclear(res);
 			success += 1;
 		}else{
 			snprintf(st, CMDBUFFER_SIZE, "UPDATE %s.%s SET \"%s\"='%s' WHERE datetime='%s'", 
                 LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dpc->dp[i]->value, dtStr );
-      //snprintf(log, LOG_BUF_LEN, "Saved data: Address:%s Time:%s Value:%s°C", adrStr, dtStr, dpc->dp[i]->value);
-			//lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
 			res = SQLexec(st);
 			PQclear(res);
 			success += 1;
@@ -575,6 +575,42 @@ int setLoggerMint(Ldevice *d, Lmodul *m){
   return 0;
 }
 
+/********************************************************************************************************************************
+ *    double convertValueWithExponent(uint8_t *p)
+ *    converts lwp data to values using /channel/exponent
+ ********************************************************************************************************************************/
+int convertValueWithExponent(char *indata, char *outval, uint8_t outValLen, double ex){
+  double val;
+  uint16_t low, high;
+  char format[100];
+  int i;
+  
+  //convert data to double value
+  low = 0x00FF & (uint16_t)indata[0];
+  high = 0xFF00 & (((uint16_t)indata[1]) << 8);
+  val = (double)(low + high) * pow(10, ex);
+  
+  //create format string
+  ex = abs(ex);
+  snprintf(format, 100, "%%.%.0ff", ex);
+  
+  //print value to outval using format string
+  if(snprintf(outval, outValLen, format, val) <= 0){
+    return -1;
+  }
+  
+  //change '.' to ','
+  for(i = 0; i < outValLen; i++){
+    if(outval[i] == 0){
+      break;
+    }
+    if(outval[i] == '.'){
+      outval[i] = ',';
+      break;
+    } 
+  }
+  return 0;
+}
 
 /********************************************************************************************************************************
  * 		datapaketcontainer CreateDatapaketcontainer()
@@ -710,6 +746,7 @@ int lielas_setRunmode(int mode){
   }
   return 0;
 }
+
 /********************************************************************************************************************************
  *    void lielas_runmodeHandler()
  *    switches automatically back to normal mode

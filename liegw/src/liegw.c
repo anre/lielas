@@ -28,7 +28,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <pthread.h>
-
+#include <math.h>
 
 #include "lielas/devicecontainer.h"
 #include "coap/coapserver.h"

@@ -34,6 +34,7 @@ Lchannel *LcreateChannel(){
 	channel->type[0] = 0;
 	channel->unit[0] = 0;
   channel->class[0] = 0;
+  channel->exponent = 0.0;
 	return channel;
 }
 

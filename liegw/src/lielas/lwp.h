@@ -56,6 +56,7 @@
 #define LWP_ATTR_CHANNEL_UNIT           "unit"
 #define LWP_ATTR_CHANNEL_TYPE           "type"
 #define LWP_ATTR_CHANNEL_CLASS          "class"
+#define LWP_ATTR_CHANNEL_EXPONENT       "exponent"
 #define LWP_ATTR_LOGGER_STATE           "state"
 #define LWP_ATTR_LOGGER_INTERVAL        "interval"
 #define LWP_ATTR_LOGGER_MIN             "min"

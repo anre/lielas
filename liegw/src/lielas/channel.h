@@ -33,6 +33,7 @@ typedef struct Lchannel_struct{
 	  char sensor[CHANNEL_ATTR_STR_LEN];
 	  char unit[CHANNEL_ATTR_STR_LEN];
     char class[CHANNEL_ATTR_STR_LEN];
+    double exponent;
 }Lchannel;
 
 

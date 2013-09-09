@@ -327,7 +327,7 @@ void loadChannels(Lmodul *m, char *channels){
 			//load channel
 			cstr[j] = 0;
       snprintf(st, SQL_STATEMENT_BUF_SIZE,
-                "SELECT id, address, type, unit FROM %s.%s WHERE id=%s",
+                "SELECT id, address, type, unit, exponent FROM %s.%s WHERE id=%s",
                 LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS, cstr);
 			res = SQLexec(st);
 			if(PQresultStatus(res) != PGRES_TUPLES_OK){
@@ -340,6 +340,8 @@ void loadChannels(Lmodul *m, char *channels){
 			strcpy(channel->address, PQgetvalue(res, 0, 1));
 			strcpy(channel->type, PQgetvalue(res, 0, 2));
 			strcpy(channel->unit, PQgetvalue(res, 0, 3));
+      channel->exponent = strtod(PQgetvalue(res, 0, 4), NULL);
+      
 			LaddChannel(m, channel);
 
 			PQclear(res);
@@ -647,8 +649,8 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 					lielas_log((unsigned char*)"Can't get new channel id", LOG_LEVEL_WARN);
 					return -1;
 				}
-				snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO channels (id, address, type, unit, class) VALUES (%d, '%s', '%s', '%s', '%s')",
-						 c->id, c->address, c->type, c->unit, c->class);
+				snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO channels (id, address, type, unit, class, exponent) VALUES (%d, '%s', '%s', '%s', '%s', '%.0f')",
+						 c->id, c->address, c->type, c->unit, c->class, c->exponent);
 				res = SQLexec(st);
 				if(!res){
 					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -711,6 +713,16 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				}
         if(strcmp(c->class, oldChannel->class)){
 					snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET class=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS ,  c->class, c->id);
+					res = SQLexec(st);
+					if(!res){
+						lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
+						PQclear(res);
+						return -1;
+					}
+					PQclear(res);
+				}
+        if(c->exponent != oldChannel->exponent){
+					snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET exponent=\"%.0f\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS ,  c->exponent, c->id);
 					res = SQLexec(st);
 					if(!res){
 						lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -829,6 +841,7 @@ void LDCcheckForNewDevices(){
   char rplTable[CLIENT_BUFFER_LEN];
   char wkc[CLIENT_BUFFER_LEN];
   char mac[MAC_STR_LEN];
+  char ex[CLIENT_BUFFER_LEN];
   unsigned char payload[CLIENT_BUFFER_LEN];
   char log[LOG_BUF_LEN];
 	Ldevice *d;
@@ -1101,23 +1114,40 @@ void LDCcheckForNewDevices(){
                   return;
                 }
                 
+                //unit
                 if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_UNIT, c[j]->unit, CHANNEL_ATTR_STR_LEN)){
                   snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/unit", j);
                   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
                   return;
                 }
                 
+                //type
                 if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_TYPE, c[j]->type, CHANNEL_ATTR_STR_LEN)){
                   snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/type", j);
                   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
                   return;
                 }   
                 
+                //class
                 if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_CLASS, c[j]->class, CHANNEL_ATTR_STR_LEN)){
                   snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/class", j);
                   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
                   return;
                 }  
+                
+                //exponent
+                if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_EXPONENT, ex, CHANNEL_ATTR_STR_LEN)){
+                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/exponent", j);
+                  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
+                  return;
+                }  
+                // parse exponent to double
+                c[j]->exponent = strtod(ex, NULL);
+                if(c[j]->exponent == 0.0){
+                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/exponent", j);
+                  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
+                  return;
+                }
                 
 								LaddChannel(m[i], c[j]);
                 snprintf(log, LOG_BUF_LEN, "found channel%i with unit %s, type %s and class %s", j, c[j]->unit, c[j]->type, c[j]->class);

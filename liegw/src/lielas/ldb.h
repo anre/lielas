@@ -44,7 +44,7 @@
 #define LDB_TBL_CONTENT_USER_GOUPS      "(id integer NOT NULL, user_group text, delete_devices boolean, register_devices boolean, download boolean, PRIMARY KEY(id))"
 #define LDB_TBL_CONTENT_DEVICES         "(id integer NOT NULL, address text, mac text, registered boolean, name text, dev_group text, mint text, pint text, aint text, moduls text, wkc text, PRIMARY KEY(id))"
 #define LDB_TBL_CONTENT_MODULS          "(id integer NOT NULL, address text, channels text, mint text, pint text, aint text, PRIMARY KEY(id))"
-#define LDB_TBL_CONTENT_CHANNELS        "(id integer NOT NULL, address text, class text, type text, unit text, name text, channel_group text, PRIMARY KEY(id))"
+#define LDB_TBL_CONTENT_CHANNELS        "(id integer NOT NULL, address text, class text, type text, unit text, exponent text, name text, channel_group text, PRIMARY KEY(id))"
 #define LDB_TBL_CONTENT_DATA            "(datetime timestamp NOT NULL, PRIMARY KEY(datetime))"
 #define LDB_TBL_CONTENT_SETTINGS        "(name text NOT NULL, value text, PRIMARY KEY(name))"
 
