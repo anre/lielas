@@ -30,7 +30,7 @@ import java.util.Properties;
 
 public class Config {
 
-	int win = 0;
+	int win = 1;
 	static String appPath;
 
 	String dbUser = "lielas";

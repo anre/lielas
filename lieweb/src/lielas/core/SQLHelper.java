@@ -854,9 +854,8 @@ public class SQLHelper implements Serializable {
 		return false;
 	}
 	
-	public String GetLastValue(Device d, Modul m, Channel c){
+	public String GetLastValue(Device d, Modul m, Channel c, User u){
 		String value = "";
-		Timestamp dt;
 		
 		try{
 			String adr = d.getAddress() + "." + m.getAddress() + "." + c.getAddress();
@@ -864,8 +863,12 @@ public class SQLHelper implements Serializable {
 				Statement st = conn.createStatement();
 				ResultSet rs = st.executeQuery("SELECT datetime, \"" + adr + "\" FROM lielas.log_data WHERE  \"" + adr + "\" NOT LIKE '' ORDER BY datetime DESC LIMIT 1");
 				if(rs.next()){
-					dt = rs.getTimestamp(1);
-					value = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(dt) + "\t" + rs.getString(2);
+					Calendar cal = Calendar.getInstance();
+					TimeZone tz = TimeZone.getTimeZone("UTC");
+					cal.setTimeZone(tz);
+					cal.setTime(rs.getTimestamp(1));
+					cal.add(Calendar.HOUR_OF_DAY, u.getTimezone());
+					value = new SimpleDateFormat("dd.MM.yyyy HH:mm:ss").format(cal.getTime()) + "\t" + rs.getString(2);
 				}
 				rs.close();
 				st.close();

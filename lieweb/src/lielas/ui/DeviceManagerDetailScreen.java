@@ -168,7 +168,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 				channelNameCTx[cmAddress].setValue(c.getName());
 				channelGroupCTx[cmAddress].setValue(c.getGroup());
 				if(registered){
-					value = app.sql.GetLastValue(device, m, c);
+					value = app.sql.GetLastValue(device, m, c, app.user);
 					if(value != ""){
 						channelLastValueCLbl[cmAddress].setValue(value + c.getUnit());
 					}
@@ -176,7 +176,6 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 				cmAddress += 1;
 			}
 		}
-		
 	}
 	
 	public void Update(){
