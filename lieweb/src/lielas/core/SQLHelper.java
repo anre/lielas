@@ -124,8 +124,9 @@ public class SQLHelper implements Serializable {
 		try{
 			Statement st = conn.createStatement();
 			
-			if(TableExists("data")){
-				st.executeUpdate("DROP TABLE lielas.data");
+			if(TableExists("log_data")){
+				st.executeUpdate("DROP TABLE lielas.log_data");
+				st.executeUpdate("CREATE TABLE lielas.log_data(datetime timestamp NOT NULL, PRIMARY KEY(datetime))");
 			}
 			st.close();
 			return true;
