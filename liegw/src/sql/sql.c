@@ -137,18 +137,21 @@ int SQLTableExists(char *name){
 int SQLRowExists( char* table, char* row){
 	PGresult *res = 0;
 	char buf[SQL_BUFFER_SIZE];
+  char query[SQL_BUFFER_SIZE];
 	int column;
 
 	snprintf(buf, SQL_BUFFER_SIZE, "SELECT * FROM %s LIMIT 1", table);
 	res = SQLexec(buf);
+
 
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
 		PQclear(res);
 		return -1;
 	}
 
-	column = PQfnumber(res, row);
-
+  snprintf(query, SQL_BUFFER_SIZE, "\"%s\"", row);
+	column = PQfnumber(res, query);
+  
 	PQclear(res);
 	if(column > 0)
 		return 0;

@@ -232,7 +232,7 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
 
 
 	// get last value in database and create coap get command
-	snprintf(adrStr, DATABUFFER_SIZE, "%s.1.1", d->address);
+	snprintf(adrStr, DATABUFFER_SIZE, "%s.1.1", d->mac);
 	if(SQLTableExists(LDB_TBL_NAME_DATA) == 0){  
       
     //Table exists, check if column exists
@@ -440,7 +440,7 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 	for( i = 0; i < dpc->datapakets; i++){
 
 		//create column if not existing
-		snprintf(adrStr, CMDBUFFER_SIZE, "%s.%s.%s", dpc->dp[i]->d->address, dpc->dp[i]->m->address, dpc->dp[i]->c->address);
+		snprintf(adrStr, CMDBUFFER_SIZE, "%s.%s.%s", dpc->dp[i]->d->mac, dpc->dp[i]->m->address, dpc->dp[i]->c->address);
 		if(SQLRowExists(LDB_TBL_NAME_DATA, adrStr)){
 			snprintf(st, CMDBUFFER_SIZE, "ALTER TABLE %s.%s ADD COLUMN \"%s\" text", LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA , adrStr);
 			res = SQLexec(st);
