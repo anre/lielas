@@ -153,16 +153,16 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		dlCAddressLbl.setValue(device.getMac());
 		dlCNameTx.setValue(device.getName());
 		dlCGroupTx.setValue(device.getGroup());
-		dlCMIntTx.setValue(device.getMeassurementIntervall().toString());
-		dlCPIntSel.select(app.langHelper.GetString(Device.getProcessIntervallString(device.getProcessIntervall())));
-		dlCAIntTx.setValue(device.getAlarmIntervall().toString());		
+		//dlCMIntTx.setValue(device.getMeassurementIntervall().toString());
+		//dlCPIntSel.select(app.langHelper.GetString(Device.getProcessIntervallString(device.getProcessIntervall())));
+		//dlCAIntTx.setValue(device.getAlarmIntervall().toString());		
 
 		for(int i = 1; i < (device.getModuls()+1) ; i++){
 			Modul m = device.getModul(i);
 			modulMIntCTx[i].setValue(m.getMeassurementIntervall().toString());
-			modulPIntCTx[i].select(app.langHelper.GetString(Modul.getProcessIntervallString(m.getProcessIntervall())));
-			modulPIntCTx[i].setValue(m.getProcessIntervall());
-			modulAIntCTx[i].setValue(m.getAlarmIntervall().toString());
+			//modulPIntCTx[i].select(app.langHelper.GetString(Modul.getProcessIntervallString(m.getProcessIntervall())));
+			//modulPIntCTx[i].setValue(m.getProcessIntervall());
+			//modulAIntCTx[i].setValue(m.getAlarmIntervall().toString());
 			for( int j = 1; j <= m.getChannels();j++){
 				Channel c = m.getChannel(j);
 				channelNameCTx[cmAddress].setValue(c.getName());
@@ -253,7 +253,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		dlBodyLayout.addComponent(dlCGroupTx, 2, 2);
 		
 		// Meassurement Intervall
-		dlDMIntLbl = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_MEASSUREMENT_INTERVALL));
+	/*	dlDMIntLbl = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_MEASSUREMENT_INTERVALL));
 		dlDMIntLbl.addStyleName("dmDetailGridPadding");
 		dlBodyLayout.addComponent(dlDMIntLbl, 0, 3, 1, 3);
 		dlCMIntTx = new TextField();
@@ -285,7 +285,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		dlCAIntTx.setStyleName("detaillist-body");
 		dlCAIntTx.addStyleName("dmDetailGridPadding");
 		dlCAIntTx.setWidth(215, Unit.PIXELS);
-		dlBodyLayout.addComponent(dlCAIntTx, 2, 5); 
+		dlBodyLayout.addComponent(dlCAIntTx, 2, 5); */
 
 		// Supply
 		dlDSupplyLbl = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_SUPPLY));
@@ -348,7 +348,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 			
 			// PInt
 
-			modulPintDLbl[i] = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_PROCESS_INTERVALL));
+			/*modulPintDLbl[i] = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_PROCESS_INTERVALL));
 			modulPintDLbl[i].addStyleName("dmDetailGridPadding");
 			dlBodyLayout.addComponent(modulPintDLbl[i], 0, lines, 1, lines);
 			
@@ -372,7 +372,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 			modulAIntCTx[i].setStyleName("detaillist-body");
 			modulAIntCTx[i].addStyleName("dmDetailGridPadding");
 			modulAIntCTx[i].setWidth(215, Unit.PIXELS);
-			dlBodyLayout.addComponent(modulAIntCTx[i], 2, lines++);
+			dlBodyLayout.addComponent(modulAIntCTx[i], 2, lines++);*/
 
 			VerticalLayout mSpacerLayout = new VerticalLayout();
 			mSpacerLayout.setHeight(10, Unit.PIXELS);
