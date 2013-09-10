@@ -31,6 +31,7 @@ import java.util.TimeZone;
 
 import javax.xml.bind.DatatypeConverter;
 
+import lielas.LiewebUI;
 import lielas.core.Device;
 import lielas.core.Modul;
 import lielas.core.Channel;
@@ -134,6 +135,95 @@ public class SQLHelper implements Serializable {
 			ExceptionHandler.HandleException(e);
 		}
 		return false;
+	}
+	
+	public boolean DeleteDataBefore(LiewebUI app, String date){
+		Device d;
+		Modul m;
+		Channel c;
+		String column;
+		int i, j;
+		ValueSet[] vs;
+		int channels = 0;
+		int savedChannels = 0;
+		
+		//count number of channels and reserve ValueSets
+		d = app.deviceContainer.firstItemId();
+		while(d != null){
+			for(i = 1; i <= d.getModuls(); i++){
+				m = d.getModul(i);
+				if(m == null)
+					return false;
+				for(j = 1; j <= m.getChannels(); j++){
+					c = m.getChannel(j);
+					
+					if(c == null)
+						return false;
+					channels += 1;
+				}
+			}
+			d = app.deviceContainer.nextItemId(d);
+		}
+		vs = new ValueSet[channels+1];
+		
+		try{
+			//save values to ValueSet
+			Statement st = conn.createStatement();
+			
+			d = app.deviceContainer.firstItemId();
+			while(d != null){
+				for(i = 1; i <= d.getModuls(); i++){
+					m = d.getModul(i);
+					
+					for(j = 1; j <= m.getChannels(); j++){
+						c = m.getChannel(j);
+						
+						column = "\"" + d.getMac() + "." + m.getAddress() + "." + c.getAddress() + "\"";
+						
+						//save last value
+						st = conn.createStatement();
+						ResultSet rs = st.executeQuery("SELECT datetime," + column + " FROM lielas.log_data WHERE " + column + " NOT LIKE '' ORDER BY datetime DESC LIMIT 1");
+						if(rs.next()){
+							vs[savedChannels] = new ValueSet();
+							vs[savedChannels].setDate(rs.getString(1));
+							vs[savedChannels].setValue(rs.getString(2));
+							vs[savedChannels].setColumn(column);
+							savedChannels += 1;						
+						}else{
+							vs[savedChannels] = new ValueSet();
+							vs[savedChannels].setDate(null);
+							vs[savedChannels].setDate(null);
+							vs[savedChannels].setColumn(null);
+							savedChannels += 1;	
+						}
+						
+						rs.close();
+					}
+				}
+				d = app.deviceContainer.nextItemId(d);
+			}
+			
+			//delete data
+			st.execute("DELETE FROM lielas.log_data WHERE datetime < '" + date + "'");
+			
+			//write saved ValueSets back
+			for(i = 0; i < savedChannels; i++){
+				if(vs[i].getDate() != null){
+					if(CellExists("lielas.log_data", "datetime", vs[i].getDate())){
+						st.execute("UPDATE lielas.log_data SET " + vs[i].getColumn() + "='" + vs[i].getValue() + "' WHERE datetime='" + vs[i].getDate() + "'");
+					}else{
+						st.execute("INSERT INTO lielas.log_data (datetime, " + vs[i].getColumn() + ") VALUES ('" + vs[i].getDate() + "', '"  + vs[i].getValue() + "')");
+					}
+				}
+			}
+			
+			st.close();
+			
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}
+			
+		return true;
 	}
 	
 	public Device GetDevice(int ID){
@@ -564,10 +654,10 @@ public class SQLHelper implements Serializable {
 					Modul m = d.getModul(j);
 					for( int k = 1; k <= m.getChannels(); k++){
 						Channel c = m.getChannel(k);
-						if(!ColumnExists(d.getAddress() + "." + m.getAddress() + "." + c.getAddress() )){
-							st.execute("ALTER TABLE lielas.log_data ADD COLUMN \""+ d.getAddress() + "." + m.getAddress() + "." + c.getAddress() + "\" text");
+						if(!ColumnExists(d.getMac() + "." + m.getAddress() + "." + c.getAddress() )){
+							st.execute("ALTER TABLE lielas.log_data ADD COLUMN \""+ d.getMac() + "." + m.getAddress() + "." + c.getAddress() + "\" text");
 						}
-						tableOrder += ", \"" + d.getAddress() + "." + m.getAddress() + "." + c.getAddress() + "\"";
+						tableOrder += ", \"" + d.getMac() + "." + m.getAddress() + "." + c.getAddress() + "\"";
 					}
 				}
 				d = dc.nextItemId(d);
@@ -582,7 +672,7 @@ public class SQLHelper implements Serializable {
 					Modul m = d.getModul(j);
 					for( int k = 1; k <= m.getChannels(); k++){
 						if( j == 1 && k ==1){
-							csvStr.append(csvDelimiter + d.getAddress());
+							csvStr.append(csvDelimiter + d.getMac());
 						}else{
 							csvStr.append(csvDelimiter);
 						}
@@ -901,6 +991,25 @@ public class SQLHelper implements Serializable {
 			Statement st = conn.createStatement();
 			st = conn.createStatement();
 			rs = st.executeQuery("SELECT column_name FROM information_schema.columns WHERE table_name='log_data' and column_name='" + column + "'");
+			if(rs.next()){
+				st.close();
+				rs.close();
+				return true;
+			}
+			st.close();
+			rs.close();
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}
+		return false;
+	}
+	
+	private boolean CellExists(String table, String column, String value){
+		ResultSet rs;
+		try{
+			Statement st = conn.createStatement();
+			st = conn.createStatement();
+			rs = st.executeQuery("SELECT " + column + " FROM " + table + " WHERE " + column + "='" + value + "'");
 			if(rs.next()){
 				st.close();
 				rs.close();
@@ -1240,16 +1349,43 @@ public class SQLHelper implements Serializable {
 		return nettype;
 	}
 		
-		public void setNetGateway(String netGateway) {
+	public void setNetGateway(String netGateway) {
 
-			try{
-				if(TableExists("settings")){
-					Statement st = conn.createStatement();
-					st.executeUpdate("UPDATE lielas.settings SET value='" + netGateway + "' WHERE name='NET_NEW_GATEWAY'");
-					st.close();
-				}
-			}catch(Exception e){
-				ExceptionHandler.HandleException(e);
-			}	
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				st.executeUpdate("UPDATE lielas.settings SET value='" + netGateway + "' WHERE name='NET_NEW_GATEWAY'");
+				st.close();
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}	
+	}
+	
+	private class ValueSet{
+		String date;
+		String value;
+		String column;
+		
+		public String getDate() {
+			return date;
 		}
+		public void setDate(String date) {
+			this.date = date;
+		}
+		public String getValue() {
+			return value;
+		}
+		public void setValue(String value) {
+			this.value = value;
+		}
+		public String getColumn() {
+			return column;
+		}
+		public void setColumn(String column) {
+			this.column = column;
+		}
+		
+		
+	}
 }

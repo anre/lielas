@@ -112,6 +112,7 @@ public class OptionsScreen extends Panel{
 	private InlineDateField dateField = null;
 	private NativeButton setDatetimeBttn = null;
 	
+	private DateField deleteBeforedateField = null;
 	
 	private Label useDhcpDLbl = null;
 	private CheckBox useDhcpCB = null;
@@ -133,6 +134,7 @@ public class OptionsScreen extends Panel{
 	
 	private NativeButton newUserBttn = null;
 	private NativeButton deleteDataBttn = null;
+	private NativeButton deleteDataBeforeBttn = null;
 	private NativeButton deleteDatabaseBttn  = null;
 	private NativeButton createTestDataBttn = null;
 	private NativeButton saveIPBttn = null;
@@ -293,6 +295,25 @@ public class OptionsScreen extends Panel{
 			@Override
 			public void buttonClick(ClickEvent event) {
 				DeleteDataBttnClicked(event);
+			}			
+		});
+		
+		deleteBeforedateField = new DateField();
+		deleteBeforedateField.addStyleName("optionsscreen");
+		deleteBeforedateField.setValue(new Date());
+		deleteBeforedateField.setResolution(Resolution.SECOND);
+		//deleteBeforedateField.setVisible(false);
+		databaseSettingsLayout.addComponent(deleteBeforedateField);
+		
+		deleteDataBeforeBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_BEFORE));
+		deleteDataBeforeBttn.addStyleName("optionsscreen");
+		deleteDataBeforeBttn.setHeight(24, Unit.PIXELS);
+		databaseSettingsLayout.addComponent(deleteDataBeforeBttn);
+		
+		deleteDataBeforeBttn.addClickListener(new ClickListener(){
+			@Override
+			public void buttonClick(ClickEvent event) {
+				DeleteDataBeforeBttnClicked(event);
 			}			
 		});
 		
@@ -674,6 +695,7 @@ public class OptionsScreen extends Panel{
 		//database settings
 		databaseSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_SETTINGS));
 		deleteDataBttn.setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE));
+		deleteDataBeforeBttn.setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_BEFORE));
 		
 		
 		//language settings
@@ -743,7 +765,7 @@ public class OptionsScreen extends Panel{
 		
 		groupDetailHeaderLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GROUP_DETAILS_CAPTION));*/
 		
-		regCaptionLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_REG_CAPTION));
+		/*regCaptionLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_REG_CAPTION));
 		regMIntDLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_REG_MINT_LBL));
 		regPIntDLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_REG_PINT_LBL));
 		regAIntDLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_REG_AINT_LBL));
@@ -757,7 +779,7 @@ public class OptionsScreen extends Panel{
 		regMIntCTx.setValue(app.sql.getRegMInt().toString());
 		regPIntCSel.select(app.langHelper.GetString(Device.getProcessIntervallString(app.sql.getRegPInt())));
 		regAIntCTx.setValue(app.sql.getRegAInt().toString());
-		regTimeCTx.setValue(app.sql.getRegTime().toString());
+		regTimeCTx.setValue(app.sql.getRegTime().toString());*/
 		
 	}
 	
@@ -804,13 +826,58 @@ public class OptionsScreen extends Panel{
 	}
 	
 	private void DeleteDataBttnClicked(ClickEvent event){
-		if(DeviceContainer.sql.DeleteData()){
-			Notification.show("Database successfully deleted");
-		}else{
-			Notification.show("Error: Couldn't delete database", Notification.Type.ERROR_MESSAGE);
-		}
+		YesNoPopupScreen ackPopup =  new YesNoPopupScreen(app, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_POP_HEADER), 
+				app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_POP_TEXT));
+		
+		ackPopup.addListener(new PopupClosedListener(){
+			@Override
+			public void popupClosedEvent(YesNoPopupScreen e) {
+				if(e.isYesClicked()){
+					if(DeviceContainer.sql.DeleteData()){
+						Notification.show("Database successfully deleted");
+					}else{
+						Notification.show("Error: Couldn't delete database", Notification.Type.ERROR_MESSAGE);
+					}
+				}
+			}
+		});
 	}
-	
+
+	private void DeleteDataBeforeBttnClicked(ClickEvent event){
+
+		YesNoPopupScreen ackPopup =  new YesNoPopupScreen(app, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_POP_HEADER), 
+				app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_POP_TEXT));
+		
+		ackPopup.addListener(new PopupClosedListener(){
+			@Override
+			public void popupClosedEvent(YesNoPopupScreen e) {
+				if(e.isYesClicked()){
+					
+					Date date = (Date) deleteBeforedateField.getValue();
+					//convert date to UTC
+					Calendar cal = Calendar.getInstance();
+					TimeZone tz = TimeZone.getTimeZone("UTC");
+					cal.setTimeZone(tz);
+					cal.setTime(date);
+					cal.add(Calendar.HOUR_OF_DAY, -app.user.getTimezone());
+					
+					//convert date to SQL date
+					java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					String dt = sdf.format(cal.getTime());
+					app.sql.DeleteDataBefore(app, dt);
+					
+					/*if(DeviceContainer.sql.DeleteData()){
+						Notification.show("Database successfully deleted");
+					}else{
+						Notification.show("Error: Couldn't delete database", Notification.Type.ERROR_MESSAGE);
+					}*/
+				}
+			}
+		});
+
+
+
+	}
 	private void SaveIPBttnClicked(ClickEvent event){
 		YesNoPopupScreen ackPopup = new YesNoPopupScreen(app, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_POP_HEADER),
 				app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_POP_TEXT));

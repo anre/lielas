@@ -28,7 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lielas.LiewebUI;
+import lielas.core.LanguageHelper;
 
+import com.vaadin.ui.Alignment;
 import com.vaadin.ui.Button.ClickEvent;
 import com.vaadin.ui.Button.ClickListener;
 import com.vaadin.ui.HorizontalLayout;
@@ -37,7 +39,7 @@ import com.vaadin.ui.NativeButton;
 import com.vaadin.ui.VerticalLayout;
 import com.vaadin.ui.Window;
 
-@SuppressWarnings("serial")
+@SuppressWarnings({ "serial", "unused" })
 public class YesNoPopupScreen extends VerticalLayout{
 	private Window wnd;
 	
@@ -53,31 +55,32 @@ public class YesNoPopupScreen extends VerticalLayout{
 	Label textLbl;
 	
 	private List<PopupClosedListener> listener = new ArrayList<PopupClosedListener>();
-	
+
 	public YesNoPopupScreen(LiewebUI app, String caption, String text){
 		this.app = app;
 		
 		wnd = new Window(caption);
 		VerticalLayout layout = new VerticalLayout();
-		layout.setSizeFull();
+		layout.setSizeUndefined();
 		layout.addStyleName("popup");
 		
 		wnd.setModal(true);
 		wnd.setWidth(460, Unit.PIXELS);
-		wnd.setHeight(120,  Unit.PIXELS);
+		//wnd.setHeight(100,  Unit.PERCENTAGE);
 		wnd.setResizable(false);
 		wnd.setClosable(false);
 		wnd.setContent(layout);
 				
 		textLbl = new Label(text);
 		textLbl.setStyleName("popup");
-		textLbl.setWidth(96,  Unit.PERCENTAGE);
+		textLbl.setWidth(460,  Unit.PIXELS);
 		layout.addComponent(textLbl);
+		layout.setExpandRatio(textLbl, 0.9f);
 		
 		HorizontalLayout buttonLo = new HorizontalLayout();
 		layout.addComponent(buttonLo);
 		buttonLo.setWidth(100,  Unit.PERCENTAGE);
-		buttonLo.setHeight(30,  Unit.PIXELS);
+		buttonLo.setHeight(40,  Unit.PIXELS);
 		buttonLo.addStyleName("button-layout");
 		
 		Label spacer = new Label();
@@ -105,7 +108,7 @@ public class YesNoPopupScreen extends VerticalLayout{
 			}
 		});
 		buttonLo.addComponent(noButton);
-		//buttonLo.setComponentAlignment(noButton, Alignment.MIDDLE_RIGHT);
+		//buttonLo.setComponentAlignment(noButton, Alignment.BOTTOM_CENTER);
 		
 		app.addWindow(wnd);
 	
