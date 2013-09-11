@@ -219,7 +219,7 @@ public class OptionsUserDetailsScreen extends VerticalLayout{
 			dlCTimezoneSel.select("0");
 		}else{
 			String tz;
-			if(user.getTimezone() > 1){
+			if(user.getTimezone() > 0){
 				tz = "+" + user.getTimezone().toString();
 			}else{
 				tz = user.getTimezone().toString();
