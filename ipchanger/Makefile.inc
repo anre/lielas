@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS =-fsigned-char -O0 -ggdb -Wall 
+CFLAGS =-fsigned-char -O1 -Wall -Werror -Wfatal-errors 
 LD = gcc
 LDFLAGS =
 AR = ar

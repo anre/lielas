@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+
+#include "log.h"
 
 #define INTERFACE_PATH  "/etc/network/interfaces" 
 #define RESOLV_CONF    "/etc/resolv.conf"
@@ -13,53 +16,52 @@ void set_static(char *adr, char *mask, char *gw);
 void set_dhcp();
 int save_backup();
 int restore_backup();
+void restart_net_interface();
 
 /********************************************************************************************************************************
 *   int main(int argc, char *argv[])
  ********************************************************************************************************************************/
 
 int main(int argc, char *argv[]){
-
+  
   if(argc < 2){
     print_help();
     exit(0);
   }
   
   if(!strncmp(argv[1], "get", 3)){
-    printf("get network settings\n");
+    
+    write_log("get network settings", LOG_LEVEL_DEBUG);
+    
     get_settings();
+    
   }else if(!strncmp(argv[1], "set", 3)){
-    printf("set network settings\n");
+    
+    
     if(!strncmp(argv[2], "dhcp", 4)){
+      write_log("set network settings dhcp", LOG_LEVEL_DEBUG);
+      
       set_dhcp();
-      if(system("/sbin/ifdown eth0")){
-        exit(-1);
-      }
-      if(system("/sbin/ifup eth0")){
-        exit(-1);
-      }
+      restart_net_interface();
+      
     }else if(!strncmp(argv[2], "static", 6)){
+      write_log("set network settings static", LOG_LEVEL_DEBUG);
+      
       set_static(argv[3], argv[4], argv[5]);
-      if(system("/sbin/ifdown eth0")){
-        exit(-1);
-      }
-      if(system("/sbin/ifup eth0")){
-        exit(-1);
-      }
+      restart_net_interface();
+      
     }else{
       exit(-1);
     }
   }else if(!strncmp(argv[1], "restore", 7)){
-    printf("restoring network settings\n");
+    
+    write_log("restoring network settings", LOG_LEVEL_DEBUG);
     if(restore_backup()){
+      write_log("failed to restore network settings", LOG_LEVEL_ERROR);
       exit(-1);
     }
-    if(system("/sbin/ifdown eth0")){
-      exit(-1);
-    }
-    if(system("/sbin/ifup eth0")){
-      exit(-1);
-    }
+    restart_net_interface();
+    
   }else{
     print_help();
   }
@@ -85,6 +87,24 @@ void print_help(){
   printf("ipchanger restore\n");
   printf("...restores settings from interfaces.old\n");
   printf("\n");
+}
+
+/********************************************************************************************************************************
+*   void restart_net_interface()
+ ********************************************************************************************************************************/
+void restart_net_interface(){
+    write_log("resetting eth0", LOG_LEVEL_DEBUG);
+    sleep(2);
+    if(system("/sbin/ifdown eth0")){
+      write_log("failed to shut down eth0", LOG_LEVEL_ERROR);
+      exit(-1);
+    }
+    sleep(5);
+    if(system("/sbin/ifup eth0")){
+      write_log("failed to bring eth0 up", LOG_LEVEL_ERROR);
+      exit(-1);
+    }
+    sleep(2);
 }
 
 /********************************************************************************************************************************
@@ -203,11 +223,13 @@ void set_dhcp(){
   FILE *file;
   
   if(save_backup()){
+    write_log("set_dhcp: failed to save backup", LOG_LEVEL_ERROR);
     exit(-1);
   }
   
   file = fopen( INTERFACE_PATH, "w");
   if(file == NULL){
+    write_log("set_dhcp: failed to open interface file", LOG_LEVEL_ERROR);
     exit(-1);
   }  
   
@@ -237,6 +259,7 @@ void set_static(char *adr, char *mask, char *gw){
   
   file = fopen( INTERFACE_PATH, "w");
   if(file == NULL){
+    write_log("set_dhcp: failed to open interface file", LOG_LEVEL_ERROR);
     exit(-1);
   }  
   
@@ -258,6 +281,7 @@ void set_static(char *adr, char *mask, char *gw){
   //set nameserver in resolve.conf
   file = fopen( RESOLV_CONF, "w");
   if(file == NULL){
+    write_log("set_dhcp: failed to open resolve.conf file", LOG_LEVEL_ERROR);
     exit(-1);
   }  
   fprintf(file, "nameserver %s\n", gw);

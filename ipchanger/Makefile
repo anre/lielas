@@ -13,10 +13,14 @@ all: $(BIN)
 include src/Makefile.sub
 
 $(BIN): $(OBJS)
-	@echo 'Building target: $@'
+	@echo 'LD: '
 	$(CC) $(CFLAGS) -o $(BIN) $(OBJS) $(LFLAGS) $(LIBS) 
-	@echo 'Finished building target: $@'
-	@echo ' '
+
+install:
+	@echo 'installing to /usr/local/lielas/bin'
+	mkdir -p /usr/local/lielas/bin
+	cp $(BIN) /usr/local/lielas/bin
+	chown root.root /usr/local/lielas/bin/ipchanger
 
 clean:
 	rm -rf $(OBJS)

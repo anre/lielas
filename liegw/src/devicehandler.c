@@ -137,7 +137,10 @@ void HandleDevices(){
   lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
 	//turn cycle mode off and sync if out of sync
-  setCycleMode(d, LWP_CYCLE_MODE_OFF);
+  if(setCycleMode(d, LWP_CYCLE_MODE_OFF)){
+    lielas_log((unsigned char*)"failed to switch off cycle mode", LOG_LEVEL_DEBUG);
+    return;
+  }
 	sleep(5);
 
 
@@ -161,7 +164,6 @@ void HandleDevices(){
   
   lielas_log((unsigned char*)"End device scanning", LOG_LEVEL_DEBUG);
   lielas_log((unsigned char*)"**********", LOG_LEVEL_DEBUG);
-	fflush(stdout);
 
 }
 /********************************************************************************************************************************

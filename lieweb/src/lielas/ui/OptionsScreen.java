@@ -911,6 +911,9 @@ public class OptionsScreen extends Panel{
 					
 
 					lbus.send();
+					
+					getUI().getPage().setLocation("lieweb");
+					getUI().getSession().close();
 
 					Notification.show(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE_SUCCESS));
 				}

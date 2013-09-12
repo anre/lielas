@@ -291,7 +291,7 @@ int lielas_setLDBSetting(const char* val, const char* name){
   snprintf(st, LDB_SQL_BUFFER_SIZE, "UPDATE %s.%s SET value='%s' WHERE name='%s'", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS, val, name);
   res = SQLexec(st);
 
-	if(PQresultStatus(res) != PGRES_TUPLES_OK){
+	if(PQresultStatus(res) != PGRES_COMMAND_OK){
     snprintf(log, LOG_BUF_LEN, "Failed to set LDB Setting %s to %s", name, val);
 		lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
 		PQclear(res);

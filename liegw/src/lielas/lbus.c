@@ -476,10 +476,22 @@ int lbus_printCmd(char *s, int maxLen, Lbuscmd *cmd){
  * 		static int handleLoginCmd(Lbuscmd *cmd)
  ********************************************************************************************************************************/
 static int handleLoginCmd(Lbuscmd *cmd){
+  Lbuscmd *netcmd;
   
   pthread_mutex_lock(&mutex);
   setCmdHandled(cmd);
   netTypeChanged = 0;
+  
+  // look if unhandled chng network settings cmds are in the buffer
+  netcmd = lbus_getFirstCmd();
+  
+  while( netcmd != NULL){
+    if(!strcmp(netcmd->cmd, LBUS_CMD_CHG )){
+      handleChgCmd(netcmd);
+    }
+    netcmd = lbus_getNextCmd();
+  }
+  
   pthread_mutex_unlock(&mutex);
   return 0;
 }
@@ -851,19 +863,28 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
   char net_mask[LBUS_BUF_SIZE];
   char net_gw[LBUS_BUF_SIZE];
   char bashCmd[LBUS_BUF_SIZE];
+  char log[LOG_BUF_LEN];
    
   if(cmd->tmnexthandle == 0){
     //first time handling this command, load settings from database and change them
+    lielas_log((unsigned char*)"First execution of changeNetType cmd, loading and changing settings", LOG_LEVEL_DEBUG);
     
     lielas_getLDBSetting(net_type, LDB_SQL_SET_NAME_NET_NEW_TYPE, LBUS_BUF_SIZE);
     lielas_getLDBSetting(net_address, LDB_SQL_SET_NAME_NET_NEW_ADR, LBUS_BUF_SIZE);
     lielas_getLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_NEW_MASK, LBUS_BUF_SIZE);
     lielas_getLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_NEW_GATEWAY, LBUS_BUF_SIZE);
     
-    printf("net_Type: %s \n", net_type);
+    snprintf(log, LOG_BUF_LEN, "Settings: type %s", net_type);
+    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+    
     if(!strcmp(net_type, "static")){
+      
+      snprintf(log, LOG_BUF_LEN, "address %s, netmask %s, gateway %s", net_address, net_mask, net_gw);
+      lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+      
       snprintf(bashCmd, LBUS_BUF_SIZE, "sudo /usr/local/lielas/bin/ipchanger set %s %s %s %s", net_type, net_address, net_mask, net_gw);
-      printf("cmd: %s\n", bashCmd);
+      lielas_log((unsigned char*)"Executing:", LOG_LEVEL_DEBUG);
+      lielas_log((unsigned char*)bashCmd, LOG_LEVEL_DEBUG);
       if(system(bashCmd)){
         lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
         setCmdHandled(cmd);
@@ -871,7 +892,8 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
       }
     }else if(!strcmp(net_type, "dhcp")){
       snprintf(bashCmd, LBUS_BUF_SIZE, "sudo /usr/local/lielas/bin/ipchanger set %s", net_type);
-      printf("cmd: %s\n", bashCmd);
+      lielas_log((unsigned char*)"Executing:", LOG_LEVEL_DEBUG);
+      lielas_log((unsigned char*)bashCmd, LOG_LEVEL_DEBUG);
       if(system(bashCmd)){
         lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
         setCmdHandled(cmd);
@@ -884,19 +906,27 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
     }
     
     setNextHandle(cmd, LBUS_NET_RELOGIN_TIME);
-    printf("reset: %i:%i:%i\n", cmd->tmnexthandle->tm_hour, cmd->tmnexthandle->tm_min, cmd->tmnexthandle->tm_sec);
+    snprintf(log, LOG_BUF_LEN, "network settings changed, reset without relogin at %i:%i:%i", cmd->tmnexthandle->tm_hour, cmd->tmnexthandle->tm_min, cmd->tmnexthandle->tm_sec);
+    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
     netTypeChanged = 1;
   }else{
     setCmdHandled(cmd);
     
     if(netTypeChanged == 1){
       //no successfull relogin, reset network settings
+      
+      snprintf(log, LOG_BUF_LEN, "no relogin, resetting network settings");
+      lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+    
       if(system("sudo /usr/local/lielas/bin/ipchanger restore")){
         lielas_log((unsigned char*)"Failed to change network settings", LOG_LEVEL_ERROR);
         return -1;
       }
     }else{
       //save new network settings as standard network settings
+      
+      snprintf(log, LOG_BUF_LEN, "successfull relogin, saving network settings");
+      lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
       
       if(lielas_getLDBSetting(net_type, LDB_SQL_SET_NAME_NET_NEW_TYPE, LBUS_BUF_SIZE))
         return -1;

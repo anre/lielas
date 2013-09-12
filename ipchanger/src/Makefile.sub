@@ -1,15 +1,16 @@
 include Makefile.inc
 
-C_SRCS+=src/main.c
+C_SRCS+=src/log.c \
+src/main.c
 
-OBJS+=src/main.o
+OBJS+=src/log.o \
+src/main.o
 
-C_DEPS+=src/main.d
+C_DEPS+=src/log.d \
+src/main.d
 
 %.o: %.c
-	@echo 'Building file: $<'
-	@echo 'Invoking: GCC C Compiler'
+	@echo 'CC: $<'
 	$(CC) $(CFLAGS) -c  -o $@ $<
-	@echo 'Finished building: $<'
-	@echo ' '  
+ 
   
