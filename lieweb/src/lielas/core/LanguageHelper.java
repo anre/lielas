@@ -91,8 +91,10 @@ public class LanguageHelper  implements Serializable{
 	public static String DL_TABLE_COL_GROUP = "DL_TABLE_COL_GROUP";
 	public static String DL_TABLE_COL_SENSOR = "DL_TABLE_COL_SENSOR";
 	public static String DL_CSV_MAC = "DL_CSV_MAC";
-	public static String DL_CSV_NAME = "DL_CSV_NAME";
-	public static String DL_CSV_GROUP = "DL_CSV_GROUP";
+	public static String DL_CSV_DEVICE_NAME = "DL_CSV_DEVICE_NAME";
+	public static String DL_CSV_DEVICE_GROUP = "DL_CSV_DEVICE_GROUP";
+	public static String DL_CSV_CHANNEL_NAME = "DL_CSV_CHANNEL_NAME";
+	public static String DL_CSV_CHANNEL_GROUP = "DL_CSV_CHANNEL_GROUP";
 	public static String DL_CSV_MODUL_CHANNEL_ADDRESS = "DL_CSV_MODUL_CHANNEL_ADDRESS";
 	public static String DL_CSV_UNIT = "DL_CSV_UNIT";
 	public static String DL_HELPTEXT_MULTISELECT = "DL_HELPTEXT_MULTISELECT";

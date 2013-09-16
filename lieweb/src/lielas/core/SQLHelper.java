@@ -665,7 +665,7 @@ public class SQLHelper implements Serializable {
 			
 			d = dc.firstItemId();
 			
-			// create first header line
+			// create mac header line
 			csvStr.append(lh.GetString(LanguageHelper.DL_CSV_MAC));
 			for( int i = 0; i < dc.size(); i++){
 				for( int j = 1; j < (d.getModuls()+1); j++){
@@ -681,8 +681,34 @@ public class SQLHelper implements Serializable {
 				d = dc.nextItemId(d);
 			}	
 			
-			// create second header line
-			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_NAME));
+			// create device header line
+			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_DEVICE_NAME));
+			d = dc.firstItemId();
+			for( int i = 0; i < dc.size(); i++){
+				for( int j = 1; j < (d.getModuls()+1); j++){
+					Modul m = d.getModul(j);
+					for( int k = 1; k <= m.getChannels(); k++){
+						csvStr.append(csvDelimiter + " " + d.getName());
+					}
+				}
+				d = dc.nextItemId(d);
+			}
+
+			// create device group header line
+			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_DEVICE_GROUP));
+			d = dc.firstItemId();
+			for( int i = 0; i < dc.size(); i++){
+				for( int j = 1; j < (d.getModuls()+1); j++){
+					Modul m = d.getModul(j);
+					for( int k = 1; k <= m.getChannels(); k++){
+						csvStr.append(csvDelimiter + " " + d.getGroup());
+					}
+				}
+				d = dc.nextItemId(d);
+			}
+			
+			// create channel name header line
+			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_CHANNEL_NAME));
 			d = dc.firstItemId();
 			for( int i = 0; i < dc.size(); i++){
 				for( int j = 1; j < (d.getModuls()+1); j++){
@@ -695,8 +721,8 @@ public class SQLHelper implements Serializable {
 				d = dc.nextItemId(d);
 			}
 
-			// create third header line
-			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_GROUP));
+			// create channel group header line
+			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_CHANNEL_GROUP));
 			d = dc.firstItemId();
 			for( int i = 0; i < dc.size(); i++){
 				for( int j = 1; j < (d.getModuls()+1); j++){
@@ -708,7 +734,8 @@ public class SQLHelper implements Serializable {
 				}
 				d = dc.nextItemId(d);
 			}
-			// create fourth header line
+			
+			// create modul.channel address header line
 			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_MODUL_CHANNEL_ADDRESS));
 			d = dc.firstItemId();
 			for( int i = 0; i < dc.size(); i++){
@@ -723,7 +750,7 @@ public class SQLHelper implements Serializable {
 			}				
 
 
-			// create fifth header line
+			// create unit header line
 			csvStr.append("\r\n" + lh.GetString(LanguageHelper.DL_CSV_UNIT));
 			d = dc.firstItemId();
 			for( int i = 0; i < dc.size(); i++){
