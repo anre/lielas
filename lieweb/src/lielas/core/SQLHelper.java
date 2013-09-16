@@ -949,7 +949,7 @@ public class SQLHelper implements Serializable {
 		String value = "";
 		
 		try{
-			String adr = d.getAddress() + "." + m.getAddress() + "." + c.getAddress();
+			String adr = d.getMac() + "." + m.getAddress() + "." + c.getAddress();
 			if(ColumnExists(adr)){
 				Statement st = conn.createStatement();
 				ResultSet rs = st.executeQuery("SELECT datetime, \"" + adr + "\" FROM lielas.log_data WHERE  \"" + adr + "\" NOT LIKE '' ORDER BY datetime DESC LIMIT 1");
