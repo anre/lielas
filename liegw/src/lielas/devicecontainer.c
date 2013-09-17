@@ -863,8 +863,14 @@ void LDCcheckForNewDevices(){
 	//get systemtime
 	time(&rawtime);
 	now = gmtime(&rawtime);
+  
+  while(now->tm_sec != 1){
+    sleep(1);
+    time(&rawtime);
+    now = gmtime(&rawtime);
+  }
 
-	if(nextScan == NULL){
+	/*if(nextScan == NULL){
 		nextScan = malloc(sizeof(struct tm));
 		if(nextScan == NULL)
 			return;
@@ -884,7 +890,7 @@ void LDCcheckForNewDevices(){
 		return;
 	memcpy(nextScan, now, sizeof(struct tm));
 	nextScan->tm_sec += SCAN_NEW_DEVICES_INTERVAL;
-	mktime(nextScan);
+	mktime(nextScan);*/
 
 	// get routing table
    
