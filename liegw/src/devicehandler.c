@@ -79,7 +79,11 @@ void HandleDevices(){
 	//get systemtime
 	time(&rawtime);
 	now = gmtime(&rawtime);
-
+  
+  if(now->tm_sec  > 3 || now->tm_sec < 2){
+      return;
+  }
+  
 	if(nextScan == NULL){	//first call of this function
 		nextScan = malloc(sizeof(struct tm));
 		if(nextScan == NULL)
@@ -482,7 +486,7 @@ int setCycleMode(Ldevice *d, int mode){
 	char cmd[CMDBUFFER_SIZE];
 	char payload[CMDBUFFER_SIZE];
 	char buf[CMDBUFFER_SIZE];
-	int tries = 27;
+	int tries = 30;
 	int i;
 	coap_buf *cb = coap_create_buf();
 

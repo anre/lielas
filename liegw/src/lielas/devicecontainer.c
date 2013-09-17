@@ -849,8 +849,8 @@ void LDCcheckForNewDevices(){
 	Lchannel *c[MAX_CHANNELS];
 	time_t rawtime;
 	struct tm *now;
-	static struct tm *nextScan;
-	double diff;
+	//static struct tm *nextScan;
+	//double diff;
   coap_buf *cb;
 	jsmn_parser json;
 	jsmnerr_t r;
@@ -861,14 +861,14 @@ void LDCcheckForNewDevices(){
   int moduls;
 
 	//get systemtime
+  sleep(1);
 	time(&rawtime);
 	now = gmtime(&rawtime);
   
-  while(now->tm_sec != 1){
-    sleep(1);
-    time(&rawtime);
-    now = gmtime(&rawtime);
+  if(now->tm_sec < 58){
+    return;
   }
+  
 
 	/*if(nextScan == NULL){
 		nextScan = malloc(sizeof(struct tm));
@@ -984,23 +984,30 @@ void LDCcheckForNewDevices(){
         LDCgetDeviceByAddress(adr, &d);
 				if(d == NULL){
           //new device found
-          lielas_log((unsigned char*)"new device found", LOG_LEVEL_DEBUG);
 					d = LcreateDevice();
 					strcpy(d->address, adr);
 					sprintf(d->mint, "%d", LIELAS_STD_MINT);
 					sprintf(d->pint, "%d", LIELAS_STD_PINT);
 					sprintf(d->aint, "%d", LIELAS_STD_AINT);
+          snprintf(log, LOG_BUF_LEN, "new device found: %s", d->address);
+          lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
+      
+          //dissable cycle mode
+          
+          setCycleMode(d, LWP_CYCLE_MODE_OFF);
       
           //get wkc
           
           cb->buf = (char*)wkc;
           cb->bufSize = CLIENT_BUFFER_LEN;
           
+          lielas_log((unsigned char*)"get /.well-known/core" , LOG_LEVEL_WARN);
           snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/.well-known/core", adr, set_getGatewaynodePort());
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
           
           if(cb->status != COAP_STATUS_CONTENT){
-            lielas_log((unsigned char*)"failed to get .well-known/core", LOG_LEVEL_WARN);
+            snprintf(log, LOG_BUF_LEN, "failed to get .well-known/core of device %s", d->address);
+            lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
             return;
           }
           
