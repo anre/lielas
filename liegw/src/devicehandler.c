@@ -557,6 +557,9 @@ int setLoggerMint(Ldevice *d, Lmodul *m){
     coap_delete_buf(cb);
     return -1;
   }
+
+  snprintf(payload, CMDBUFFER_SIZE, "state=1");
+  coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
   
   //test if interval was changed
   if(strcmp(m->mint, recvMint)){
@@ -572,6 +575,11 @@ int setLoggerMint(Ldevice *d, Lmodul *m){
       return -1;
     }
   }
+
+  snprintf(payload, CMDBUFFER_SIZE, "state=1");
+  coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
+
+
   cb->buf = NULL;
   coap_delete_buf(cb);
   return 0;
