@@ -838,7 +838,7 @@ void LDCcheckForNewDevices(){
 	char buf[CLIENT_BUFFER_LEN];
 	char adr[IPV6_ADR_BUF_LEN];
   char attr[CLIENT_BUFFER_LEN];
-  char rplTable[CLIENT_BUFFER_LEN];
+  char rplTable[RPL_TABLE_LEN];
   char wkc[CLIENT_BUFFER_LEN];
   char mac[MAC_STR_LEN];
   char ex[CLIENT_BUFFER_LEN];
@@ -900,7 +900,7 @@ void LDCcheckForNewDevices(){
 		return;
 	}
 	cb->buf = (char*)rplTable;
-  cb->bufSize = CLIENT_BUFFER_LEN;
+  cb->bufSize = RPL_TABLE_LEN;
   
   #ifdef DC_USE_RPL_COAP_SERVER
   snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/rpl", set_getGatewaynodeAddr(), set_getGatewaynodePort());
