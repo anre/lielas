@@ -93,18 +93,9 @@ public class LiewebUI extends UI {
 		sql = new SQLHelper();
 		sql.Connect();
 		
-		
-		deviceContainer = DeviceContainer.loadDevices(sql);
-		
 		userContainer = UserContainer.loadUsers(sql);
-		
-		newDeviceContainer = NewDeviceContainer.createWithTestData();
-
 		langHelper = new LanguageHelper("lang_en.properties");
-		
-		config = new Config();
-		config.LoadSettings();
-		
+
 		BuildMainLayout();
 		
 		loginScreen = new LoginScreen(this);
@@ -123,6 +114,10 @@ public class LiewebUI extends UI {
 			if(user != null){
 				if(user.getLogin().equals(username)){
 					if(user.getPassword().equals(SQLHelper.getMD5Hash(pw))){
+						deviceContainer = DeviceContainer.loadDevices(sql);
+						config = new Config();
+						config.LoadSettings();
+						
 						setMainComponent(getDeviceManagerScreen());
 						headerScreen.setPermisson(1);
 						Notification.show("Welcome " + user.getForename() + " " + user.getName(),Notification.Type.WARNING_MESSAGE);

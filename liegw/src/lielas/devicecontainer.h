@@ -29,6 +29,7 @@
 
 #define CLIENT_BUFFER_LEN	1000
 #define IPV6_ADR_BUF_LEN	50
+#define RPL_TABLE_LEN     10000
 
 #define ID_TYPE_DEVICE	0
 #define ID_TYPE_MODUL	1

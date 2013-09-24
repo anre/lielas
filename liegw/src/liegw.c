@@ -121,8 +121,8 @@ int main(void) {
 	while(1){
 		lbus_handler();
 		if(lielas_getRunmode() == RUNMODE_NORMAL){
-			HandleDevices();
 			LDCcheckForNewDevices();
+			HandleDevices();
 		}else if(lielas_getRunmode() == RUNMODE_REGISTER){
 			lielas_runmodeHandler();
 		}

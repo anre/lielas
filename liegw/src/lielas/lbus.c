@@ -186,6 +186,7 @@ int lbus_load(){
 
 int lbus_add(Lbuscmd *cmd, int saveToDb){
   pthread_mutex_lock(&mutex);
+  char log[LOG_BUF_LEN];
   
   
   Lbuscmd *newCmd = malloc(sizeof(Lbuscmd));
@@ -215,7 +216,8 @@ int lbus_add(Lbuscmd *cmd, int saveToDb){
     }
 
     pthread_mutex_unlock(&mutex);
-		lielas_log((unsigned char*)"Successfully added lbus command", LOG_LEVEL_DEBUG);
+    snprintf(log, LOG_BUF_LEN, "Successfully added lbus command with id %li", cmd->id);
+		lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
     return 0;
 
   }else{
@@ -264,10 +266,12 @@ int lbus_add(Lbuscmd *cmd, int saveToDb){
  ********************************************************************************************************************************/
 void lbus_remove(Lbuscmd *cmd){
   Lbuscontainer *con;
+  char log[LOG_BUF_LEN];
   
   pthread_mutex_lock(&mutex);
 
-  lielas_log((unsigned char*)"removing lbus cmd from lbus container", LOG_LEVEL_DEBUG);
+  snprintf(log, LOG_BUF_LEN, "removing lbus cmd %li from lbus container", cmd->id);
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   if(cmd == NULL){
     lielas_log((unsigned char*)"can't remove cmd, cmd is null", LOG_LEVEL_WARN);
     pthread_mutex_unlock(&mutex);

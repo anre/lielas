@@ -561,15 +561,15 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		int[] modulAInt = new int[20];
 		int channelNr = 1;
 		
-		mInt = ParseInterval(dlCMIntTx.getValue().toString(), "Meassurement ");
+		/*mInt = ParseInterval(dlCMIntTx.getValue().toString(), "Meassurement ");
 		if(mInt == -1){
 			error = true;
-		}
+		}*/
 		
-		aInt =  ParseInterval(dlCAIntTx.getValue().toString(), "Alarm ");
+		/*aInt =  ParseInterval(dlCAIntTx.getValue().toString(), "Alarm ");
 		if(aInt == -1){
 			error = true;
-		}
+		}*/
 		
 		for(int i = 1; i < (device.getModuls()+1); i++){
 			Modul m = device.getModul(i);
@@ -578,28 +578,28 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 				error = true;
 			}
 
-			modulPInt[i] = Modul.getProcessIntervallInt(modulPIntCTx[i].getValue().toString(), app.langHelper);
+			//modulPInt[i] = Modul.getProcessIntervallInt(modulPIntCTx[i].getValue().toString(), app.langHelper);
 			
-			modulAInt[i] = ParseInterval(modulAIntCTx[i].getValue().toString(), "Module " + m.getAddress() + " Alarm ");
+			/*modulAInt[i] = ParseInterval(modulAIntCTx[i].getValue().toString(), "Module " + m.getAddress() + " Alarm ");
 			if(modulAInt[i] == -1){
 				error = true;
-			}
+			}*/
 			
 		}
 		
 		if( !error){
 			device.setName((String) dlCNameTx.getValue());
 			device.setGroup((String) dlCGroupTx.getValue());
-			device.setMeassurementIntervall(mInt);
-			device.setProcessIntervall(Device.getProcessIntervallInt((String)dlCPIntSel.getValue(), app.langHelper));
-			device.setAlarmIntervall(aInt);
+			//device.setMeassurementIntervall(mInt);
+			//device.setProcessIntervall(Device.getProcessIntervallInt((String)dlCPIntSel.getValue(), app.langHelper));
+			//device.setAlarmIntervall(aInt);
 			
 			for(int i = 1; i < (device.getModuls()+1); i++){
 				Modul m = device.getModul(i);
 				
 				m.setMeassurementIntervall(modulMInt[i]);
-				m.setProcessIntervall(modulPInt[i]);
-				m.setAlarmIntervall(modulAInt[i]);
+				//m.setProcessIntervall(modulPInt[i]);
+				//m.setAlarmIntervall(modulAInt[i]);
 				
 				channelNr = 1;
 				for(int j = 0; j < channelModulAddress.length; j++){
