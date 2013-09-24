@@ -95,7 +95,7 @@ public class LoginScreen extends VerticalLayout {
 	}
 	
 	private void LoginButtonPressed(){
-		app.Authenticate(this.nameTxt.getValue(), this.nameTxt.getValue());
+		app.Authenticate(this.nameTxt.getValue(), this.passwordTxt.getValue());
 	}
 
 	
