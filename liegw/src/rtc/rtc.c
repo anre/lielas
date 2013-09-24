@@ -55,7 +55,7 @@ int rtc_init(){
 	struct tm *now;
   int timenotvalid = 0;
   int ntpnotsynced = 0;
-  pthread_mutexattr_t mutexAttr;
+  pthread_mutexattr_t mutexAttr = {};
   
   char cmd[100];
   

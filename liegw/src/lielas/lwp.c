@@ -79,6 +79,18 @@ int lwp_parse_wkc(char *str, lwp_wkc *wkc){
     return -1;
   }
   
+  //init wkc
+  wkc->channels = 0;
+  lwp_init_resource(&wkc->info);
+  lwp_init_resource(&wkc->device);
+  lwp_init_resource(&wkc->modul);
+  lwp_init_resource(&wkc->network);
+  lwp_init_resource(&wkc->database);
+  lwp_init_resource(&wkc->logger);
+  for(i = 0; i < MAX_CHANNELS; i++){
+    lwp_init_resource(&wkc->channel[i]);
+  }
+  
   str = strchr(&str[1], '<');
   len = strlen(str);
   while(!eof){

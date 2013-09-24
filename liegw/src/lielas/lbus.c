@@ -23,6 +23,8 @@
 
 #define _XOPEN_SOURCE 700
 
+//#define DEBUG_LBUS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,6 +56,9 @@ static int changeDevice(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens)
 static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens);
 static int changeRtcDateTime(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens);
 
+//debug functions
+void printLbusCmd(Lbuscmd* cmd);
+void printLbusCmdCon();
 
 // netTypeChanged
 // set to 1 if changing netType and to 0 after successfully login
@@ -66,7 +71,7 @@ pthread_mutex_t mutex;
  * 		void lbus_init()
  ********************************************************************************************************************************/
 int lbus_init(){
-  pthread_mutexattr_t mutexAttr;
+  pthread_mutexattr_t mutexAttr = {};
   
   lbuscon = malloc(sizeof(Lbuscontainer));
 	if(lbuscon == NULL){
@@ -120,7 +125,7 @@ int lbus_load(){
  	rows = PQntuples(res);
   
   for(i = 0 ;i < rows; i++){
-    id = atoi(PQgetvalue(res, 0, 0));
+    id = atoi(PQgetvalue(res, i, 0));
     
     if(id <= 0){
       lielas_log((unsigned char*)"Error parsing lbus command: failed to parse id", LOG_LEVEL_WARN);
@@ -171,6 +176,8 @@ int lbus_load(){
     free(lbuscmd);
   }
   
+  printLbusCmdCon();
+  
   snprintf(log, LOG_BUF_LEN, "%i lbus commands loaded", i);
   lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
@@ -188,8 +195,16 @@ int lbus_add(Lbuscmd *cmd, int saveToDb){
   pthread_mutex_lock(&mutex);
   char log[LOG_BUF_LEN];
   
+  if(cmd == NULL){
+    snprintf(log, LOG_BUF_LEN, "invalid lbus command pointer");
+    lielas_log((unsigned char*)log, LOG_LEVEL_ERROR);
+    return -1;
+  }
   
   Lbuscmd *newCmd = malloc(sizeof(Lbuscmd));
+  
+  snprintf(log, LOG_BUF_LEN, "adding new cmd: cmd=%s", cmd->cmd);
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
   if(newCmd == NULL){
 		lielas_log((unsigned char*)"Couldn't allocate memory for lbus command", LOG_LEVEL_WARN);
@@ -257,7 +272,8 @@ int lbus_add(Lbuscmd *cmd, int saveToDb){
   }
 
   pthread_mutex_unlock(&mutex);
-  lielas_log((unsigned char*)"Successfully added lbus command", LOG_LEVEL_DEBUG);
+  snprintf(log, LOG_BUF_LEN, "Successfully added lbus command with id %li", cmd->id);
+	lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   return 0;
 }
 
@@ -269,6 +285,7 @@ void lbus_remove(Lbuscmd *cmd){
   char log[LOG_BUF_LEN];
   
   pthread_mutex_lock(&mutex);
+  
 
   snprintf(log, LOG_BUF_LEN, "removing lbus cmd %li from lbus container", cmd->id);
   lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
@@ -304,6 +321,7 @@ void lbus_remove(Lbuscmd *cmd){
     //delete first item in container
     free(lbuscon);
     lbuscon = con->nlbc;
+    lbuscon->llbc = NULL;
   }else{
     con->llbc->nlbc = con->nlbc;
     if( con->nlbc != NULL){
@@ -312,6 +330,8 @@ void lbus_remove(Lbuscmd *cmd){
     lbus_deleteCmd(con->lcmd);
     free(con);
   }
+  
+  
   lielas_log((unsigned char*)"lbus cmd removed", LOG_LEVEL_DEBUG);
   pthread_mutex_unlock(&mutex);
 
@@ -431,6 +451,7 @@ void lbus_handler(){
 	now = gmtime(&rawtime);
 
   if(cmd->tmnexthandle == NULL || (difftime(mktime(cmd->tmnexthandle), mktime(now))< 1.0)){
+    
     //unhandled cmd found
     if(!strcmp(cmd->cmd, LBUS_CMD_DEL )){
       handleDelCmd(cmd);
@@ -989,9 +1010,36 @@ static int changeRtcDateTime(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTo
 }
 
 
+/********************************************************************************************************************************
+ *    void printLbusCmd(Lbuscmd* cmd)
+ * 
+ * prints cmd to stdout
+ ********************************************************************************************************************************/
+void printLbusCmd(Lbuscmd* cmd){
+#ifdef DEBUG_LBUS
+  printf("--------------------------------\n");
+  printf("printing command with id %li\n", cmd->id);
+  printf("adr. %s usr. %s cmd. %s handled %i\n", cmd-> address, cmd->user, cmd->cmd, cmd->handled);
+  printf("payload: %s\n", cmd->payload);
+#endif
+}
 
-
-
+/********************************************************************************************************************************
+ *    void printLbusCmdCon()
+ * 
+ * prints cmd container to stdout
+ ********************************************************************************************************************************/
+void printLbusCmdCon(){
+#ifdef DEBUG_LBUS
+  Lbuscmd *cmd;
+  
+  cmd = lbus_getFirstCmd();
+  while(cmd != NULL){
+    printLbusCmd(cmd);
+    cmd = lbus_getNextCmd();
+  }
+#endif
+}
 
 
 
