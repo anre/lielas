@@ -24,19 +24,19 @@
 #ifndef SETTINGS_H_
 #define SETTINGS_H_
 
-#define SET_MAX_LINE_LEN	256
+#define SET_MAX_FILE_LEN	10000
 #define SET_ATTR_LEN		256
 
 
-#define SET_CMD_SQL_USER	"sqluser="
-#define SET_CMD_SQL_PASS	"sqlpassword="
-#define SET_CMD_SQL_DB		"sqldb="
-#define SET_CMD_SQL_HOST	"sqlhost="
-#define SET_CMD_SQL_PORT	"sqlport="
-#define SET_CMD_COAP_ADDR	"coapaddress="
-#define SET_CMD_COAP_PORT	"coapport="
-#define SET_CMD_GW_ADDR		"gwaddress="
-#define SET_CMD_GW_PORT		"gwport="
+#define SET_CMD_SQL_USER	"dbUser"
+#define SET_CMD_SQL_PASS	"dbPassword"
+#define SET_CMD_SQL_DB		"dbName"
+#define SET_CMD_SQL_HOST	"sqlServerAddress"
+#define SET_CMD_SQL_PORT	"sqlServerPort"
+#define SET_CMD_COAP_ADDR	"coapaddress"
+#define SET_CMD_COAP_PORT	"coapport"
+#define SET_CMD_GW_ADDR		"gwaddress"
+#define SET_CMD_GW_PORT		"gwport"
 
 #define SET_STD_SQL_USER	"lielas"
 #define SET_STD_SQL_PASS	"lielas"

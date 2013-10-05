@@ -23,8 +23,14 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#include "jsmn/jsmn.h"
 #include "settings.h"
 #include "log.h"
+
+//#define DEBUG_SETTINGS
+void printSetting(char *s, char *v);
+int parseAttribute(char *file, char *attr, char *val, int nt, jsmntok_t *tok);
 
 char sqlUser[SET_ATTR_LEN] = SET_STD_SQL_USER;
 char sqlPass[SET_ATTR_LEN] = SET_STD_SQL_PASS;
@@ -45,65 +51,81 @@ int regmodeLen = SET_STD_REGMODE_LEN;
 int regmodeMaxLen = SET_STD_MAX_REGMODE_LEN;
 
 int set_load(){
-	char line[SET_MAX_LINE_LEN+1];
+	char file[SET_MAX_FILE_LEN];
+  long fileSize;
 	FILE *fp;
-	int linenr = 0;
+	jsmn_parser json;
+	jsmnerr_t r;
+	jsmntok_t tokens[MAX_JSON_TOKENS];
+  int nextToken;
 
-	fp = fopen("lielas.conf", "r");
+	fp = fopen("/usr/local/lielas/config.json", "r");
 	if( fp == NULL){
 		return -1;
 	}
-
-	while(fgets(line, SET_MAX_LINE_LEN, fp)){
-		linenr += 1;
-		if(!strncmp(line, "#", strlen("#"))){	// comment line
-			continue;
-		}
-		if(!strncmp(line, "//", strlen("//"))){	// comment line
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_SQL_USER, strlen(SET_CMD_SQL_USER))){
-			strcpy(sqlUser, &line[strlen(SET_CMD_SQL_USER)]);
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_SQL_PASS, strlen(SET_CMD_SQL_PASS))){
-			strcpy(sqlPass, &line[strlen(SET_CMD_SQL_PASS)]);
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_SQL_DB, strlen(SET_CMD_SQL_DB))){
-			strcpy(sqlDb, &line[strlen(SET_CMD_SQL_DB)]);
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_SQL_HOST, strlen(SET_CMD_SQL_HOST))){
-			strcpy(sqlHost, &line[strlen(SET_CMD_SQL_HOST)]);
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_SQL_PORT, strlen(SET_CMD_SQL_PORT))){
-			strcpy(sqlPort, &line[strlen(SET_CMD_SQL_PORT)]);
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_COAP_ADDR, strlen(SET_CMD_COAP_ADDR))){
-			strcpy(coapAddr, &line[strlen(SET_CMD_COAP_ADDR)]);
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_COAP_PORT, strlen(SET_CMD_COAP_PORT))){
-			strcpy(coapPort, &line[strlen(SET_CMD_SQL_PORT)]);
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_GW_ADDR, strlen(SET_CMD_GW_ADDR))){
-			strcpy(gatewaynodeAddr, &line[strlen(SET_CMD_SQL_PORT)]);
-			continue;
-		}
-		if(!strncmp(line, SET_CMD_GW_PORT, strlen(SET_CMD_GW_PORT))){
-			strcpy(gatewaynodePort, &line[strlen(SET_CMD_GW_PORT)]);
-			continue;
-		}
-
-
-		lielas_log((unsigned char*)"Fehler in lielas.conf Zeile %i", linenr);
+  
+  fseek(fp, 0, SEEK_END);
+  fileSize = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+  
+  if(fileSize >= SET_MAX_FILE_LEN){
+    lielas_log((unsigned char*)"config file too big for buffer", LOG_LEVEL_WARN);
+    fclose(fp);
+    return -1;
+  }
+  
+  if(fread(file, fileSize, 1, fp) != 1){
+    lielas_log((unsigned char*)"error reading config file", LOG_LEVEL_WARN);
+    fclose(fp);
+    return -1;
+  }
+  
+  jsmn_init(&json);
+  nextToken = 0;
+	r = jsmn_parse(&json, file, tokens, MAX_JSON_TOKENS);
+	if(r != JSMN_SUCCESS && r != JSMN_ERROR_PART){
+    lielas_log((unsigned char*)"failed to parse config file", LOG_LEVEL_WARN);
+		return -1;
 	}
-
+  
+  
+	while(nextToken < json.toknext && file[tokens[nextToken].start] != 0){
+    if(parseAttribute(file, SET_CMD_SQL_USER, sqlUser, nextToken, tokens) == 1)
+      nextToken += 2;
+    if(parseAttribute(file, SET_CMD_SQL_PASS, sqlPass, nextToken, tokens) == 1)
+      nextToken += 2;
+    if(parseAttribute(file, SET_CMD_SQL_DB, sqlDb, nextToken, tokens) == 1)
+      nextToken += 2;
+    if(parseAttribute(file, SET_CMD_SQL_HOST, sqlHost, nextToken, tokens) == 1)
+      nextToken += 2;
+    if(parseAttribute(file, SET_CMD_SQL_PORT, sqlPort, nextToken, tokens) == 1)
+      nextToken += 2;
+    nextToken += 1;
+  }
+  fclose(fp);
 	return 0;
+}
+
+int parseAttribute(char *file, char *attr, char *val, int nt, jsmntok_t *tok){
+  int attrLen;
+  char log[LOG_BUF_LEN];
+  
+  if( tok[nt].type == JSMN_STRING){
+    if(!strncmp(&file[tok[nt].start], attr, strlen(attr))){
+      nt += 1;
+      attrLen = tok[nt].end - tok[nt].start;
+      if(attrLen < SET_ATTR_LEN){
+        strncpy(val, &file[tok[nt].start], attrLen);
+        printSetting(attr, val);
+        return 1;
+      }else{
+        snprintf(log, LOG_BUF_LEN, "attribute %s too big", attr);
+        lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
+        return -1;
+      }
+    }
+  }
+  return 0;
 }
 
 const char *set_getSqlUser(){
@@ -157,6 +179,11 @@ int set_getMaxRegModeLen(){
   return regmodeMaxLen;
 }
 
+void printSetting(char *s, char *v){
+  #ifdef DEBUG_SETTINGS
+    printf("%s:%s\n", s, v);
+  #endif
+}
 
 
 
