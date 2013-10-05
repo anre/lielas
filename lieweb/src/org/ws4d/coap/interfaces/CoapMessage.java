@@ -24,9 +24,9 @@ import org.ws4d.coap.messages.CoapPacketType;
  */
 
 public interface CoapMessage {
-    public static final int RESPONSE_TIMEOUT_MS = 2000;
+    public static final int RESPONSE_TIMEOUT_MS = 1000;
     public static final double RESPONSE_RANDOM_FACTOR = 1.5;
-    public static final int MAX_RETRANSMIT = 4;
+    public static final int MAX_RETRANSMIT = 2;
     /* TODO: what is the right value? */
     public static final int ACK_RST_RETRANS_TIMEOUT_MS = 120000;
     
