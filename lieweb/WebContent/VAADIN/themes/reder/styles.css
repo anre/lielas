@@ -123,8 +123,8 @@ button::-moz-focus-inner {
 
 .v-splitpanel-first-container {
 	background: #CCCCCC;
-	padding: none;
-	margin: none;
+	padding: 0;
+	margin: 0;
 	border: none;
 }
 
@@ -135,8 +135,8 @@ button::-moz-focus-inner {
 
 .v-verticallayout{
 	
-	padding: none;
-	margin: none;
+	padding: 0;
+	margin: 0;
 	border: none;
 	background: transparent;
 }
@@ -169,13 +169,12 @@ button::-moz-focus-inner {
 
 .v-horizontallayout-header {
 	background: url(images/background.png) repeat-x left top;
-	padding: none;
-	margin: none;
+	padding: 0;
+	margin: 0;
 	border: none;
 }
 
 .v-ie .v-nativebutton-header, .v-nativebutton-header  {
-	display: block;
 	color: #333333;
 	height: 28px;
 	background: transparent url(images/tab_right.png) no-repeat scroll top right;
@@ -209,16 +208,14 @@ button::-moz-focus-inner {
 }
 
 .v-nativebutton-header.header.v-nativebutton-active.active  {
-	//display: block;
 	color: #FFFFFF;
-	//height: 28px;
+	height: 28px;
 	background: transparent url(images/tab_right.png) no-repeat scroll right -30px;
-	//text-decoration: none;
-	//border: none;
-	//text-align: center;
-	//margin-right: 5px;
-	//padding: 0 15px 0 0;
-	//font-weight: bold;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	margin-right: 5px;
+	padding: 0 15px 0 0;
 }
 
 .v-nativebutton-header.header.v-nativebutton-active.active span{
@@ -232,8 +229,26 @@ button::-moz-focus-inner {
 }
 
 
+.v-ie .v-nativebutton-header.header.v-nativebutton-active.active  {
+	color: #FFFFFF;
+	height: 28px;
+	background: transparent url(images/tab_right.png) no-repeat scroll right -31px;
+	text-decoration: none;
+	border: none;
+	text-align: center;
+	margin-right: 5px;
+	padding: 0 15px 0 0;
+}
 
-
+.v-ie .v-nativebutton-header.header.v-nativebutton-active.active span{
+	display: inline;
+	background: transparent url(images/tab_left.png) no-repeat scroll left -31px;
+	padding: 6px 0px 4px 15px;
+	line-height: 15px;
+	height: 28px;
+	float: left;
+	cursor: pointer;
+}
 
 .v-caption-newdevicelist  {
 	background: transparent url(images/list_header.png);
@@ -285,8 +300,8 @@ button::-moz-focus-inner {
 }
 
 .v-horizontallayout-deviceManager {
-	padding: none;
-	margin: none;
+	padding: 0;
+	margin: 0;
 	border: none;
 	padding-top: 18px;
 	padding-left: 18px;
@@ -381,6 +396,7 @@ button::-moz-focus-inner {
 	height: 24px;
 	margin-right: 6px;
 	padding-right: 15px;
+	padding-top: 0px;
 }
 
 .v-nativebutton-detaillist-footer.detaillist-footer span {
@@ -465,6 +481,7 @@ button::-moz-focus-inner {
 	height: 24px;
 	margin-right: 170px;
 	padding-right: 15px;
+	padding-top: 0px;
 }
 
 .v-nativebutton-downloadscreen.downloadscreen span{
@@ -485,7 +502,7 @@ button::-moz-focus-inner {
 	height: 22px;
 	padding-top: 7px;
 	padding-left: 10px;	
-	margin: none;
+	margin: 0;
 }
 
 .v-table.v-table-downloadscreen.downloadscreen {
@@ -574,12 +591,10 @@ button::-moz-focus-inner {
 	background:transparent;
 }
 
-.v-nativebutton-optionsscreen.optionsscreen {
-	display: block;
+.v-nativebutton-optionsscreen.optionsscreen, .v-ie .v-nativebutton-optionsscreen.optionsscreen {
 	color: #FFFFFF;
 	font-weight: bold;
 	background: transparent url(images/button_right_orange.png) no-repeat scroll top right;
-	float: left;
 	text-decoration: none;
 	border: none;
 	text-align: center;
@@ -588,9 +603,10 @@ button::-moz-focus-inner {
 	margin-right: 6px;
 	margin-bottom: 5px;
 	padding-right: 15px;
+	padding-top: 0px;
 }
 
-.v-nativebutton-optionsscreen.optionsscreen span {
+.v-nativebutton-optionsscreen.optionsscreen span, .v-ie .v-nativebutton-optionsscreen.optionsscreen span {
 	display: inline;
 	background: transparent url(images/button_left_orange.png) no-repeat;
 	padding: 4px 0 6px 13px;
@@ -644,10 +660,9 @@ button::-moz-focus-inner {
 	margin-left: 10px;
 }
 
- .v-nativebutton-reg-settings.reg-settings {
+ .v-ie .v-nativebutton-reg-settings.reg-settings, .v-nativebutton-reg-settings.reg-settings {
 	margin-top: 12px;
 	margin-left: 7px;
-	display: block;
 	color: #FFFFFF;
 	font-weight: bold;
 	background: transparent url(images/button_right_orange.png) no-repeat scroll top right;
@@ -658,9 +673,10 @@ button::-moz-focus-inner {
 	height: 24px;
 	margin-right: 1px;
 	padding-right: 15px;
+	padding-top: 0px;
 }
 
-.v-nativebutton-reg-settings.reg-settings span {
+.v-ie .v-nativebutton-reg-settings.reg-settings span, .v-nativebutton-reg-settings.reg-settings span {
 	display: inline;
 	background: transparent url(images/button_left_orange.png) no-repeat;
 	padding: 4px 0 6px 13px;
@@ -697,6 +713,10 @@ button::-moz-focus-inner {
 	margin-left: 6px;
 }
 
+.v-datefield-optionsscreen {
+	margin-left: 6px;
+	margin-top: 20px;
+}
 
 /***********************************************************************************************************************************************************
  *
@@ -721,13 +741,15 @@ button::-moz-focus-inner {
 }
 
 .v-label.v-label-popup.popup {
-	margin-bottom: 5px;
-	margin-left: 10px;
-	margin-top: 10px;
+	padding-bottom: 5px;
+	padding-left: 10px;
+	padding-right: 10px;
+	padding-top: 10px;
 }
 
 .v-horizontallayout-button-layout {
-	padding-right: 50px;
+	padding-right: 30px;
+	padding-top: 5px;
 }
 
 .v-nativebutton.v-nativebutton-popup.popup {
@@ -743,6 +765,7 @@ button::-moz-focus-inner {
 	margin-right: 6px;
 	margin-bottom: 5px;
 	padding-right: 15px;
+	padding-top: 0px;
 }
 
 .v-nativebutton.v-nativebutton-popup.popup span {
