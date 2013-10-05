@@ -254,11 +254,13 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
       if(PQntuples(res) == 1){
         strcpy(datetimestr, PQgetvalue(res, 0, 0));
         for(i = 0; i < strlen(datetimestr); i++){
-          if(datetimestr[i] == ' '){
-            datetimestr[i] = '-';
-          }
           if(datetimestr[i] == '-'){
             datetimestr[i] = '.';
+          }
+        }
+        for(i = 0; i < strlen(datetimestr); i++){
+          if(datetimestr[i] == ' '){
+            datetimestr[i] = '-';
           }
         }
         snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, datetimestr);
@@ -696,23 +698,19 @@ int lielas_getRunmode(){
  *    void lielas_setRunmode(int mode)
  ********************************************************************************************************************************/
 int lielas_setRunmode(int mode){
-  char cmd[CMDBUFFER_SIZE];
-  char payload[CMDBUFFER_SIZE];
-  coap_buf *cb;
+  //char cmd[CMDBUFFER_SIZE];
+  //char payload[CMDBUFFER_SIZE];
+  //coap_buf *cb;
   time_t rawtime;
   struct tm *now;
 
-  cb = coap_create_buf();
+  //cb = coap_create_buf();
 
   if(mode != runmode){
     if(mode == RUNMODE_REGISTER){
       lielas_log((unsigned char*) "setting runmode to registration mode", LOG_LEVEL_DEBUG);
-      snprintf(cmd, CMDBUFFER_SIZE, "coap://[%s]:%s/network", set_getGatewaynodeAddr(), set_getGatewaynodePort());
-      snprintf(payload, CMDBUFFER_SIZE,"panid=%d", set_getStdRegModePanid());
-
-      coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
-      if(1){ //DEBUG
-      //if(cb->status == COAP_STATUS_CONTENT){
+      
+      if(1){ 
 
         time(&rawtime);
         now = gmtime(&rawtime);
@@ -737,12 +735,8 @@ int lielas_setRunmode(int mode){
       }
     }else if(mode == RUNMODE_NORMAL){
       lielas_log((unsigned char*) "setting runmode to normal mode", LOG_LEVEL_DEBUG);
-      snprintf(cmd, CMDBUFFER_SIZE, "coap://[%s]:%s/network", set_getGatewaynodeAddr(), set_getGatewaynodePort());
-      snprintf(payload, CMDBUFFER_SIZE,"panid=%d", set_getStdNormalModePanid());
 
-      coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
-      if(1){ //DEBUG
-      //if(cb->status == COAP_STATUS_CONTENT){
+      if(1){ 
         runmode = mode;
       }else{
         lielas_log((unsigned char*) "unable to set normal mode", LOG_LEVEL_WARN);
