@@ -514,7 +514,7 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		if(str.matches("\\d+")){
 			try{
 				mInt = Integer.parseInt(str);
-				if(mInt < 60){
+				if(mInt < 1){
 					Notification.show(type + "Inteterval is to small, minimum is 60s", Notification.Type.WARNING_MESSAGE);
 					return -1;
 				}else if(mInt > 43200){
