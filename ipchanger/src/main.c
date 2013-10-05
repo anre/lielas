@@ -10,6 +10,8 @@
 
 #define BUF_SIZE 500
 
+char ver[] = "1.1.0";
+
 void print_help();
 void get_settings();
 void set_static(char *adr, char *mask, char *gw);
@@ -17,6 +19,7 @@ void set_dhcp();
 int save_backup();
 int restore_backup();
 void restart_net_interface();
+void set_dns(char *dns1, char *dns2);
 
 /********************************************************************************************************************************
 *   int main(int argc, char *argv[])
@@ -50,6 +53,15 @@ int main(int argc, char *argv[]){
       set_static(argv[3], argv[4], argv[5]);
       restart_net_interface();
       
+    }else if(!strncmp(argv[2], "dns", 3)){
+      write_log("set dns server", LOG_LEVEL_DEBUG);
+      
+      if( argc == 4 ){
+        set_dns(argv[3], NULL);
+      }else if(argc == 5){
+        set_dns(argv[3], argv[4]);
+      }
+      
     }else{
       exit(-1);
     }
@@ -74,6 +86,7 @@ int main(int argc, char *argv[]){
  ********************************************************************************************************************************/
 
 void print_help(){
+  printf("Version: %s\n", ver);
   printf("Usage:\n");
   printf("ipchanger get\n");
   printf("...returns current ip\n");
@@ -81,8 +94,11 @@ void print_help(){
   printf("ipchanger set dhcp\n");
   printf("...sets eth0 to dhcp\n");
   printf("\n");
-  printf("ipchanger set static address netmask gateway\n");
+  printf("ipchanger set static <address> <netmask> <gateway>\n");
   printf("...sets eth0 to static ip\n");
+  printf("\n");
+  printf("ipchanger set dns <dns1> <dns2>\n");
+  printf("...sets dns1 and if given dns2\n");
   printf("\n");
   printf("ipchanger restore\n");
   printf("...restores settings from interfaces.old\n");
@@ -259,7 +275,7 @@ void set_static(char *adr, char *mask, char *gw){
   
   file = fopen( INTERFACE_PATH, "w");
   if(file == NULL){
-    write_log("set_dhcp: failed to open interface file", LOG_LEVEL_ERROR);
+    write_log("set_static: failed to open interface file", LOG_LEVEL_ERROR);
     exit(-1);
   }  
   
@@ -278,13 +294,25 @@ void set_static(char *adr, char *mask, char *gw){
   
   fclose(file);
   
-  //set nameserver in resolve.conf
+}
+/********************************************************************************************************************************
+*   void set_dns(char *dns1, char *dns1)
+ ********************************************************************************************************************************/
+void set_dns(char *dns1, char *dns2){
+  FILE *file;
+    
   file = fopen( RESOLV_CONF, "w");
   if(file == NULL){
-    write_log("set_dhcp: failed to open resolve.conf file", LOG_LEVEL_ERROR);
+    write_log("set_dns: failed to open resolv.conf", LOG_LEVEL_ERROR);
     exit(-1);
   }  
-  fprintf(file, "nameserver %s\n", gw);
+  if(dns1 != NULL){
+    fprintf(file, "nameserver %s\n", dns1);
+  }
+  if(dns2 != NULL){
+    fprintf(file, "nameserver %s\n", dns2);
+  }
+  
   fclose(file);
 }
 
