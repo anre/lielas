@@ -1388,6 +1388,80 @@ public class SQLHelper implements Serializable {
 			ExceptionHandler.HandleException(e);
 		}	
 	}
+
+	public String getNetDns1(){
+
+		String nettype = "";
+		
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				ResultSet rs = st.executeQuery("SELECT value FROM lielas.settings WHERE name='NET_DNS1'");
+				if(rs.next()){
+					nettype = rs.getString(1);
+				}
+				rs.close();
+				st.close();
+				
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}		
+		if(nettype == null)
+			return "";
+		
+		return nettype;
+	}
+	
+	public void setNetDns1(String dns) {
+
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				st.executeUpdate("UPDATE lielas.settings SET value='" + dns + "' WHERE name='NET_NEW_DNS1'");
+				st.close();
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}	
+	}
+	
+	public String getNetDns2(){
+
+		String nettype = "";
+		
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				ResultSet rs = st.executeQuery("SELECT value FROM lielas.settings WHERE name='NET_DNS2'");
+				if(rs.next()){
+					nettype = rs.getString(1);
+				}
+				rs.close();
+				st.close();
+				
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}		
+		if(nettype == null)
+			return "";
+		
+		return nettype;
+	}
+	
+	public void setNetDns2(String dns) {
+
+		try{
+			if(TableExists("settings")){
+				Statement st = conn.createStatement();
+				st.executeUpdate("UPDATE lielas.settings SET value='" + dns + "' WHERE name='NET_NEW_DNS2'");
+				st.close();
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}	
+	}
 	
 	private class ValueSet{
 		String date;

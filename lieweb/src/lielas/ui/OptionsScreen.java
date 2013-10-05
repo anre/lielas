@@ -48,8 +48,6 @@ import lielas.LiewebUI;
 import lielas.ui.OptionsUserDetailsScreen;
 import lielas.ui.YesNoPopupScreen.PopupClosedListener;
 
-//import com.github.wolfie.refresher.Refresher;
-//import com.github.wolfie.refresher.Refresher.RefreshListener;
 import com.google.gwt.user.client.ui.Widget;
 import com.vaadin.data.Property;
 import com.vaadin.data.Property.ValueChangeListener;
@@ -99,6 +97,8 @@ public class OptionsScreen extends Panel{
 	private Table usersTable = null;
 	private Table groupsTable = null;
 	
+	private Label versionLbl = null;
+	
 	private Label clockSettingsLbl = null;
 	private Label languageSettingsLbl = null;
 	private Label databaseSettingsLbl = null;
@@ -122,6 +122,10 @@ public class OptionsScreen extends Panel{
 	private TextField netmaskCTx = null;
 	private Label gwAddressDLbl = null;
 	private TextField gwAddressCTx = null;
+	private Label dns1DLbl = null;
+	private TextField dns1CTx = null;
+	private Label dns2DLbl = null;
+	private TextField dns2CTx = null;
 
 	private Label slpPanIdDLbl;
 	private TextField slpPanIdCTx;
@@ -167,17 +171,6 @@ public class OptionsScreen extends Panel{
 		HorizontalLayout hLayout = new HorizontalLayout();
 		hLayout.setSizeFull();
 		
-		//refresher
-		/*refresher = new Refresher();
-		refresher.setRefreshInterval(2000);
-		refresher.addListener(new RefreshListener(){
-			@Override
-			public void refresh(final Refresher source){
-				CheckRunmode();
-			}
-		});
-		addExtension(refresher);*/
-		
 		/************************************************************************************************************************
 		 * 
 		 * 		settingsTab
@@ -194,7 +187,25 @@ public class OptionsScreen extends Panel{
 		 ************************************************************************************************************************/	
 		globalSettingsLayout = new VerticalLayout();
 		//globalSettingsLayout.setSizeFull();
+		
+		
+		//////////////////////////////////////////////////////////////////////////////////////////////
+		// 								Lielas Infos 
+		//////////////////////////////////////////////////////////////////////////////////////////////
+		
+		//create panel
+		Panel infoPanel = new Panel();
+		infoPanel.addStyleName("settings-block");
+		globalSettingsLayout.addComponent(infoPanel);
 
+		//create vlayout
+		VerticalLayout infoLayout = new VerticalLayout();
+		infoLayout.addStyleName("settings-block");
+		infoPanel.setContent(infoLayout);
+		
+		versionLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_VERSION) + ": " + app.version);
+		infoLayout.addComponent(versionLbl);
+	
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		// 								Clock Settings
 		//////////////////////////////////////////////////////////////////////////////////////////////
@@ -222,6 +233,8 @@ public class OptionsScreen extends Panel{
 		
 		rtcStateTxt = new Label("RTC Status: ");
 		timeServerLo.addComponent(rtcStateTxt);
+		
+		
 		
 		dateField = new InlineDateField();
 		dateField.setValue(new Date());
@@ -375,6 +388,7 @@ public class OptionsScreen extends Panel{
 
 		useDhcpDLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_TYPE));
 		useDhcpDLbl.addStyleName("settings");
+		useDhcpDLbl.setWidth(100, Unit.PIXELS);
 		networkSettingsGridLayout.addComponent(useDhcpDLbl, 0, 0);
 		useDhcpCB = new CheckBox();
 		useDhcpCB.addStyleName("settings");
@@ -406,11 +420,25 @@ public class OptionsScreen extends Panel{
 		gwAddressCTx = new TextField();
 		gwAddressCTx.addStyleName("settings");
 		networkSettingsGridLayout.addComponent(gwAddressCTx, 1, 3);
+		
+		dns1DLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_DNS1));
+		dns1DLbl.addStyleName("settings");
+		networkSettingsGridLayout.addComponent(dns1DLbl, 0, 4);
+		dns1CTx = new TextField();
+		dns1CTx.addStyleName("settings");
+		networkSettingsGridLayout.addComponent(dns1CTx, 1, 4);
 
+		dns2DLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_DNS2));
+		dns2DLbl.addStyleName("settings");
+		networkSettingsGridLayout.addComponent(dns2DLbl, 0, 5);
+		dns2CTx = new TextField();
+		dns2CTx.addStyleName("settings");
+		networkSettingsGridLayout.addComponent(dns2CTx, 1, 5);
+		
 		saveIPBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_SAVE));
 		saveIPBttn.addStyleName("optionsscreen");
 		saveIPBttn.setHeight(24, Unit.PIXELS);
-		networkSettingsGridLayout.addComponent(saveIPBttn, 0, 4);
+		networkSettingsGridLayout.addComponent(saveIPBttn, 0, 6);
 		
 		saveIPBttn.addClickListener(new ClickListener(){
 			@Override
@@ -719,15 +747,21 @@ public class OptionsScreen extends Panel{
 			netmaskCTx.setEnabled(false);
 			ipAddressCTx.setEnabled(false);
 			gwAddressCTx.setEnabled(false);
+			dns1CTx.setEnabled(false);
+			dns2CTx.setEnabled(false);
 		}else{
 			useDhcpCB.setValue(false);
 			ipAddressCTx.setEnabled(true);
 			netmaskCTx.setEnabled(true);
 			gwAddressCTx.setEnabled(true);
+			dns1CTx.setEnabled(true);
+			dns2CTx.setEnabled(true);
 
 			ipAddressCTx.setValue(app.sql.getNetAddress());
 			netmaskCTx.setValue(app.sql.getNetMask());
 			gwAddressCTx.setValue(app.sql.getNetGateway());
+			dns1CTx.setValue(app.sql.getNetDns1());
+			dns2CTx.setValue(app.sql.getNetDns2());
 		}
 
 		useDhcpDLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_NETWORK_TYPE));
@@ -895,6 +929,8 @@ public class OptionsScreen extends Panel{
 						app.sql.setNetAddress("");
 						app.sql.setNetMask("");
 						app.sql.setNetGateway("");
+						app.sql.setNetDns1("");
+						app.sql.setNetDns2("");
 						
 						ipAddressCTx.setValue("");
 						netmaskCTx.setValue("");
@@ -906,6 +942,8 @@ public class OptionsScreen extends Panel{
 						app.sql.setNetAddress(ipAddressCTx.getValue());
 						app.sql.setNetMask(netmaskCTx.getValue());
 						app.sql.setNetGateway(gwAddressCTx.getValue());
+						app.sql.setNetDns1(dns1CTx.getValue());
+						app.sql.setNetDns2(dns2CTx.getValue());
 						lbus.setPayload("\"net_type\":\"static\"\n");
 					}
 					
@@ -961,10 +999,14 @@ public class OptionsScreen extends Panel{
 			netmaskCTx.setEnabled(false);
 			ipAddressCTx.setEnabled(false);
 			gwAddressCTx.setEnabled(false);
+			dns1CTx.setEnabled(false);
+			dns2CTx.setEnabled(false);
 		}else{
 			netmaskCTx.setEnabled(true);
 			ipAddressCTx.setEnabled(true);
 			gwAddressCTx.setEnabled(true);
+			dns1CTx.setEnabled(true);
+			dns2CTx.setEnabled(true);
 		}
 	}
 	

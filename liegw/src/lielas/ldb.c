@@ -233,6 +233,12 @@ int lielas_createSettingsTbl(){
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_GATEWAY', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
     res = SQLexec(st);
     PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_DNS1', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_DNS2', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_NEW_TYPE', 'DHCP') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
     res = SQLexec(st);
     PQclear(res);
@@ -243,6 +249,18 @@ int lielas_createSettingsTbl(){
     res = SQLexec(st);
     PQclear(res);
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_NEW_GATEWAY', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_NEW_DNS1', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_NEW_DNS2', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'GW_REG_ADR', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'GW_NOR_ADR', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
     res = SQLexec(st);
     PQclear(res);
   }

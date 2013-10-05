@@ -85,6 +85,8 @@ public class LiewebUI extends UI {
 	public User user;
 	
 	public Config config;
+	
+	public String version = "0.1.0";
 
 
 	@Override
@@ -220,5 +222,4 @@ public class LiewebUI extends UI {
 		}
 		return helpScreen;
 	}
-
 }

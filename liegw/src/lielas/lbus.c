@@ -887,6 +887,8 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
   char net_address[LBUS_BUF_SIZE];
   char net_mask[LBUS_BUF_SIZE];
   char net_gw[LBUS_BUF_SIZE];
+  char net_dns1[LBUS_BUF_SIZE];
+  char net_dns2[LBUS_BUF_SIZE];
   char bashCmd[LBUS_BUF_SIZE];
   char log[LOG_BUF_LEN];
    
@@ -898,14 +900,25 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
     lielas_getLDBSetting(net_address, LDB_SQL_SET_NAME_NET_NEW_ADR, LBUS_BUF_SIZE);
     lielas_getLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_NEW_MASK, LBUS_BUF_SIZE);
     lielas_getLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_NEW_GATEWAY, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_dns1, LDB_SQL_SET_NAME_NET_NEW_DNS1, LBUS_BUF_SIZE);
+    lielas_getLDBSetting(net_dns2, LDB_SQL_SET_NAME_NET_NEW_DNS2, LBUS_BUF_SIZE);
     
     snprintf(log, LOG_BUF_LEN, "Settings: type %s", net_type);
     lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
     
     if(!strcmp(net_type, "static")){
       
-      snprintf(log, LOG_BUF_LEN, "address %s, netmask %s, gateway %s", net_address, net_mask, net_gw);
+      snprintf(log, LOG_BUF_LEN, "address %s, netmask %s, gateway %s, dns1 %s, dns2 %s", net_address, net_mask, net_gw, net_dns1, net_dns2);
       lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+      
+      snprintf(bashCmd, LBUS_BUF_SIZE, "sudo /usr/local/lielas/bin/ipchanger set dns %s %s", net_dns1, net_dns2);
+      lielas_log((unsigned char*)"Executing:", LOG_LEVEL_DEBUG);
+      lielas_log((unsigned char*)bashCmd, LOG_LEVEL_DEBUG);
+      if(system(bashCmd)){
+        lielas_log((unsigned char*)"Failed to set dns server", LOG_LEVEL_ERROR);
+        setCmdHandled(cmd);
+        return -1;
+      }
       
       snprintf(bashCmd, LBUS_BUF_SIZE, "sudo /usr/local/lielas/bin/ipchanger set %s %s %s %s", net_type, net_address, net_mask, net_gw);
       lielas_log((unsigned char*)"Executing:", LOG_LEVEL_DEBUG);
@@ -961,6 +974,10 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
         return -1;
       if(lielas_getLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_NEW_GATEWAY, LBUS_BUF_SIZE))
         return -1;
+      if(lielas_getLDBSetting(net_dns1, LDB_SQL_SET_NAME_NET_NEW_DNS1, LBUS_BUF_SIZE))
+        return -1;
+      if(lielas_getLDBSetting(net_dns2, LDB_SQL_SET_NAME_NET_NEW_DNS2, LBUS_BUF_SIZE))
+        return -1;
       
       if(lielas_setLDBSetting(net_type, LDB_SQL_SET_NAME_NET_TYPE))
         return -1;
@@ -969,6 +986,10 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
       if(lielas_setLDBSetting(net_mask, LDB_SQL_SET_NAME_NET_MASK))
         return -1;
       if(lielas_setLDBSetting(net_gw, LDB_SQL_SET_NAME_NET_GATEWAY))
+        return -1;
+      if(lielas_setLDBSetting(net_dns1, LDB_SQL_SET_NAME_NET_DNS1))
+        return -1;
+      if(lielas_setLDBSetting(net_dns2, LDB_SQL_SET_NAME_NET_DNS2))
         return -1;
       
     }
