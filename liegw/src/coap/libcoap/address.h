@@ -28,15 +28,12 @@
 #include <string.h>
 
 #ifdef HAVE_NETINET_IN_H
-  #ifdef WINDOWS
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-  #else
-    #include <netinet/in.h>
-    #include <sys/socket.h>
-  #endif
+#include <netinet/in.h>
 #endif
 
+#ifdef HAVE_NETINET_IN_H
+#include <sys/socket.h>
+#endif
 
 #ifdef WITH_CONTIKI
 #include "uip.h"
@@ -88,8 +85,8 @@ _coap_address_equals_impl(const coap_address_t *a,
    return a->addr.sin6.sin6_port == b->addr.sin6.sin6_port && 
      memcmp(&a->addr.sin6.sin6_addr, &b->addr.sin6.sin6_addr, 
 	    sizeof(struct in6_addr)) == 0;
- //default: /* fall through and signal error */
- // ;
+ default: /* fall through and signal error */
+   ;
  }
  return 0;
 }
@@ -104,8 +101,8 @@ _coap_is_mcast_impl(const coap_address_t *a) {
    return IN_MULTICAST(a->addr.sin.sin_addr.s_addr);
 case  AF_INET6:
   return IN6_IS_ADDR_MULTICAST(&a->addr.sin6.sin6_addr);
- //default:			/* fall through and signal error */
- //  ;
+ default:			/* fall through and signal error */
+   ;
   }
  return 0;
 }

@@ -61,9 +61,13 @@ extern time_t clock_offset;
 static inline void
 coap_clock_init_impl(void) {
 #ifdef HAVE_TIME_H
-//  clock_offset = time(NULL);
+  clock_offset = time(NULL);
 #else
-#warn "cannot initialize clock"
+#  ifdef __GNUC__
+    /* Issue a warning when using gcc. Other prepropressors do 
+     *  not seem to have a similar feature. */ 
+#   warning "cannot initialize clock"
+#  endif
   clock_offset = 0;
 #endif
 }
@@ -76,7 +80,7 @@ coap_ticks_impl(coap_tick_t *t) {
 #ifdef HAVE_SYS_TIME_H
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  *t = (tv.tv_sec - 0) * COAP_TICKS_PER_SECOND
+  *t = (tv.tv_sec - clock_offset) * COAP_TICKS_PER_SECOND 
     + (tv.tv_usec * COAP_TICKS_PER_SECOND / 1000000);
 #else
 #error "clock not implemented"

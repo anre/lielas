@@ -24,9 +24,4 @@
 #include "subscribe.h"
 #include "block.h"
 
-#ifdef WINDOWS
-  #include <windows.h>
-  #include <winsock2.h>
-#endif
-
 #endif /* _COAP_H_ */

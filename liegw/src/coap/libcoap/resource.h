@@ -15,6 +15,7 @@
 #define _COAP_RESOURCE_H_
 
 #include "config.h"
+#include "t_list.h"
 
 #if defined(HAVE_ASSERT_H) && !defined(assert)
 # include <assert.h>
@@ -28,7 +29,6 @@
 #ifndef WITH_CONTIKI
 #include "uthash.h"
 #else /* WITH_CONTIKI */
-#include "list.h"
 #endif /* WITH_CONTIKI */
 #include "hashkey.h"
 #include "async.h"
@@ -36,9 +36,6 @@
 #include "pdu.h"
 #include "net.h"
 #include "subscribe.h"
-#include "address.h"
-
-//typedef unsigned int size_t;
 
 /** Definition of message handler function (@sa coap_resource_t). */
 typedef void (*coap_method_handler_t)
@@ -75,11 +72,10 @@ typedef struct coap_resource_t {
 #ifndef WITH_CONTIKI
   UT_hash_handle hh;
   coap_attr_t *link_attr; /**< attributes to be included with the link format */
-  coap_subscription_t *subscribers; /**< list of observers for this resource */
 #else /* WITH_CONTIKI */
   LIST_STRUCT(link_attr); /**< attributes to be included with the link format */
-  LIST_STRUCT(subscribers); /**< list of observers for this resource */
 #endif /* WITH_CONTIKI */
+  LIST_STRUCT(subscribers); /**< list of observers for this resource */
 
 
   /**
@@ -216,8 +212,8 @@ coap_resource_t *coap_get_resource_from_key(coap_context_t *context,
  * Uri-Options of @p request.  This function calls coap_hash() for
  * every path segment. 
  * 
- * @param context The context to use.
  * @param request The requesting pdu.
+ * @param key     The resulting hash is stored in @p key
  */
 void coap_hash_request_uri(const coap_pdu_t *request, coap_key_t key);
 
@@ -257,6 +253,18 @@ coap_subscription_t *coap_find_observer(coap_resource_t *resource,
 					const str *token);
 
 /**
+ * Marks an observer as alive.
+ *
+ * @param context  The CoAP context to use
+ * @param observer The transport address of the observer
+ * @param token    The corresponding token that has been used for 
+ *   the subscription
+ */
+void coap_touch_observer(coap_context_t *context, 
+			 const coap_address_t *observer,
+			 const str *token);
+
+/**
  * Removes any subscription for @p observer from @p resource and releases
  * the allocated storage.
  *
@@ -266,7 +274,7 @@ coap_subscription_t *coap_find_observer(coap_resource_t *resource,
  *                 token.
  */
 void coap_delete_observer(coap_resource_t *resource, 
-			  coap_address_t *observer, 
+			  const coap_address_t *observer, 
 			  const str *token);
 
 /** 
