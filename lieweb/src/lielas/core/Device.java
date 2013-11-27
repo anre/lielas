@@ -42,7 +42,7 @@ public class Device implements Serializable {
 	private int ID;
 	private Modul[] modul;
 	private int moduls;
-	
+	private Boolean hasEvent;
 		
 	public Device(String address, String mac, boolean registered, String name, String group,
 			Integer meassurementIntervall, Integer processIntervall,
@@ -61,6 +61,7 @@ public class Device implements Serializable {
 		
 		modul = new Modul[20];
 		moduls = 0;
+		hasEvent = false;
 	}
 
 	public String getAddress() {
@@ -191,6 +192,14 @@ public class Device implements Serializable {
 			return 3;
 		}
 		return 0;
+	}
+	
+	public boolean getHasEvent() {
+		return hasEvent;
+	}
+
+	public void setHasEvent(boolean hasEvent) {
+		this.hasEvent = hasEvent;
 	}
 }
 

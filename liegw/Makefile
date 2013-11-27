@@ -6,7 +6,7 @@ BINDIR=bin/
 
 prefix = /usr/local/
 
-LIBS := -lm -lpq -lcoap -lpthread
+LIBS := -lm -lpq -lcoap -lpthread -lcurl
 C_SRCS :=
 O_SRCS :=
 C_DEPS :=

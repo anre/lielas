@@ -47,6 +47,7 @@ import com.vaadin.ui.TabSheet;
 import com.vaadin.ui.NativeSelect;
 import com.vaadin.data.Item;
 import com.vaadin.data.Property.ValueChangeEvent;
+import com.vaadin.server.Sizeable.Unit;
 import com.vaadin.terminal.*;
 
 import lielas.core.Device;
@@ -66,6 +67,7 @@ public class DeviceManagerScreen extends Panel{
 	
 	private HorizontalLayout deviceListLayout = null;
 	private HorizontalLayout newDevicesLayout = null;
+	private HorizontalLayout registerLayout = null;
 	
 	private VerticalLayout newDevicesDetailListLayout = null;
 	
@@ -88,6 +90,7 @@ public class DeviceManagerScreen extends Panel{
 	private TextField ndlCAIntTx = null;
 	
 	private NativeButton ndlCheckBttn = null;
+	private NativeButton startRegModeBttn = null;
 	
 	private static final int detailVSpacerHeight = 5;
 	
@@ -161,6 +164,28 @@ public class DeviceManagerScreen extends Panel{
 			}
 		});
 
+		deviceList.setCellStyleGenerator(new Table.CellStyleGenerator() {
+			@Override
+			public String getStyle(Table source, Object itemId, Object propertyId) {
+				Item item = source.getItem(itemId);
+				String mac = (String) item.getItemProperty(LanguageHelper.DM_TABLE_DEVICELIST_COL_ADDRESS).getValue();
+				//find device
+				Device d = app.deviceContainer.firstItemId();
+				for( int i=0; i < app.deviceContainer.size(); i++){
+					if(d.getMac().equals(mac)){
+						if(d.getHasEvent()){
+							return "highlight-red";
+						}else{
+							return null;
+						}
+					}
+					d = app.deviceContainer.nextItemId(d);
+				}
+				
+				return null;
+			}
+		});
+		
 		deviceListLayout.addComponent(deviceList);
 		
 		deviceListSpacer = new Label();
@@ -171,9 +196,32 @@ public class DeviceManagerScreen extends Panel{
 		dmDetailScreen = new DeviceManagerDetailScreen(this.app);
 		
 		deviceListLayout.addComponent(dmDetailScreen);	
+
+		/************************************************************************************************************************
+		 * 
+		 * 		Register Devices
+		 * 
+		 ************************************************************************************************************************/	
+		registerLayout = new HorizontalLayout();
+		registerLayout.setStyleName("deviceManager");
+		dmTabSheet.addTab(registerLayout, app.langHelper.GetString(LanguageHelper.DM_TAB_REGISTER));	
 		
-			
+		startRegModeBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.DM_TAB_RED_START_REG_BTTN));
+		startRegModeBttn.addStyleName("deviceManager");
+		startRegModeBttn.setHeight(24, Unit.PIXELS);
 		
+		startRegModeBttn.addClickListener(new ClickListener() {
+			@Override
+			public void buttonClick(ClickEvent event) {
+				StartRegModeBttnClicked();
+			}
+		});
+		
+		registerLayout.addComponent(startRegModeBttn);
+		
+		
+
+		/************************************************************************************************************************/	
 		hLayout.addComponent(dmTabSheet);
 		hLayout.setComponentAlignment(dmTabSheet, Alignment.TOP_CENTER);
 		hLayout.setExpandRatio(dmTabSheet, 1.0f);
@@ -239,6 +287,9 @@ public class DeviceManagerScreen extends Panel{
 		}
 	}
 	
+	private void StartRegModeBttnClicked(){
+		
+	}
 	
 }
 

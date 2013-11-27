@@ -60,6 +60,7 @@ int lielas_createTables(){
   error -= lielas_createChannelsTbl();
   error -= lielas_createDataTbl();
   error -= lielas_createSettingsTbl();
+  error -= lielas_createEventsTbl();
   
   return error;
 }
@@ -261,6 +262,21 @@ int lielas_createSettingsTbl(){
     res = SQLexec(st);
     PQclear(res);
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'GW_NOR_ADR', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
+  }
+  return 0;
+}
+
+/********************************************************************************************************************************
+ *    int lielas_createEventsTbl()
+ ********************************************************************************************************************************/
+int lielas_createEventsTbl(){
+  char st[LDB_SQL_BUFFER_SIZE];
+  PGresult *res;
+
+  if(SQLTableExists(LDB_TBL_NAME_EVENTS )){
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "CREATE TABLE %s.%s %s", LDB_TBL_SCHEMA, LDB_TBL_NAME_EVENTS, LDB_TBL_CONTENT_EVENTS );
     res = SQLexec(st);
     PQclear(res);
   }

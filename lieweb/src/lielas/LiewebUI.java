@@ -42,6 +42,7 @@ import lielas.core.CoapHelper;
 import lielas.core.Config;
 import lielas.core.Device;
 import lielas.core.DeviceContainer;
+import lielas.core.EventContainer;
 import lielas.core.LBus;
 import lielas.core.LBusSender;
 import lielas.core.NewDeviceContainer;
@@ -81,6 +82,8 @@ public class LiewebUI extends UI {
 	
 	public UserContainer userContainer = null;
 	
+	public EventContainer eventContainer = null;
+	
 	public CoapHelper coap;
 	public User user;
 	
@@ -116,7 +119,8 @@ public class LiewebUI extends UI {
 			if(user != null){
 				if(user.getLogin().equals(username)){
 					if(user.getPassword().equals(SQLHelper.getMD5Hash(pw))){
-						deviceContainer = DeviceContainer.loadDevices(sql);
+						eventContainer = EventContainer.loadEvents(sql);
+						deviceContainer = DeviceContainer.loadDevices(sql, eventContainer);
 						config = new Config();
 						config.LoadSettings();
 						

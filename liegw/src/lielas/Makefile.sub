@@ -9,6 +9,7 @@ src/lielas/modul.c \
 src/lielas/lbus.c \
 src/lielas/ldb.c \
 src/lielas/lwp.c \
+src/reghandler.c
 
 OBJS += \
 src/lielas/channel.o \
@@ -19,6 +20,7 @@ src/lielas/modul.o \
 src/lielas/lbus.o \
 src/lielas/ldb.o \
 src/lielas/lwp.o \
+src/lielas/reghandler.o
 
 C_DEPS += \
 src/lielas/channel.d \
@@ -29,6 +31,7 @@ src/lielas/modul.d \
 src/lielas/lbus.d \
 src/lielas/ldb.d \
 src/lielas/lwp.d \
+src/lielas/reghandler.d
 
 %.o: %.c
 	@echo 'CC:  $<'

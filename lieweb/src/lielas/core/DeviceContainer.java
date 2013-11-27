@@ -35,7 +35,7 @@ public class DeviceContainer extends BeanItemContainer<Device> implements Serial
 		super(Device.class);
 	}
 	
-	public static DeviceContainer loadDevices(SQLHelper sqlHelper){
+	public static DeviceContainer loadDevices(SQLHelper sqlHelper, EventContainer ec){
 		DeviceContainer dc = null;
 		Device d;
 		int id = 0;
@@ -49,6 +49,17 @@ public class DeviceContainer extends BeanItemContainer<Device> implements Serial
 			while(d != null){
 				dc.addItem(d);
 				id = d.getID() + 1;
+				
+				//search for events concerning this device
+				Event event = ec.firstItemId();
+				for(int i=0; i < ec.size() && event != null; i++){
+					if(event.getAffects().equals(d.getMac())){
+						d.setHasEvent(true);
+						break;
+					}
+					event = ec.nextItemId(event);
+				}
+				
 				d = sql.GetDevice(id);
 			}
 		}catch(Exception e){

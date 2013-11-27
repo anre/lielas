@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <math.h>
+#include <curl/curl.h>
 
 #include "lielas/devicecontainer.h"
 #include "coap/coapserver.h"
@@ -36,8 +37,13 @@
 #include "devicehandler.h"
 #include "lielas/lbus.h"
 #include "lielas/ldb.h"
+#include "settings.h"
+#include "lielas/reghandler.h"
 
 #include "rtc/rtc.h"
+
+#include "coap/libcoap/coap.h"
+#include "coap/mycoap.h"
 
 /*
  * 		main
@@ -47,8 +53,46 @@ int main(void) {
 
   //pid = fork();
   
-  //system("sudo /usr/local/lielas/bin/ipchanger set dhcp");
-  //exit(0);
+ /* int gut = 0;
+  int gesamt = 1;
+  int tests = 100;
+	unsigned char buf[CMDBUFFER_SIZE] = { 0 };
+	coap_buf *cb;
+  int i;
+	time_t rawtime;
+	struct tm *now;
+  
+	cb = coap_create_buf();
+	cb->buf = (char*)buf;
+  cb->bufSize = CMDBUFFER_SIZE;
+  
+	time(&rawtime);
+	now = gmtime(&rawtime);
+  
+  while(gesamt <= tests){
+    
+    while(now->tm_sec < 1 || now->tm_sec > 3){
+      time(&rawtime);
+      now = gmtime(&rawtime);
+      sleep(1);
+    }
+    printf("[%i:%i:%i]Test %i of %i:", now->tm_hour, now->tm_min, now->tm_sec, gesamt, tests);
+		coap_send_cmd("coap://[fd23:557d:21e0:2:221:2eff:ff00:265a]:5683/hello", cb, MYCOAP_METHOD_GET, NULL);
+    if(cb->status == COAP_STATUS_CONTENT){
+      if(!strcmp(cb->buf, "Hello World!")){
+        gut += 1;
+      }
+    }
+    printf(" %i good\n", gut);
+    gesamt +=1;
+    for(i = 0; i < cb->bufSize; i++)
+      cb->buf[i] = 0;
+    sleep(2);
+    time(&rawtime);
+    now = gmtime(&rawtime);
+  }
+  exit(0);
+  */
   
   //setbuf(stdout, NULL);
   lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);
@@ -56,6 +100,19 @@ int main(void) {
   lielas_log((unsigned char*)"setting timezone", LOG_LEVEL_DEBUG);
   putenv("TZ=CUT0");
   tzset();
+  
+  lielas_log((unsigned char*)"load settings", LOG_LEVEL_DEBUG);
+  if(set_load()){
+      lielas_log((unsigned char*)"Error loading settings from config.properties", LOG_LEVEL_ERROR);
+      return -1;
+  }
+  
+  
+  lielas_log((unsigned char*)"init curl", LOG_LEVEL_DEBUG);
+  if(curl_global_init(CURL_GLOBAL_NOTHING)){
+      lielas_log((unsigned char*)"Error initializing curl", LOG_LEVEL_ERROR);
+      return -1;
+  }
   
   lielas_log((unsigned char*)"init rtc", LOG_LEVEL_DEBUG);
   if(rtc_init()){
@@ -79,6 +136,12 @@ int main(void) {
 		return -1;
 	}
 	
+  lielas_log((unsigned char*)"initializing registration handler", LOG_LEVEL_DEBUG);
+  if(lielas_reghandler_init()){
+		lielas_log((unsigned char*)"Error initializing registration handler", LOG_LEVEL_ERROR);
+		return -1;
+  }
+  
 	lielas_log((unsigned char*)"loading devices", LOG_LEVEL_DEBUG);
 	LDCloadDevices();
   

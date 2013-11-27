@@ -1463,6 +1463,23 @@ public class SQLHelper implements Serializable {
 		}	
 	}
 	
+	public void LoadEvents(EventContainer ec){
+		try{
+			if(TableExists("events")){
+				Statement st = conn.createStatement();
+				ResultSet rs = st.executeQuery("SELECT id, tmcreate, affect, class, description FROM lielas.events WHERE handled='false' ORDER BY id ASC");
+				while(rs.next()){
+					Event event = new Event(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), false);
+					ec.addItem(event);
+				}
+				rs.close();
+				st.close();
+			}
+		}catch(Exception e){
+			ExceptionHandler.HandleException(e);
+		}	
+	}
+	
 	private class ValueSet{
 		String date;
 		String value;
@@ -1486,7 +1503,7 @@ public class SQLHelper implements Serializable {
 		public void setColumn(String column) {
 			this.column = column;
 		}
-		
-		
 	}
+	
+
 }

@@ -69,9 +69,11 @@ public class LoginScreen extends VerticalLayout {
 		
 		nameTxt = new TextField(app.langHelper.GetString(LanguageHelper.LOGIN_USERNAME));
 		vLo.addComponent(nameTxt);
+		nameTxt.setValue("demo");
 		
 		passwordTxt = new PasswordField(app.langHelper.GetString(LanguageHelper.LOGIN_PASSWORD));
 		vLo.addComponent(passwordTxt);
+		passwordTxt.setValue("demo");
 		
 		loginButton = new Button(app.langHelper.GetString(LanguageHelper.LOGIN_SUBMIT));
 		loginButton.setClickShortcut(KeyCode.ENTER);
