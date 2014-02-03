@@ -1,6 +1,6 @@
 /*
 *
-*	Copyright (c) 2013 Andreas Reder
+*	Copyright (c) 2014 Andreas Reder
 *	Author      : Andreas Reder <andreas.reder@lielas.org>
 *	File		: 
 *
@@ -20,31 +20,30 @@
 *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 */
+
 package lielas.core;
 
-import java.io.Serializable;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.InputStreamReader;
 
-
-
-
-public class LBus implements Serializable{
-
-	private static final long serialVersionUID = 3747783061876507055L;
-	
-	public String LBUS_CMD_CHG = "chg";
-	public String LBUS_CMD_DEL = "del";
-	public String LBUS_CMD_LOGIN = "login";
-	
-
-	protected String serverAddress = "";
-	protected Integer serverPort = 0;
-	protected String uriPath = "";
-
-	public LBus(String serverAddress, Integer serverPort, String uriPath){
-		this.serverAddress = serverAddress;
-		this.serverPort = serverPort;
-		this.uriPath = uriPath;
+public class TcpClient{
+	public void SendLoginMessage(){
+		String ip = "192.168.0.90";
+		int port = 5684;
+		String answer;
+		
+		try{
+			java.net.Socket socket = new java.net.Socket(ip, port);
+			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			out.writeBytes("login");
+			answer = in.readLine();
+			System.out.println("FROM Server: " + answer);
+			socket.close();
+		} catch(Exception e)
+		{
+		}
+		
 	}
-	
-
 }

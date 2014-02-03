@@ -128,12 +128,13 @@ public class LiewebUI extends UI {
 						headerScreen.setPermisson(1);
 						Notification.show("Welcome " + user.getForename() + " " + user.getName(),Notification.Type.WARNING_MESSAGE);
 						loggedIn = true;
-						LBusSender lbus = new LBusSender(this.config.getLbusServerAddress(), this.config.getLbusServerPort(), "lbus");
+						//TODO send tcp msg
+						/*LBusSender lbus = new LBusSender(this.config.getLbusServerAddress(), this.config.getLbusServerPort(), "lbus");
 						lbus.setCmd(lbus.LBUS_CMD_LOGIN);
 						lbus.setUser(this.user.getID());
 						lbus.setAddress("liegw");
 						lbus.setPayload("");
-						lbus.send();
+						lbus.send();*/
 					}
 				}
 			}
