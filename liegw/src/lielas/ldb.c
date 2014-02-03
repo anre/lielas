@@ -53,14 +53,14 @@ int lielas_createTables(){
 
   error -= lielas_createLbusTbl();
   error -= lielas_createUsersTbl();
-  error -= lielas_createDeviceGroupsTbl();
-  error -= lielas_createUserGroupsTbl();
+  //error -= lielas_createDeviceGroupsTbl();
+  //error -= lielas_createUserGroupsTbl();
   error -= lielas_createDevicesTbl();
   error -= lielas_createModulsTbl();
   error -= lielas_createChannelsTbl();
   error -= lielas_createDataTbl();
   error -= lielas_createSettingsTbl();
-  error -= lielas_createEventsTbl();
+  //error -= lielas_createEventsTbl();
   
   return error;
 }
@@ -214,12 +214,6 @@ int lielas_createSettingsTbl(){
     res = SQLexec(st);
     PQclear(res);
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'REG_MINT', '600') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
-    res = SQLexec(st);
-    PQclear(res);
-    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'REG_PINT', '2') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
-    res = SQLexec(st);
-    PQclear(res);
-    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'REG_AINT', '600') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
     res = SQLexec(st);
     PQclear(res);
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'NET_TYPE', 'DHCP') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);

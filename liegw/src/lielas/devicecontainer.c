@@ -45,12 +45,13 @@
 
 static struct Ldc_struct *deviceContainer = NULL;
 static struct Ldc_struct *dcPtr;
+static int nrOfDevices;
 
 void loadModuls(Ldevice *d, char *moduls);
 void loadChannels(Lmodul *m, char *channels);
 
 int ipv6ToMac(const char* ip, char *mac);
-
+int convertHtmlToJson(char *html);
 
 /********************************************************************************************************************************
  *
@@ -69,6 +70,8 @@ int LDCinit(){
 	deviceContainer->ldc = NULL;
 	deviceContainer->ndc = NULL;
 
+  nrOfDevices  = 0;
+  
 	dcPtr = NULL;
 	atexit(LDCdelete);
 	return 0;
@@ -82,11 +85,13 @@ void LDCdelete(){
 			if(dc->ndc == NULL){
 				LDCremove(dc->d);
 				free(deviceContainer);
+        nrOfDevices  = 0;
 				return;
 			}
 			dc = dc->ndc;
 		}
 		free(deviceContainer);
+    nrOfDevices  = 0;
 	}
 }
 
@@ -100,6 +105,7 @@ int LDCadd(Ldevice *d){
 	}else if(deviceContainer->ndc == NULL && deviceContainer->ldc == NULL){
 		deviceContainer->d = d;
 		deviceContainer->ldc = deviceContainer;
+    nrOfDevices  += 1;
 	}else if(deviceContainer->ndc == NULL ){
 		newDc = malloc(sizeof(Ldc));
 		if(newDc == NULL){
@@ -110,6 +116,7 @@ int LDCadd(Ldevice *d){
 		newDc->ldc = deviceContainer;
 		newDc->ndc = NULL;
 		deviceContainer->ndc = newDc;
+    nrOfDevices  += 1;
 	}else{
 		dc = deviceContainer;
 		while(dc->ndc != NULL){
@@ -124,6 +131,7 @@ int LDCadd(Ldevice *d){
 		newDc->ldc = dc;
 		newDc->ndc = NULL;
 		dc->ndc = newDc;
+    nrOfDevices  += 1;
 	}
 	return 0;
 }
@@ -162,9 +170,13 @@ int LDCremove(Ldevice *d){
 		dc->ndc->ldc = dc->ldc;
 		free(dc);
 	}
+  nrOfDevices  -= 1;
 	return 0;
 }
 
+int LDCgetNumberOfDevices(){
+  return nrOfDevices;
+}
 
 /********************************************************************************************************************************
  *
@@ -184,13 +196,12 @@ int LDCloadDevices(){
 	int i;
 	char moduls[500];
 	char msg[500];
-  char wkc[CLIENT_BUFFER_LEN];
 	char st[SQL_STATEMENT_BUF_SIZE];
   char log[LOG_BUF_LEN];
 
 	//query devices table
   
-	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mac, mint, pint, aint, moduls, registered, wkc FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
+	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mac, mint, moduls, registered, datapakets FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
 	res = SQLexec(st);
 
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
@@ -208,22 +219,13 @@ int LDCloadDevices(){
 		}
 
     //load device settings
-		d->id = atoi(PQgetvalue(res, i, 0));
+		d->id = strtol(PQgetvalue(res, i, 0), NULL, 10);
 		//d->registered = 1;
 		strcpy(d->address, PQgetvalue(res,i, 1));
 		strcpy(d->mac, PQgetvalue(res, i, 2));
 		strcpy(d->mint, PQgetvalue(res, i, 3));
-		strcpy(d->pint, PQgetvalue(res, i, 4));
-		strcpy(d->aint, PQgetvalue(res, i, 5));
-		strcpy(moduls,  PQgetvalue(res, i, 6));
-    //load .well-known/core
-		strcpy(wkc,  PQgetvalue(res, i, 8));
-    
-    //parse wkc
-    if(lwp_parse_wkc(wkc, &d->wkc) != 0){
-      lielas_log((unsigned char*)"failed to parse .well-known/core", LOG_LEVEL_WARN);
-      return -1;
-    }
+		strcpy(moduls,  PQgetvalue(res, i, 4));
+    d->datapakets = strtol(PQgetvalue(res, i, 6), NULL, 10);
     
     //load Moduls
 		loadModuls(d, moduls);
@@ -396,7 +398,7 @@ Ldevice *loadDeviceById(unsigned int id){
 		return d;
 	}
 
-	snprintf(st, SQL_BUFFER_SIZE, "SELECT id, address, mac, mint, pint, aint, moduls, registered FROM %s.%s WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id);
+	snprintf(st, SQL_BUFFER_SIZE, "SELECT id, address, mac, mint, moduls, registered FROM %s.%s WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id);
 	res = SQLexec(st);
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
 		lielas_log((unsigned char*)"Failed to get device by id", LOG_LEVEL_WARN);
@@ -416,9 +418,7 @@ Ldevice *loadDeviceById(unsigned int id){
 	strcpy(d->address, PQgetvalue(res,0, 1));
 	strcpy(d->mac, PQgetvalue(res,0, 2));
 	strcpy(d->mint, PQgetvalue(res, 0, 3));
-	strcpy(d->pint, PQgetvalue(res, 0, 4));
-	strcpy(d->aint, PQgetvalue(res, 0, 5));
-	strcpy(moduls,  PQgetvalue(res, 0, 6));
+	strcpy(moduls,  PQgetvalue(res, 0, 4));
 	loadModuls(d, moduls);
 	PQclear(res);
 
@@ -444,6 +444,25 @@ int LDCsaveWKC(char *wkc, Ldevice *d){
 }
 
 /********************************************************************************************************************************
+ * 		LDCsaveNrOfDatapaktes: 
+ ********************************************************************************************************************************/
+int LDCsaveNrOfDatapakte(Ldevice *d){
+	PGresult *res;
+	char st[SQL_STATEMENT_BUF_SIZE];
+  
+  snprintf(st, SQL_STATEMENT_BUF_SIZE, "UPDATE %s.%s SET datapakets='%d' WHERE id=%u", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, d->datapakets, d->id);
+	res = SQLexec(st);
+	if(!res){
+		lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
+		PQclear(res);
+		return -1;
+	}
+	PQclear(res);
+  return 0;
+}
+
+
+/********************************************************************************************************************************
  * 		LDCsaveNewDevice: write new device to database
  ********************************************************************************************************************************/
 
@@ -452,15 +471,15 @@ int LDCsaveNewDevice(Ldevice *d){
 	char st[SQL_BUFFER_SIZE];
   char log[LOG_BUF_LEN];
 	int id;
-
+ 
 	id = getNewId(ID_TYPE_DEVICE);
 	if(id == 0){
 		lielas_log((unsigned char*)"Can't get new device id", LOG_LEVEL_WARN);
 		return -1;
 	}
 
-	snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mac, registered, name,  mint, pint, aint) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s')",
-	         LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id, d->address, d->mac, "true", d->name, d->mint, d->pint, d->aint);
+	snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mac, registered, name,  mint, datapakets) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%d')",
+	         LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id, d->address, d->mac, "true", d->name, d->mint, d->datapakets);
 
 	res = SQLexec(st);
 
@@ -528,26 +547,6 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 		}
 		PQclear(res);
 	}
-	if(strcmp(d->pint, oldDevice->pint)){
-		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET pint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->pint, d->id);
-		res = SQLexec(st);
-		if(!res){
-			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
-			PQclear(res);
-			return -1;
-		}
-		PQclear(res);
-	}
-	if(strcmp(d->aint, oldDevice->aint)){
-		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET aint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->aint, d->id);
-		res = SQLexec(st);
-		if(!res){
-			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
-			PQclear(res);
-			return -1;
-		}
-		PQclear(res);
-	}
 
 	for(i = 1; i < MAX_MODULS && d->modul[i] != NULL; i++){
 		if(d->modul[i] != NULL && oldDevice->modul[i] == NULL){	// new modul
@@ -558,9 +557,8 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 				lielas_log((unsigned char*)"Can't get new modul id", LOG_LEVEL_WARN);
 				return -1;
 			}
-			snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mint, pint, aint) VALUES (%d, '%s', '%s', '%s', '%s')",
-			         LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->id, d->modul[i]->address, d->modul[i]->mint,
-			         d->modul[i]->pint, d->modul[i]->aint);
+			snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mint) VALUES (%d, '%s', '%s')",
+			         LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->id, d->modul[i]->address, d->modul[i]->mint);
 
 			res = SQLexec(st);
 			if(!res){
@@ -604,26 +602,6 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 			}
 			if(strcmp(d->modul[i]->mint, oldDevice->modul[i]->mint)){
 				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET mint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->mint, d->modul[i]->id);
-				res = SQLexec(st);
-				if(!res){
-					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
-					PQclear(res);
-					return -1;
-				}
-				PQclear(res);
-			}
-			if(strcmp(d->modul[i]->pint, oldDevice->modul[i]->pint)){
-				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET pint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->pint, d->modul[i]->id);
-				res = SQLexec(st);
-				if(!res){
-					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
-					PQclear(res);
-					return -1;
-				}
-				PQclear(res);
-			}
-			if(strcmp(d->modul[i]->aint, oldDevice->modul[i]->aint)){
-				snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET aint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_MODULS , d->modul[i]->aint, d->modul[i]->id);
 				res = SQLexec(st);
 				if(!res){
 					lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -837,12 +815,7 @@ void LDCcheckForNewDevices(){
 	char cmd[CLIENT_BUFFER_LEN];
 	char buf[CLIENT_BUFFER_LEN];
 	char adr[IPV6_ADR_BUF_LEN];
-  char attr[CLIENT_BUFFER_LEN];
   char rplTable[RPL_TABLE_LEN];
-  char wkc[CLIENT_BUFFER_LEN];
-  char mac[MAC_STR_LEN];
-  char ex[CLIENT_BUFFER_LEN];
-  unsigned char payload[CLIENT_BUFFER_LEN];
   char log[LOG_BUF_LEN];
 	Ldevice *d;
 	Lmodul *m[MAX_MODULS];
@@ -857,8 +830,6 @@ void LDCcheckForNewDevices(){
 	jsmntok_t tokens[MAX_JSON_TOKENS];
   int nextToken;
   int routes;
-  int channels;
-  int moduls;
 
 	//get systemtime
   sleep(1);
@@ -866,7 +837,7 @@ void LDCcheckForNewDevices(){
 	now = gmtime(&rawtime);
   
   if(now->tm_sec < 58){
-    return;
+    //return;
   }
   
 
@@ -938,6 +909,17 @@ void LDCcheckForNewDevices(){
   
   fclose(fp);
   #endif
+  
+  //check if routing table is in html or json format
+  if(rplTable[0] == '<'){
+    // HTML format, convert to json
+    convertHtmlToJson(rplTable);
+  }else if(rplTable[0] != '{'){
+    //unknown format
+    lielas_log((unsigned char*)"failed to parse routing table, unknown format", LOG_LEVEL_WARN);
+		return;
+  }
+  
   jsmn_init(&json);
   nextToken = 0;
 	r = jsmn_parse(&json, rplTable, tokens, MAX_JSON_TOKENS);
@@ -987,187 +969,72 @@ void LDCcheckForNewDevices(){
 					d = LcreateDevice();
 					strcpy(d->address, adr);
 					sprintf(d->mint, "%d", LIELAS_STD_MINT);
-					sprintf(d->pint, "%d", LIELAS_STD_PINT);
-					sprintf(d->aint, "%d", LIELAS_STD_AINT);
           snprintf(log, LOG_BUF_LEN, "new device found: %s", d->address);
           lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
       
-          //dissable cycle mode
-          
-          setCycleMode(d, LWP_CYCLE_MODE_OFF);
-      
-          //get wkc
-          
-          cb->buf = (char*)wkc;
-          cb->bufSize = CLIENT_BUFFER_LEN;
-          
-          lielas_log((unsigned char*)"get /.well-known/core" , LOG_LEVEL_WARN);
-          snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/.well-known/core", adr, set_getGatewaynodePort());
-          coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-          
-          if(cb->status != COAP_STATUS_CONTENT){
-            snprintf(log, LOG_BUF_LEN, "failed to get .well-known/core of device %s", d->address);
-            lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-            return;
-          }
-          
-          
-          //parse wkc
-          if(lwp_parse_wkc(cb->buf, &d->wkc) != 0){
-            lielas_log((unsigned char*)"failed to parse .well-known/core", LOG_LEVEL_WARN);
-            return;
-          }
-          
           //get resource info
-          
-          cb->buf = (char*)buf;
+          cb->buf = (char*) buf;
           cb->bufSize = CLIENT_BUFFER_LEN;
           
           snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/info", adr, set_getGatewaynodePort());
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+          printf("cmd: %s\n", cmd);
           
           if(cb->status != COAP_STATUS_CONTENT){
             lielas_log((unsigned char*)"failed to get /info", LOG_LEVEL_WARN);
             return;
           }
           
-          if(lwp_get_attr_value(cb->buf, &d->wkc.info, LWP_ATTR_INFO_NAME, d->name, DEVICE_MAX_STR_LEN)){
-            lielas_log((unsigned char*)"failed to parse .well-known/core: /info/name", LOG_LEVEL_WARN);
-            return;
-          }
-          if(lwp_get_attr_value(cb->buf, &d->wkc.info, LWP_ATTR_INFO_SW_VER, d->sw_ver, DEVICE_MAX_STR_LEN)){
-            lielas_log((unsigned char*)"failed to parse .well-known/core: /info/sw_ver", LOG_LEVEL_WARN);
-            return;
-          }
+          //set device attributes
           
-          //get resource network
-          snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/network", adr, set_getGatewaynodePort());
-          coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);     
-              
-          if(cb->status != COAP_STATUS_CONTENT){
-            lielas_log((unsigned char*)"failed to get /network", LOG_LEVEL_WARN);
-            return;
+          //d->name
+          for(i = 0; i < cb->bufSize && i < DEVICE_MAX_STR_LEN; i++){
+            if(cb->buf[i] == '\t')
+              break;
+            d->name[i] = cb->buf[i];
+          }
+          i++;
+          //TODO add sw_ver to db
+          for(j = 0; (i + j) < cb->bufSize && j < DEVICE_MAX_STR_LEN; j++){
+            if(cb->buf[i+j] == '\t')
+              break;
+              d->sw_ver[j] = cb->buf[i+j];
           }
           
-          if(lwp_get_attr_value(cb->buf, &d->wkc.network, LWP_ATTR_NETWORK_MAC, mac, MAC_STR_LEN)){
-            lielas_log((unsigned char*)"failed to parse .well-known/core: /network/mac", LOG_LEVEL_WARN);
-            return;
-          }
-          lwp_mac_to_std_mac(d->mac, mac);
-          
-          //get resource device
-          snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/device", adr, set_getGatewaynodePort());
-          coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-          
-          if(cb->status != COAP_STATUS_CONTENT){
-            lielas_log((unsigned char*)"failed to get /device", LOG_LEVEL_WARN);
+          if(!strcmp(d->name, "mini2_TH")){
+          }else{
+            lielas_log((unsigned char*)"unknown device", LOG_LEVEL_WARN);
             return;
           }
           
-          if(lwp_get_attr_value(cb->buf, &d->wkc.device, LWP_ATTR_DEVICE_SUPPLY, d->supply, DEVICE_MAX_STR_LEN)){
-            lielas_log((unsigned char*)"failed to parse .well-known/core: /device/supply", LOG_LEVEL_WARN);
-            return;
-          }
-          if(lwp_get_attr_value(cb->buf, &d->wkc.device, LWP_ATTR_DEVICE_MODULE_CNT, attr, CLIENT_BUFFER_LEN)){
-            lielas_log((unsigned char*)"failed to parse .well-known/core: /device/module_cnt", LOG_LEVEL_WARN);
-            return;
-          }
-          moduls = strtol(attr, NULL, 10);
-          if(moduls > MAX_MODULS){
-            lielas_log((unsigned char*)"failed to parse .well-known/core: /device/module_cnt, too big", LOG_LEVEL_WARN);
+          //d->mac
+          if(ipv6ToMac(adr, d->mac)){
             return;
           }
           
-          snprintf(log, LOG_BUF_LEN, "found Device with name %s and version %s is running on %s with %i modul(s)", d->name, d->sw_ver, d->supply, moduls);
-          lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
+          d->registered = 1;
           
-          //scan moduls
-          for(i=1; i <= moduls; i++){
-            //create modul
-						m[i] = LcreateModul();
-            sprintf(m[i]->address, "%i", i);
-            sprintf(m[i]->mint, "%d", LIELAS_STD_MINT);
-            sprintf(m[i]->pint, "%d", LIELAS_STD_PINT);
-            sprintf(m[i]->aint, "%d", LIELAS_STD_AINT);
+          m[1] = LcreateModul();
+          sprintf(m[1]->address, "1");
+          sprintf(m[1]->mint, "60");
           
-            //switch to modul
-            if(i > 0){
-              // TBD
-            }
-            
-            // get modul
-            snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/modul", adr, set_getGatewaynodePort());
-            coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-            
-            if(lwp_get_attr_value(cb->buf, &d->wkc.modul, LWP_ATTR_MODUL_CHANNEL_CNT, attr, CLIENT_BUFFER_LEN)){
-              lielas_log((unsigned char*)"failed to parse .well-known/core: /modul/channel_cnt", LOG_LEVEL_WARN);
-              return;
-            }
-            channels = strtol(attr, NULL, 10);
-            if(channels > MAX_CHANNELS){ 
-              lielas_log((unsigned char*)"failed to parse .well-known/core: /device/channel_cnt, too big", LOG_LEVEL_WARN);
-              return;
-            }
-						LaddModul(d, m[i]);
-            snprintf(log, LOG_BUF_LEN, "found Modul %s with %i channels", m[i]->address, channels);
-            lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
-            
-            //scan channels
-            for(j=1; j <= channels ; j++){
-								c[j] = LcreateChannel();
-                sprintf(c[j]->address, "%i", j);
-                
-                // get channel
-                snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/channel%i", adr, set_getGatewaynodePort(), j);
-                coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-                
-                if(cb->status != COAP_STATUS_CONTENT){
-                  snprintf(log, LOG_BUF_LEN, "failed to get /channel%i", j);
-                  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-                  return;
-                }
-                
-                //unit
-                if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_UNIT, c[j]->unit, CHANNEL_ATTR_STR_LEN)){
-                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/unit", j);
-                  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-                  return;
-                }
-                
-                //type
-                if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_TYPE, c[j]->type, CHANNEL_ATTR_STR_LEN)){
-                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/type", j);
-                  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-                  return;
-                }   
-                
-                //class
-                if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_CLASS, c[j]->class, CHANNEL_ATTR_STR_LEN)){
-                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/class", j);
-                  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-                  return;
-                }  
-                
-                //exponent
-                if(lwp_get_attr_value(cb->buf, &d->wkc.channel[j], LWP_ATTR_CHANNEL_EXPONENT, ex, CHANNEL_ATTR_STR_LEN)){
-                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/exponent", j);
-                  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-                  return;
-                }  
-                // parse exponent to double
-                c[j]->exponent = strtod(ex, NULL);
-                if(c[j]->exponent == 0.0){
-                  snprintf(log, LOG_BUF_LEN, "failed to parse .well-known/core: /channel%i/exponent", j);
-                  lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-                  return;
-                }
-                
-								LaddChannel(m[i], c[j]);
-                snprintf(log, LOG_BUF_LEN, "found channel%i with unit %s, type %s and class %s", j, c[j]->unit, c[j]->type, c[j]->class);
-                lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
-                
-            }
-          }
+          c[1] = LcreateChannel();
+          sprintf(c[1]->address, "1");
+          sprintf(c[1]->unit, "°C");
+          sprintf(c[1]->class, "SENSOR");
+          sprintf(c[1]->type, "SHT_T");
+          c[1]->exponent = -1.0;
+          LaddChannel(m[1], c[1]);
+          
+          c[2] = LcreateChannel();
+          sprintf(c[2]->address, "2");
+          sprintf(c[2]->unit, "%%");
+          sprintf(c[2]->class, "SENSOR");
+          sprintf(c[2]->type, "SHT_H");
+          c[2]->exponent = -1.0;
+          LaddChannel(m[1], c[2]);
+          
+          LaddModul(d, m[1]);
           
           // basic device settings finished, save device
           lielas_log((unsigned char*)"saving new Device:", LOG_LEVEL_DEBUG);
@@ -1178,30 +1045,11 @@ void LDCcheckForNewDevices(){
           LprintDeviceStructure(d, log, LOG_BUF_LEN, 0);
           lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
           
-          
 					LDCsaveUpdatedDevice(d);
-          LDCsaveWKC(wkc, d);
           
           // set datetime
-          lielas_log((unsigned char*)"setting device date and time", LOG_LEVEL_DEBUG);
-          DeviceSetDatetime(d);
-          
-          // set logger interval
-          lielas_log((unsigned char*)"setting device logger interval to 600", LOG_LEVEL_DEBUG);
-          snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
-          snprintf((char*)payload, DATABUFFER_SIZE, "interval=600");
-          coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
-          
-          
-          // set logger state
-          lielas_log((unsigned char*)"setting device logger on", LOG_LEVEL_DEBUG);
-          snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
-          snprintf((char*)payload, DATABUFFER_SIZE, "state=1");
-          coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, payload);
-          
-          //put device to sleep
-          setCycleMode(d, LWP_CYCLE_MODE_ON);
-          
+          //lielas_log((unsigned char*)"setting device date and time", LOG_LEVEL_DEBUG);
+          //DeviceSetDatetime(d);
         }
       }
 		}
@@ -1225,6 +1073,96 @@ int ipv6ToMac(const char* ip, char *mac){
   return 0;
 } 
 
+
+int convertHtmlToJson(char *html){
+  size_t len;
+  size_t jsonLen;
+  char *ptr;
+  int i;
+  char json[RPL_TABLE_LEN];
+  int eof = 0;
+  
+  ptr = strstr(html, "Routes");
+  
+  if( ptr == NULL){
+    lielas_log((unsigned char*)"Failed to convert HTML page to JSON: Token 'Routes' not found!", LOG_LEVEL_WARN);
+    return -1;
+  }
+  
+  len = strlen(ptr);
+    
+  //search first address
+  for(i = 0; i < len; i++){
+    if(ptr[i] == '>')
+      break;
+  }
+  
+  if( i == len ){
+    lielas_log((unsigned char*)"Failed to convert HTML page to JSON: no address found!", LOG_LEVEL_WARN);
+    return -1;
+  }
+  
+  //address found, init json
+  snprintf(json, RPL_TABLE_LEN, "{\n\"Routes\":[\n");
+  jsonLen = strlen(json);
+  
+  ptr = &ptr[i+1];
+  
+  while(jsonLen < RPL_TABLE_LEN && !eof){
+    //address found, copy it to json
+    json[jsonLen++] = ' ';
+    json[jsonLen++] = ' ';
+    json[jsonLen++] = '"';
+    for( i = 0; jsonLen <  RPL_TABLE_LEN; i++){
+      if(ptr[i] == '/'){
+        break;
+      }
+      json[jsonLen++] = ptr[i];
+    }
+    json[jsonLen++] = '"';
+    json[jsonLen++] = ',';
+    json[jsonLen++] = '\n';
+    
+    //search next line
+    for( i = 0; i < len; i++){
+      if(ptr[i] == 0){
+        eof = 1;
+        break;
+      }
+      if(ptr[i] == '\n'){
+        i += 1;
+        break;
+      }
+    }
+    //check for new address
+    if(!eof){
+      if(ptr[i] == '<'){
+        eof = 1;
+      }      
+    }
+    ptr += i;
+  }
+  
+  if(jsonLen > 2) //clear last koma
+    jsonLen -= 2;
+    
+  snprintf(&json[jsonLen], RPL_TABLE_LEN, "\n  ]\n}");
+  jsonLen = strlen(json);
+  
+  //copy json back to html buffer
+  for(i = 0; i < jsonLen  && i < RPL_TABLE_LEN; i++){
+    html[i] = json[i];
+  }
+  
+  if(i < RPL_TABLE_LEN){
+    html[i] = 0;
+  }else{
+    lielas_log((unsigned char*)"Failed to convert HTML page to JSON: buffer too small!", LOG_LEVEL_WARN);
+    return -1;
+  }
+  
+  return 0;
+}
 
 
 

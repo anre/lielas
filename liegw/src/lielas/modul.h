@@ -32,8 +32,6 @@ typedef struct Lmodul_struct{
   char address[IPV6_STR_LEN];
   int channels;
   char mint[INT_STR_LEN];
-  char pint[INT_STR_LEN];
-  char aint[INT_STR_LEN];
   Lchannel *channel[MAX_CHANNELS];
 }Lmodul;
 

@@ -38,7 +38,7 @@
 
 #define MAX_TIME_DIFF                     4
 
-#define LIELAS_STD_MINT                   600
+#define LIELAS_STD_MINT                   60
 #define LIELAS_STD_PINT                   2
 #define LIELAS_STD_AINT                   60
 

@@ -37,9 +37,7 @@ void HandleDevices();
 #define VALUEBUFFER_SIZE		20
 #define MAX_VALUES_IN_PAKET		5000
 
-#define MAX_DATA_SEND_TIME		40
-
-#define GET_FIRST_VALUE_DATE	"2000.01.01 00:00:00"
+#define MAX_DATA_SEND_TIME		120
 
 #define VALUE_DECIMAL_POINT		','
 #define VALUE_SEPARATOR			';'
@@ -59,7 +57,6 @@ typedef struct datapaketcontainer_struct{
 	datapaket *dp[MAX_VALUES_IN_PAKET];
 	int dec;	// number of digits after decimal point
 } datapaketcontainer;
-
 
 
 #define RUNMODE_NORMAL          0

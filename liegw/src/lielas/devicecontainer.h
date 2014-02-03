@@ -29,7 +29,7 @@
 
 #define CLIENT_BUFFER_LEN	1000
 #define IPV6_ADR_BUF_LEN	50
-#define RPL_TABLE_LEN     10000
+#define RPL_TABLE_LEN     20000
 
 #define ID_TYPE_DEVICE	0
 #define ID_TYPE_MODUL	1
@@ -54,13 +54,16 @@ struct Ldc_struct{
 int LDCinit();
 int LDCadd(Ldevice *d);
 int LDCremove(Ldevice *d);
+int LDCgetNumberOfDevices();
 int LDCloadDevices();
+int LDCsaveNrOfDatapakte(Ldevice *d);
 int LDCgetDeviceByAddress(const char* adr, Ldevice **d);
 int LDCgetDeviceById(int id, Ldevice **d);
 void LDCcheckForNewDevices();
 Ldevice *LDCgetFirstDevice();
 Ldevice *LDCgetNextDevice();
 void LDCdelete();
+
 
 #endif /* DEVICECONTAINER_H */
 
