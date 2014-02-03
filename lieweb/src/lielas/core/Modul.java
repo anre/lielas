@@ -31,19 +31,15 @@ public class Modul implements Serializable{
 
 	private int address;
 	private int meassurementIntervall;
-	private int processIntervall;
-	private int alarmIntervall;
 	private Channel[] channel;
 	private int id;
 
 	private int channels;
 	
-	public Modul(int id, int mInt, int pInt, int aInt) {
+	public Modul(int id, int mInt) {
 		super();
 		this.id = id;
 		this.meassurementIntervall = mInt;
-		this.processIntervall = pInt;
-		this.alarmIntervall = aInt;
 		this.channels = 0;
 		
 		channel =  new Channel[20];
@@ -63,22 +59,6 @@ public class Modul implements Serializable{
 
 	public void setMeassurementIntervall(Integer meassurementIntervall) {
 		this.meassurementIntervall = meassurementIntervall;
-	}
-
-	public Integer getProcessIntervall() {
-		return processIntervall;
-	}
-
-	public void setProcessIntervall(Integer processIntervall) {
-		this.processIntervall = processIntervall;
-	}
-
-	public Integer getAlarmIntervall() {
-		return alarmIntervall;
-	}
-
-	public void setAlarmIntervall(Integer alarmIntervall) {
-		this.alarmIntervall = alarmIntervall;
 	}
 
 	public Integer getChannels() {

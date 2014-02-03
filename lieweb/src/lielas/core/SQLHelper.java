@@ -234,8 +234,6 @@ public class SQLHelper implements Serializable {
 		String name;
 		String group;
 		int mInt = 0;
-		int pInt = 0;
-		int aInt = 0;
 		String supply;
 		int id;
 		
@@ -253,7 +251,7 @@ public class SQLHelper implements Serializable {
 		
 		try{
 			Statement st = conn.createStatement();
-			ResultSet rs = st.executeQuery("SELECT id, address, mac, registered, name, dev_group, mint, pint, aint, moduls  FROM lielas.devices ORDER BY id");
+			ResultSet rs = st.executeQuery("SELECT id, address, mac, registered, name, dev_group, mint, moduls  FROM lielas.devices ORDER BY id");
 			
 			if(rs.next()){
 				while(rs.getInt(1) < ID){
@@ -280,18 +278,11 @@ public class SQLHelper implements Serializable {
 					mInt = Integer.parseInt(rs.getString(7));
 				}
 				
-				if(rs.getString(8) != null){
-					pInt = Integer.parseInt(rs.getString(8));
-				}
-				
-				if(rs.getString(9) != null){
-					aInt = Integer.parseInt(rs.getString(9));
-				}
-				
-				supply = rs.getString(10);
+				//supply = rs.getString(10);
+				supply  = "bat";
 				moduls = GetDeviceModuls(id);
 				
-				d = new Device(address, mac, registered, name, group, mInt, pInt, aInt, supply, id);
+				d = new Device(address, mac, registered, name, group, mInt, supply, id);
 				
 				// get Moduls
 				if( moduls != null){
@@ -353,24 +344,18 @@ public class SQLHelper implements Serializable {
 		int id;
 		int address = 0;
 		int mInt = 60;
-		int pInt = 2;
-		int aInt = 60;
 		
 		try{
 			Statement st = conn.createStatement();
-			ResultSet rs = st.executeQuery("SELECT id, address, mint, pint, aint FROM lielas.moduls WHERE id = " + ID);
+			ResultSet rs = st.executeQuery("SELECT id, address, mint FROM lielas.moduls WHERE id = " + ID);
 			if(rs.next()){
 				id = rs.getInt(1);
 				if(rs.getString(2) != null)
 					address = Integer.parseInt(rs.getString(2));
 				if(rs.getString(3) != null)
 					mInt = Integer.parseInt(rs.getString(3));
-				if(rs.getString(4) != null)
-					pInt = Integer.parseInt(rs.getString(4));
-				if(rs.getString(5) != null)
-					aInt = Integer.parseInt(rs.getString(5));
 				
-				m = new Modul(id, mInt, pInt, aInt);
+				m = new Modul(id, mInt);
 				m.setAddress(address);
 			}
 			
@@ -460,11 +445,7 @@ public class SQLHelper implements Serializable {
 			update = "UPDATE lielas.devices SET dev_group = '" + d.getGroup() + "' WHERE id = " + d.getID();
 			st.executeUpdate(update);
 			update = "UPDATE lielas.devices SET mint = '" + d.getMeassurementIntervall() + "' WHERE id = " + d.getID();
-			st.executeUpdate(update);
-			update = "UPDATE lielas.devices SET pint = '" + d.getProcessIntervall() + "' WHERE id = " + d.getID();
-			st.executeUpdate(update);
-			update = "UPDATE lielas.devices SET aint = '" + d.getAlarmIntervall() + "' WHERE id = " + d.getID();
-			st.executeUpdate(update);		
+			st.executeUpdate(update);	
 			st.close();
 			
 			// update modules
@@ -487,12 +468,6 @@ public class SQLHelper implements Serializable {
 			Statement st = conn.createStatement();
 			
 			update = "UPDATE lielas.moduls SET mint = '" + m.getMeassurementIntervall() + "' WHERE id = " + m.getID();
-			st.executeUpdate(update);
-
-			update = "UPDATE lielas.moduls SET pint = '" + m.getProcessIntervall() + "' WHERE id = " + m.getID();
-			st.executeUpdate(update);
-
-			update = "UPDATE lielas.moduls SET aint = '" + m.getAlarmIntervall() + "' WHERE id = " + m.getID();
 			st.executeUpdate(update);
 			
 			st.close();
@@ -1467,7 +1442,7 @@ public class SQLHelper implements Serializable {
 		try{
 			if(TableExists("events")){
 				Statement st = conn.createStatement();
-				ResultSet rs = st.executeQuery("SELECT id, tmcreate, affect, class, description FROM lielas.events WHERE handled='false' ORDER BY id ASC");
+				ResultSet rs = st.executeQuery("SELECT id, tmcreate, affects, class, description FROM lielas.events WHERE handled='false' ORDER BY id ASC");
 				while(rs.next()){
 					Event event = new Event(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5), false);
 					ec.addItem(event);

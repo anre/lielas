@@ -36,8 +36,6 @@ public class Device implements Serializable {
 	private String name;
 	private String group;
 	private int meassurementIntervall;
-	private int processIntervall;
-	private int alarmIntervall;
 	private String supply;
 	private int ID;
 	private Modul[] modul;
@@ -45,8 +43,7 @@ public class Device implements Serializable {
 	private Boolean hasEvent;
 		
 	public Device(String address, String mac, boolean registered, String name, String group,
-			Integer meassurementIntervall, Integer processIntervall,
-			Integer alarmIntervall, String supply, Integer id) {
+			Integer meassurementIntervall, String supply, Integer id) {
 		super();
 		this.address = address;
 		this.mac = mac;
@@ -54,8 +51,6 @@ public class Device implements Serializable {
 		this.name = name;
 		this.group = group;
 		this.meassurementIntervall = meassurementIntervall;
-		this.processIntervall = processIntervall;
-		this.alarmIntervall = alarmIntervall;
 		this.supply = supply;
 		this.ID = id;
 		
@@ -112,22 +107,6 @@ public class Device implements Serializable {
 		this.meassurementIntervall = meassurementIntervall;
 	}
 
-	public Integer getProcessIntervall() {
-		return processIntervall;
-	}
-
-	public void setProcessIntervall(Integer processIntervall) {
-		this.processIntervall = processIntervall;
-	}
-
-	public Integer getAlarmIntervall() {
-		return alarmIntervall;
-	}
-
-	public void setAlarmIntervall(Integer alarmIntervall) {
-		this.alarmIntervall = alarmIntervall;
-	}
-
 	public String getSupply() {
 		return supply;
 	}
@@ -149,7 +128,7 @@ public class Device implements Serializable {
 	}
 
 	public void addModul(int id, Modul m){
-		modul[m.getAddress()] = new Modul(id, m.getMeassurementIntervall(), m.getProcessIntervall(), m.getAlarmIntervall());
+		modul[m.getAddress()] = new Modul(id, m.getMeassurementIntervall());
 		modul[m.getAddress()].setAddress(m.getAddress());
 		moduls += 1;
 	}
@@ -169,29 +148,6 @@ public class Device implements Serializable {
 	
 	public int getChannels(int modulAddress){
 		return modul[modulAddress].getChannels();
-	}
-	
-	static public String getProcessIntervallString(int pInt){
-		switch(pInt){
-		case 1:
-			return LanguageHelper.AT_PINT_OPT_LIFETIME;
-		case 2:
-			return LanguageHelper.AT_PINT_OPT_NORMAL;
-		case 3:
-			return LanguageHelper.AT_PINT_OPT_FAST_GATHER;
-		}
-		return null;
-	}
-	
-	static public int getProcessIntervallInt(String pInt, LanguageHelper langHelper){
-		if(pInt.equals(langHelper.GetString(LanguageHelper.AT_PINT_OPT_LIFETIME))){
-			return 1;
-		}else if(pInt.equals(langHelper.GetString(LanguageHelper.AT_PINT_OPT_NORMAL))){
-			return 2;
-		}else if(pInt.equals(langHelper.GetString(LanguageHelper.AT_PINT_OPT_FAST_GATHER))){
-			return 3;
-		}
-		return 0;
 	}
 	
 	public boolean getHasEvent() {
