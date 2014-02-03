@@ -48,6 +48,9 @@ coap_tick_t max_wait;		/* global timeout (changed by set_timeout()) */
 /* reading is done when this flag is set */
 static int ready = 0;
 
+static unsigned char _token_data[8];
+str the_token = { 0, _token_data };
+
 static str payload = { 0, NULL }; /* optional payload to send */
 
 unsigned char msgtype = COAP_MESSAGE_CON; /* usually, requests are sent confirmable */
@@ -68,25 +71,8 @@ set_timeout(coap_tick_t *timer, const unsigned int seconds) {
 }
 
 int check_token(coap_pdu_t *received) {
-  coap_opt_iterator_t opt_iter;
-  coap_list_t *option;
-  str token1 = { 0, NULL }, token2 = { 0, NULL };
-
-  if (coap_check_option(received, COAP_OPTION_TOKEN, &opt_iter)) {
-    token1.s = COAP_OPT_VALUE(opt_iter.option);
-    token1.length = COAP_OPT_LENGTH(opt_iter.option);
-  }
-
-  for (option = optlist; option; option = option->next) {
-    if (COAP_OPTION_KEY(*(coap_option *)option->data) == COAP_OPTION_TOKEN) {
-      token2.s = COAP_OPTION_DATA(*(coap_option *)option->data);
-      token2.length = COAP_OPTION_LENGTH(*(coap_option *)option->data);
-      break;
-    }
-  }
-
-  return token1.length == token2.length &&
-    memcmp(token1.s, token2.s, token1.length) == 0;
+  return received->hdr->token_length == the_token.length &&
+    memcmp(received->hdr->token, the_token.s, the_token.length) == 0;
 }
 
 coap_context_t *
@@ -322,11 +308,11 @@ void message_handler(struct coap_context_t  *ctx,
 	    break;
 	  }
 
+
 	  /* output the received data, if any */
 	  if (received->hdr->code == COAP_RESPONSE_CODE(205)) {
       
       mycoapbuf->status = received->hdr->code;
-
 
 	    /* Got some data, check if block option is set. Behavior is undefined if
 	     * both, Block1 and Block2 are present. */
@@ -376,7 +362,6 @@ void message_handler(struct coap_context_t  *ctx,
 	    				case COAP_OPTION_URI_HOST :
 	    				case COAP_OPTION_URI_PORT :
 	    				case COAP_OPTION_URI_PATH :
-	    				case COAP_OPTION_TOKEN :
 	    				case COAP_OPTION_URI_QUERY :
 	    					coap_add_option ( pdu, COAP_OPTION_KEY(*(coap_option *)option->data),
 	    							COAP_OPTION_LENGTH(*(coap_option *)option->data),
@@ -529,47 +514,47 @@ int handle_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned 
   	  coap_insert(&optlist, new_option_node(COAP_OPTION_URI_QUERY,
                                       COAP_OPT_LENGTH(buf),
 					      	  	  	  	  	  	COAP_OPT_VALUE(buf)),
-    			  	  order_opts);
+                                      order_opts);
 
-    	  buf += COAP_OPT_SIZE(buf);
-      }
+      buf += COAP_OPT_SIZE(buf);
     }
+  }
 
-    if(method == MYCOAP_METHOD_POST || method == MYCOAP_METHOD_PUT){
-    	len = check_segment(post, strlen((char*)post));
-    	if(len < 0){
-    		payload.length = 0;
-    	}else{
-    		if(payload.s != NULL){
-    			free(payload.s);
-    		}
-    		payload.s = (unsigned char*)coap_malloc(len);
-    		if(payload.s){
-    			payload.length = len;
-    			decode_segment(post, strlen((char*)post), payload.s);
-    		}
-    	}
-    }else{
-    	payload.length = 0;
-    }
+  if(method == MYCOAP_METHOD_POST || method == MYCOAP_METHOD_PUT){
+  	len = check_segment(post, strlen((char*)post));
+   	if(len < 0){
+   		payload.length = 0;
+   	}else{
+   		if(payload.s != NULL){
+   			free(payload.s);
+   		}
+   		payload.s = (unsigned char*)coap_malloc(len);
+   		if(payload.s){
+   			payload.length = len;
+   			decode_segment(post, strlen((char*)post), payload.s);
+   		}
+   	}
+  }else{
+    payload.length = 0;
+  }
 
-    server = uri.host;
-    port = uri.port;
+  server = uri.host;
+  port = uri.port;
 
-    /* resolve destination address where server should be sent */
-    res = resolve_address(&server, &dst.addr.sa);
+  /* resolve destination address where server should be sent */
+  res = resolve_address(&server, &dst.addr.sa);
 
-    if (res < 0) {
-      fprintf(stderr, "failed to resolve address\n");
-      return 0;
-    }
+  if (res < 0) {
+    fprintf(stderr, "failed to resolve address\n");
+    return 0;
+  }
 
-    dst.size = res;
-    dst.addr.sin.sin_port = htons(port);
+  dst.size = res;
+  dst.addr.sin.sin_port = htons(port);
 
-    /* add Uri-Host if server address differs from uri.host */
+  /* add Uri-Host if server address differs from uri.host */
 
-    switch (dst.addr.sa.sa_family) {
+  switch (dst.addr.sa.sa_family) {
     case AF_INET:
       addrptr = &dst.addr.sin.sin_addr;
 
@@ -582,15 +567,15 @@ int handle_send_cmd(char* uriStr, coap_buf *cb, unsigned char methode, unsigned 
       /* create context for IPv6 */
       ctx = get_ccontext("::", port_str);
       break;
-    }
+  }
 
-    if (!ctx) {
-      coap_log(LOG_EMERG, "cannot create context\n");
-      return 0;
-    }
+  if (!ctx) {
+    coap_log(LOG_EMERG, "cannot create context\n");
+    return 0;
+  }
 
-    coap_register_option(ctx, COAP_OPTION_BLOCK2);
-    coap_register_response_handler(ctx, message_handler);
+  coap_register_option(ctx, COAP_OPTION_BLOCK2);
+  coap_register_response_handler(ctx, message_handler);
 
     /* construct CoAP message */
 

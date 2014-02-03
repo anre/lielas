@@ -78,10 +78,6 @@ void hnd_get_index(coap_context_t  *c, struct coap_resource_t *resource,
 	coap_add_option(response, COAP_OPTION_CONTENT_TYPE, coap_encode_var_bytes(buf, COAP_MEDIATYPE_TEXT_PLAIN), buf);
 	coap_add_option(response, COAP_OPTION_MAXAGE, coap_encode_var_bytes(buf, 0x2ffff), buf);
 
-	if( token->length){
-		coap_add_option(response, COAP_OPTION_TOKEN, token->length, token->s);
-	}
-
 	coap_add_data(response, strlen("lielas COAP server daemon"), (unsigned char*)"lielas COAP server daemon");
 
 }
@@ -96,9 +92,10 @@ void hnd_get_rtc(coap_context_t  *c, struct coap_resource_t *resource,
 
 	coap_opt_iterator_t optIter;
 	unsigned char buf[5];
-  unsigned char str[500];
+  unsigned char payload[2000];
   int len;
 	time_t now;
+
 
 	response->hdr->code = COAP_RESPONSE_CODE(205);
 
@@ -113,27 +110,22 @@ void hnd_get_rtc(coap_context_t  *c, struct coap_resource_t *resource,
 		coap_add_option(response, COAP_OPTION_SUBSCRIPTION, coap_encode_var_bytes(buf, c->observe), buf);
 	}
 
-	if(token->length){
-		coap_add_option(response, COAP_OPTION_TOKEN, token->length, token->s);
-	}
-
 	time(&now);
 
 	if(request != NULL
-			&& coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)
-			&& memcmp(COAP_OPT_VALUE(optIter.option), "ticks", min(5, COAP_OPT_LENGTH(optIter.option))) == 0){
+			&& coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)){
 		response->length += snprintf((char*)response->data, response->max_size - response->length, "%u", (unsigned int) now);
 	}else{
 		struct tm *tmp;
 		tmp = gmtime(&now);
-    snprintf((char*)str, 500 , "{\n");
-    len = strlen((char*)str);
-    snprintf((char*)&str[len], 500 - len, "\"state\":\"%s\",\n", rtc_get_state_text());
-    len = strlen((char*)str);
-		len += strftime((char*)&str[len], 500 - len, "\"time\":\"%d.%m.%Y %H:%M:%S\"\n", tmp);
-    snprintf((char*)&str[len], 500 - len, "}\n");
-    len = strlen((char*)str);
-		response->length += snprintf((char*)response->data, response->max_size - response->length, "%s", str);
+    snprintf((char*)payload, 500 , "{\n");
+    len = strlen((char*)payload);
+    snprintf((char*)&payload[len], 500 - len, "\"state\":\"%s\",\n", rtc_get_state_text());
+    len = strlen((char*)payload);
+		len += strftime((char*)&payload[len], 500 - len, "\"time\":\"%d.%m.%Y %H:%M:%S\"\n", tmp);
+    snprintf((char*)&payload[len], 500 - len, "}\n");
+    len = strlen((char*)payload);
+		coap_add_data(response, len, payload);
 	}
 
 }
@@ -166,15 +158,11 @@ void hnd_get_runmode(coap_context_t  *c, struct coap_resource_t *resource,
     coap_add_option(response, COAP_OPTION_SUBSCRIPTION, coap_encode_var_bytes(buf, c->observe), buf);
   }
 
-  if(token->length){
-    coap_add_option(response, COAP_OPTION_TOKEN, token->length, token->s);
-  }
 
   time(&now);
 
   if(request != NULL
-      && coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)
-      && memcmp(COAP_OPT_VALUE(optIter.option), "ticks", min(5, COAP_OPT_LENGTH(optIter.option))) == 0){
+      && coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)){
     response->length += snprintf((char*)response->data, response->max_size - response->length, "%u", (unsigned int) now);
   }else{
 
@@ -222,15 +210,9 @@ void hnd_get_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 		coap_add_option(response, COAP_OPTION_SUBSCRIPTION, coap_encode_var_bytes(buf, c->observe), buf);
 	}
 
-	if(token->length){
-		coap_add_option(response, COAP_OPTION_TOKEN, token->length, token->s);
-	}
-
-
 	time(&now);
 	if(request != NULL
-			&& coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)
-			&& memcmp(COAP_OPT_VALUE(optIter.option), "ticks", min(5, COAP_OPT_LENGTH(optIter.option))) == 0){
+			&& coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)){
 		response->length += snprintf((char*)response->data, response->max_size - response->length, "%u", (unsigned int) now);
 	}else{
 
@@ -287,14 +269,9 @@ void hnd_put_lbus(coap_context_t  *c, struct coap_resource_t *resource,
 		coap_add_option(response, COAP_OPTION_SUBSCRIPTION, coap_encode_var_bytes(buf, c->observe), buf);
 	}
 
-	if(token->length){
-		coap_add_option(response, COAP_OPTION_TOKEN, token->length, token->s);
-	}
-
 	time(&now);
 	if(request != NULL
-			&& coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)
-			&& memcmp(COAP_OPT_VALUE(optIter.option), "ticks", min(5, COAP_OPT_LENGTH(optIter.option))) == 0){
+			&& coap_check_option(request, COAP_OPTION_URI_QUERY, &optIter)){
 		response->length += snprintf((char*)response->data, response->max_size - response->length, "%u", (unsigned int) now);
 	}else{
 		//parse cmd
