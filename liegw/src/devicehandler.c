@@ -29,6 +29,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "devicehandler.h"
 #include "lielas/devicecontainer.h"
@@ -43,7 +44,7 @@
 #include "lielas/ldb.h"
 
 
-int getDeviceData(Ldevice *d, datapaketcontainer *dpc);
+int getDeviceData(Ldevice *d, datapaketcontainer *dpc, int offset);
 int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc);
 datapaketcontainer *CreateDatapaketcontainer();
 void DeleteDatapaketcontainer(datapaketcontainer *dpc);
@@ -51,6 +52,8 @@ int DeviceSetDatetime(Ldevice *d);
 datapaket *CreateDatapaket();
 int setLoggerMint(Ldevice *d, Lmodul *m);
 int convertValueWithExponent(char *indata, char *outval, uint8_t outValLen, double ex);
+uint16_t get_crc(unsigned char* data, int len);
+int getNumberOfDatasets(Ldevice *d);
 
 int runmode;
 static struct tm *endRegModeTimer;
@@ -60,116 +63,132 @@ static struct tm *endRegModeTimer;
  ********************************************************************************************************************************/
 
 void HandleDevices(){
-	//char uriStr[] = "coap://[aaab::ff:fe00:3]:5863/humidity_sht";
-
-	datapaketcontainer *dpc;
-	time_t rawtime;
-	struct tm *now;
-	struct tm lastPaketTime;
-	static struct tm *nextScan;
-	double diff;
-	static Ldevice *lastDevice;
-	Ldevice *d;
-	int nextScanInt;
+  Ldevice *d;
+  datapaketcontainer *dpc;
+  time_t rawtime;
+  struct tm *now;
+  struct tm *endTime;
+  struct tm *endOfTimeslot = NULL;
+  int numberOfDevices;
+  int timeslotDuration;
   char log[LOG_BUF_LEN];
-
-
-	memset(&lastPaketTime, 0, sizeof(struct tm));
-
-	//get systemtime
-	time(&rawtime);
-	now = gmtime(&rawtime);
+  int datapakets;
   
-  if(now->tm_sec  > 3 || now->tm_sec < 2){
-      return;
-  }
+  //check if it is time to get data
+  //time(&rawtime);
+  rawtime = 1391504520;
+  now = gmtime(&rawtime);
   
-	if(nextScan == NULL){	//first call of this function
-		nextScan = malloc(sizeof(struct tm));
-		if(nextScan == NULL)
-			return;
-		memcpy(nextScan, now, sizeof(struct tm));
-	}else{	// time to get data
-		diff = difftime(mktime(now), mktime(nextScan));
-		if(diff < 1.0 && diff > (-MAX_GET_DEVICE_DATA_INTERVAL)){
-			return;
-		}
-	}
-	if(nextScan == NULL)
-		return;
-
-	d = LDCgetFirstDevice();
-	if(lastDevice != NULL){
-		while(d != lastDevice){
-			d = LDCgetNextDevice();
-			if(d == NULL){
-				break;
-			}
-		}
-		d = LDCgetNextDevice();
-		if(d == NULL){
-			d = LDCgetFirstDevice();
-		}
-		lastDevice = d;
-	}else{
-		lastDevice = d;
-	}
-
-	if(LDCgetNextDevice() == NULL){
-		nextScanInt =GET_FIRST_DEVICE_DATA_INTERVAL;
-	}else{
-		nextScanInt =GET_NEXT_DEVICE_DATA_INTERVAL;
-	}
-
-	time(&rawtime);
-	now = gmtime(&rawtime);
-	free(nextScan);
-	nextScan = malloc(sizeof(struct tm));
-	if(nextScan == NULL)
-		return;
-	memcpy(nextScan, now, sizeof(struct tm));
-	nextScan->tm_sec += nextScanInt;
-	mktime(nextScan);
-	nextScan->tm_sec = 0;
-
-	if(d == NULL){
-		return;
-	}
-
-  lielas_log((unsigned char*)"**********", LOG_LEVEL_DEBUG);
-  snprintf(log, LOG_BUF_LEN, "Start device scanning: %s", d->address);
-  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+  //debugcode
+  endOfTimeslot = now;
+  now = malloc(sizeof(struct tm));
+  *now = *endOfTimeslot;
+  endOfTimeslot = NULL;
+  //end of debugcode
   
-	//turn cycle mode off and sync if out of sync
-  if(setCycleMode(d, LWP_CYCLE_MODE_OFF)){
-    lielas_log((unsigned char*)"failed to switch off cycle mode", LOG_LEVEL_DEBUG);
+  //if(now->tm_min != 2){
+  //  return;
+  //}
+  
+  //get number of devices
+  numberOfDevices = LDCgetNumberOfDevices();
+  if(numberOfDevices < 1){
     return;
   }
-	sleep(5);
-
-
-	dpc = CreateDatapaketcontainer();
-	if(dpc == NULL)
-		return;
-
-	if(!getDeviceData(d, dpc)){
-		SaveDataPaketContainerToDatabase(dpc);
-	}
-	DeleteDatapaketcontainer(dpc);
-
-  //set device date and time
-	DeviceSetDatetime(d);
   
-  //set interval if changed
-  setLoggerMint(d, d->modul[1]);
-
-  //turn cycle mode on again
-  setCycleMode(d, LWP_CYCLE_MODE_ON);
+  //calculate endTime and timeslots
+  endTime = malloc(sizeof(struct tm));
+  if(endTime == NULL){
+    lielas_log((unsigned char*)"error reserving space for struct tm endTime", LOG_LEVEL_ERROR);
+    return;
+  }
+  *endTime = *now;
+  endTime->tm_min = 4;
+  endTime->tm_sec = 0;
   
-  lielas_log((unsigned char*)"End device scanning", LOG_LEVEL_DEBUG);
-  lielas_log((unsigned char*)"**********", LOG_LEVEL_DEBUG);
-
+  timeslotDuration = (int)(difftime(mktime(endTime), mktime(now)) / numberOfDevices);
+  if(now->tm_hour == 0){
+    timeslotDuration -= 2;
+  }
+  
+  snprintf(log, LOG_BUF_LEN, "Starting to get data. %i devices, timeslots are %i s long", numberOfDevices, timeslotDuration);
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+  
+  //get first device
+  d = LDCgetFirstDevice();
+  if(d == NULL) 
+    return;
+  
+  while(d != NULL){
+    //TODO get rtdbgsys
+  
+    //calculate end of timeslot
+    if(endOfTimeslot == NULL){
+      //first device
+      endOfTimeslot = malloc(sizeof(struct tm));
+      if(endOfTimeslot == NULL){
+        lielas_log((unsigned char*)"error reserving space for struct tm endOfTimeslot", LOG_LEVEL_ERROR);
+        free(endTime);
+        return;
+      }
+      *endOfTimeslot = *now;
+      endOfTimeslot->tm_sec += timeslotDuration;
+      mktime(endOfTimeslot);
+    }else{
+      endOfTimeslot->tm_sec += timeslotDuration;
+      mktime(endOfTimeslot);
+    }
+    
+    //get number of datasets
+    datapakets = getNumberOfDatasets(d);
+    printf("%i:%i\n", d->datapakets ,datapakets);
+    
+    if(d->datapakets < datapakets){ //only get data if there is new data
+      //get datapakets until all data or end of timeslot
+      while((difftime(mktime(endOfTimeslot), mktime(now)) > 0) && (d->datapakets < datapakets)){
+        dpc = CreateDatapaketcontainer();
+        if(dpc == NULL){
+          lielas_log((unsigned char*)"error reserving space for datapaket container", LOG_LEVEL_ERROR);
+          free(endTime);
+          free(endOfTimeslot);
+          return;
+        }
+        if(!getDeviceData(d, dpc, d->datapakets)){
+          d->datapakets += dpc->datapakets / dpc->m->channels;
+          if(SaveDataPaketContainerToDatabase(dpc)){
+            lielas_log((unsigned char*)"failed to save datapakets", LOG_LEVEL_ERROR);
+            d->datapakets -= dpc->datapakets / dpc->m->channels;
+          }
+        }
+        DeleteDatapaketcontainer(dpc);
+        //time(&rawtime);
+        //now = gmtime(&rawtime);
+        now->tm_sec += 1;
+        mktime(now);
+      }
+    }
+    
+    //0 o'clock? test date/time
+    if(now->tm_hour == 0){
+      DeviceSetDatetime(d);
+    }
+    
+    //check date/time
+    //time(&rawtime);
+    //now = gmtime(&rawtime);
+    if(difftime(mktime(endTime), mktime(now)) <= 0.){  //end of time
+      free(endTime);
+      free(endOfTimeslot);
+      return;
+    }
+    
+    //get next device
+    d = LDCgetNextDevice();
+  }
+  free(endTime);
+  free(endOfTimeslot);
 }
+
 /********************************************************************************************************************************
  * 		int testDatetime()
  ********************************************************************************************************************************/
@@ -190,160 +209,108 @@ int testDatetime(struct tm *dt){
 	return 1;
 }
 
-/********************************************************************************************************************************
- * 		int getDeviceData(Ldevice *d): get device data and save it to database
- ********************************************************************************************************************************/
-int getDeviceData(Ldevice *d, datapaketcontainer *dpc){
-	int i;
-	time_t rawtime;
-	struct tm *now;
-	struct tm timeout;
-	struct tm dt;
-	unsigned char buf[DATABUFFER_SIZE] = { 0 };
-	char datetimestr[CMDBUFFER_SIZE];
-	char st[CMDBUFFER_SIZE];
-	char cmd[CMDBUFFER_SIZE];
-	char adrStr[CMDBUFFER_SIZE];
+int getNumberOfDatasets(Ldevice *d){
+  coap_buf *cb;     
+  char cmd[CMDBUFFER_SIZE];  
+  unsigned char buf[DATABUFFER_SIZE] = { 0 }; 
   char log[LOG_BUF_LEN];
-	coap_buf *cb;
-	int cnr;
-	datapaket *dp;
-	PGresult *res;
-  int pos = 0;
-  int eof = 0;
-  int datasets = 0;
+  int datasets;
   
-
-	dpc->datapakets = 0;
-	dpc->dec = 0;
-	dpc->d = d;
-
-
-  lielas_log((unsigned char*) "get device data", LOG_LEVEL_DEBUG);
-
-	cb = coap_create_buf();
-	if( cb == NULL){
-		printf("Error: cannot create coap_buf\n");
-		return -1;
-	}
-	cb->buf = (char*)buf;
+  lielas_log((unsigned char*) "get number of datasets", LOG_LEVEL_DEBUG);
+  
+  cb = coap_create_buf();
+  if( cb == NULL){
+    snprintf(log, LOG_BUF_LEN, "failed to create coap buffer");
+    lielas_log((unsigned char*)log, LOG_LEVEL_ERROR);
+    return -1;
+  }
+  cb->buf = (char*)buf;
   cb->bufSize = DATABUFFER_SIZE;
   
-	time(&rawtime);
-	now = gmtime(&rawtime);
-	memcpy(&timeout, now, sizeof(struct tm));
-	timeout.tm_sec += MAX_DATA_SEND_TIME;
-	mktime(&timeout);
+  snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database", d->address);        
+  coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);    
+  
+  if(cb->status != COAP_STATUS_CONTENT){
+    lielas_log((unsigned char*) "Status error getting number of datasets", LOG_LEVEL_DEBUG);
+    return -1;
+  }
+  
+  datasets = (int)strtol(cb->buf, NULL, 10);
+  return datasets;
+}
 
+/********************************************************************************************************************************
+ * 		int getDeviceData(Ldevice *d): get one set of datapakets
+ ********************************************************************************************************************************/
+int getDeviceData(Ldevice *d, datapaketcontainer *dpc, int offset){
+  coap_buf *cb;        
+  unsigned char buf[DATABUFFER_SIZE] = { 0 };
+  char cmd[CMDBUFFER_SIZE];
+  char log[LOG_BUF_LEN];
+  struct tm dt;
+  int pos = 0;
+  int cnr;        
+  datapaket *dp;
+  int16_t val;
 
-
-	// get last value in database and create coap get command
-	snprintf(adrStr, DATABUFFER_SIZE, "%s.1.1", d->mac);
-	if(SQLTableExists(LDB_TBL_NAME_DATA) == 0){  
-      
-    //Table exists, check if column exists
-    if(SQLColumnExists(LDB_TBL_NAME_DATA, adrStr)){ //column does not exist, get all data
-			snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
-			coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-      
-    }else{ // column exists, get new data
-      snprintf(st, DATABUFFER_SIZE, 
-                  "SELECT datetime \"%s\" FROM %s.%s WHERE \"%s\" NOT LIKE '' ORDER BY datetime DESC LIMIT 1", 
-                  adrStr, LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA , adrStr);
-      res = SQLexec(st);
-      if(PQntuples(res) == 1){
-        strcpy(datetimestr, PQgetvalue(res, 0, 0));
-        for(i = 0; i < strlen(datetimestr); i++){
-          if(datetimestr[i] == '-'){
-            datetimestr[i] = '.';
-          }
-        }
-        for(i = 0; i < strlen(datetimestr); i++){
-          if(datetimestr[i] == ' '){
-            datetimestr[i] = '-';
-          }
-        }
-        snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, datetimestr);
-        coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-        snprintf(log, LOG_BUF_LEN, "sended get data cmd: %s", cmd);
-        lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-      }else{
-        snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
-        coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-        snprintf(log, LOG_BUF_LEN, "sended get data cmd: %s", cmd);
-        lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-      }
-      PQclear(res);
-    }
-	}else{
-		lielas_createDataTbl();
-		if(SQLTableExists(LDB_TBL_NAME_DATA)){
-			return -1;
-		}
-		snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?datetime=%s", d->address, GET_FIRST_VALUE_DATE);
-		coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-    snprintf(log, LOG_BUF_LEN, "sended get data cmd: %s", cmd);
-    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-	}
-
-	if(cb->status != COAP_STATUS_CONTENT){
+  
+  lielas_log((unsigned char*) "get device data", LOG_LEVEL_DEBUG);
+  
+  dpc->datapakets = 0;
+  dpc->dec = 0;
+  dpc->d = d;
+  dpc->m = d->modul[1];
+  
+  cb = coap_create_buf();
+  if( cb == NULL){
+    snprintf(log, LOG_BUF_LEN, "failed to create coap buffer");
+    lielas_log((unsigned char*)log, LOG_LEVEL_ERROR);
+    return -1;
+  }
+  cb->buf = (char*)buf;
+  cb->bufSize = DATABUFFER_SIZE;
+  
+  snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/database?offset=%d;", d->address, offset);        
+  coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+  
+  if(cb->status != COAP_STATUS_CONTENT){
     lielas_log((unsigned char*) "Status error getting data", LOG_LEVEL_DEBUG);
-		return -1;
-	}
-
-
-  //parse data
-  while(pos < cb->len && !eof){
-
-    //parse date
+    return -1;
+  }
+  
+  while(pos < cb->len){
+    
     lwp_compdt_to_struct_tm((unsigned char*)&cb->buf[pos], &dt);
     mktime(&dt);
-    
+    pos += 4;
     
     snprintf(log, LOG_BUF_LEN, "found datetime: %x:%x:%x:%x ... ", (unsigned char)cb->buf[pos], (unsigned char)cb->buf[pos+1], (unsigned char)cb->buf[pos+2], (unsigned char)cb->buf[pos+3]);
     strftime(&log[strlen(log)], LOG_BUF_LEN, "%d.%m.%Y %H:%M:%S",&dt);
     lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
     
-    pos += 4;
-      
-    //test date
     if(testDatetime(&dt)){
-      
-      
-      //parse values
       for(cnr = 1; cnr <= d->modul[1]->channels; cnr++){
-				dp =CreateDatapaket();
-				if(dp == NULL)
-					break;
-				dp->d = d;
-				dp->m = d->modul[1];
-				dp->c = d->modul[1]->channel[cnr];
-        
-        convertValueWithExponent(&cb->buf[pos], dp->value, VALUEBUFFER_SIZE, dp->c->exponent);
+        dp = CreateDatapaket();
+        if(dp == NULL){
+          break;
+        }
+        dp->d = d;
+        dp->m = d->modul[1];
+        dp->c = d->modul[1]->channel[cnr];
+        val = (int16_t)(((uint16_t)cb->buf[pos] << 8) + (uint16_t)cb->buf[pos + 1]);
+        snprintf(dp->value, VALUEBUFFER_SIZE, "%i", (int16_t)val);
         pos += 2;
-        
-				memcpy(dp->dt, &dt, sizeof(struct tm));
-				dpc->dp[dpc->datapakets] = dp;
-				dpc->datapakets += 1;
-        
-        
+        memcpy(dp->dt, &dt, sizeof(struct tm));
+        dpc->dp[dpc->datapakets] = dp;
+        dpc->datapakets += 1;
         snprintf(log, LOG_BUF_LEN, "found value: %x:%x ... %s", (unsigned char)cb->buf[pos-2], (unsigned char)cb->buf[pos-1], dp->value);
         lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-        
-        datasets += 1;
-        if(datasets >= MAX_VALUES_IN_PAKET)
-          break;
       }
-    }else{
-      lielas_log((unsigned char*) "error parsing log data, invalid datetime ", LOG_LEVEL_WARN);
-      eof = 1;
-      break;
     }
- 
+
+    //uint16_t crc = get_crc((unsigned char*)&cb->buf[pos - 8], 8);
+    pos += 2;
   }
-  snprintf(log, LOG_BUF_LEN, "received %i values", datasets);
-  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-  
 	return 0;
 }
 
@@ -382,7 +349,7 @@ int DeviceSetDatetime(Ldevice *d){
 	sleep(1);
 
 	//get time and check if it is set
-	buf[0] = 0;
+/*	buf[0] = 0;
 	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/device", d->address);
 	coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
   
@@ -391,12 +358,10 @@ int DeviceSetDatetime(Ldevice *d){
 		return -1;
 	}
   
-	sleep(1);
+	sleep(1);*/
   
-  if(lwp_get_attr_value(cb->buf, &d->wkc.device, LWP_ATTR_DEVICE_DATETIME, recvDt, DEVICE_MAX_STR_LEN)){
-    lielas_log((unsigned char*)"failed to parse /devcice/datetime", LOG_LEVEL_WARN);
-    return -1;
-  }
+  //TODO parse dt
+  
   dt.tm_isdst = 0;
 	strptime(recvDt, "%Y.%m.%d-%H:%M:%S", &dt);
   snprintf(log, CMDBUFFER_SIZE, "device time: %s", recvDt);
@@ -474,8 +439,14 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 			success += 1;
 		}
 	}
+  
+  //update number of datasets
+  snprintf( st, CMDBUFFER_SIZE, "UPDATE %s.%s SET datapakets='%i' WHERE id='%i'", 
+            LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, dpc->d->datapakets , dpc->d->id);
+	res = SQLexec(st);
+	PQclear(res);
 
-  snprintf(log, LOG_BUF_LEN, "%i values successfully saved", success);
+  snprintf(log, LOG_BUF_LEN, "%i values successfully saved, overall %i datapakets", success, dpc->d->datapakets);
 	lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
 
 	return 0;
@@ -526,106 +497,6 @@ int setCycleMode(Ldevice *d, int mode){
 	sleep(2);
   coap_set_retries(MYCOAP_STD_TRIES);
 	return -1;
-}
-
-/********************************************************************************************************************************
- * 		int setLoggerMint(Ldevice *d, Lmodul *m)
- ********************************************************************************************************************************/
-int setLoggerMint(Ldevice *d, Lmodul *m){
-	char cmd[CMDBUFFER_SIZE];
-	char payload[CMDBUFFER_SIZE];
-	char buf[CMDBUFFER_SIZE];  
-  char recvMint[CMDBUFFER_SIZE];
-  char log[LOG_BUF_LEN];
-	coap_buf *cb = coap_create_buf();
-  
-  if(cb == NULL){
-		return -1;
-	}
-  
-	cb->buf = buf;
-  cb->bufSize = CMDBUFFER_SIZE;
-  
-  //get logger resource
- 	snprintf(cmd, CMDBUFFER_SIZE, "coap://[%s]:5683/logger", d->address);
-	coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-  
-  if(cb->status != COAP_STATUS_CONTENT){
-    lielas_log((unsigned char*) "Status error getting resource /logger", LOG_LEVEL_WARN);
-    cb->buf = NULL;
-    coap_delete_buf(cb);
-		return -1;
-	}
-  
-  if(lwp_get_attr_value(cb->buf, &d->wkc.logger, LWP_ATTR_LOGGER_INTERVAL, recvMint, CMDBUFFER_SIZE)){
-    lielas_log((unsigned char*)"setLoggerMint: failed to parse /logger/interval", LOG_LEVEL_WARN);
-    cb->buf = NULL;
-    coap_delete_buf(cb);
-    return -1;
-  }
-
-  snprintf(payload, CMDBUFFER_SIZE, "state=1");
-  coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
-  
-  //test if interval was changed
-  if(strcmp(m->mint, recvMint)){
-    snprintf(log, LOG_BUF_LEN, "setLoggerMint: interval changed, setting interval to %s", m->mint);
-    lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-    snprintf(payload, CMDBUFFER_SIZE, "interval=%s", m->mint);
-    coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
-    
-    if(cb->status != COAP_STATUS_CONTENT){
-      lielas_log((unsigned char*) "setLoggerMint: failed to set interval", LOG_LEVEL_WARN);
-      cb->buf = NULL;
-      coap_delete_buf(cb);
-      return -1;
-    }
-  }
-
-  snprintf(payload, CMDBUFFER_SIZE, "state=1");
-  coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
-
-
-  cb->buf = NULL;
-  coap_delete_buf(cb);
-  return 0;
-}
-
-/********************************************************************************************************************************
- *    double convertValueWithExponent(uint8_t *p)
- *    converts lwp data to values using /channel/exponent
- ********************************************************************************************************************************/
-int convertValueWithExponent(char *indata, char *outval, uint8_t outValLen, double ex){
-  double val;
-  uint16_t low, high;
-  char format[100];
-  int i;
-  
-  //convert data to double value
-  low = 0x00FF & (uint16_t)indata[0];
-  high = 0xFF00 & (((uint16_t)indata[1]) << 8);
-  val = (double)(low + high) * pow(10, ex);
-  
-  //create format string
-  ex = abs(ex);
-  snprintf(format, 100, "%%.%.0ff", ex);
-  
-  //print value to outval using format string
-  if(snprintf(outval, outValLen, format, val) <= 0){
-    return -1;
-  }
-  
-  //change '.' to ','
-  for(i = 0; i < outValLen; i++){
-    if(outval[i] == 0){
-      break;
-    }
-    if(outval[i] == '.'){
-      outval[i] = ',';
-      break;
-    } 
-  }
-  return 0;
 }
 
 /********************************************************************************************************************************
@@ -680,19 +551,6 @@ void DeleteDatapaketcontainer(datapaketcontainer *dpc){
  * 		void InitDeviceHandler()
  ********************************************************************************************************************************/
 void InitDeviceHandler(){
-
-	Ldevice *d = LDCgetFirstDevice();
-
-	if(d == NULL)
-		return;
-	do{
-		if(d->registered == DEVICE_REGISTERED){
-			if(d ->hasLogger == DEVICE_HAS_LOGGER){
-			//	LcreateEvent(d, EVENTTYPE_READ_LOGGER);
-			}
-		}
-		d = LDCgetNextDevice();
-	}while(d != NULL);
 }
 
 /********************************************************************************************************************************
@@ -789,6 +647,22 @@ void lielas_runmodeHandler(){
 struct tm *lielas_getEndRegModeTimer(){
   return endRegModeTimer;
 }
+
+uint16_t get_crc(unsigned char* data, int len){
+  int crc  = 0;
+  int i;
+  
+  for(i = 0; i < len; i++){
+    crc ^= data[i];
+    crc  = (crc >> 8) | (crc << 8);
+    crc ^= (crc & 0xff00) << 4;
+    crc ^= (crc >> 8) >> 4;
+    crc ^= (crc & 0xff00) >> 5;   
+  }
+  return crc;
+}
+
+
 
 
 
