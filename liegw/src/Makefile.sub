@@ -4,19 +4,22 @@ C_SRCS += \
 src/devicehandler.c \
 src/liegw.c \
 src/settings.c \
-src/log.c 
+src/log.c \
+src/tcpserver.c
 
 OBJS += \
 src/devicehandler.o \
 src/liegw.o \
 src/settings.o \
-src/log.o 
+src/log.o \
+src/tcpserver.o
 
 C_DEPS += \
 src/devicehandler.d \
 src/liegw.d \
 src/settings.d \
-src/log.d 
+src/log.d \
+src/tcpserver.d
 
 # Each subdirectory must supply rules for building sources it contributes
 %.o: %.c

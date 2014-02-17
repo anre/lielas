@@ -29,6 +29,8 @@
 #include <stdio.h>
 
 Lmodul *LcreateModul(){
+  int i;
+
 	Lmodul *m = malloc(sizeof(Lmodul));
 	if(m == NULL){
 		lielas_log((unsigned char*)"Can't allocate memory for new modul", LOG_LEVEL_ERROR);
@@ -37,7 +39,9 @@ Lmodul *LcreateModul(){
 	m->id = 0;
 	m->address[0] = 0;
 	m->channels = 0;
-	m->channel[0] = NULL;
+  for(i = 0; i < MAX_CHANNELS; i++){
+    m->channel[i] = NULL;
+  }
 	return m;
 }
 

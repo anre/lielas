@@ -58,6 +58,21 @@ typedef struct datapaketcontainer_struct{
 	int dec;	// number of digits after decimal point
 } datapaketcontainer;
 
+typedef union{
+  uint16_t u16;
+  struct{
+    uint8_t ul;
+    uint8_t uh;
+  };
+} crc_t;
+
+typedef union{
+  int16_t val;
+  struct{
+    uint8_t ul;
+    uint8_t uh;
+  };
+} int16_value_t;
 
 #define RUNMODE_NORMAL          0
 #define RUNMODE_REGISTER        1

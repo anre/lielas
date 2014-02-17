@@ -61,6 +61,7 @@ int lielas_createTables(){
   error -= lielas_createDataTbl();
   error -= lielas_createSettingsTbl();
   //error -= lielas_createEventsTbl();
+  error -= lielas_createRtdbgsysTbl();
   
   return error;
 }
@@ -271,6 +272,21 @@ int lielas_createEventsTbl(){
 
   if(SQLTableExists(LDB_TBL_NAME_EVENTS )){
     snprintf(st, LDB_SQL_BUFFER_SIZE, "CREATE TABLE %s.%s %s", LDB_TBL_SCHEMA, LDB_TBL_NAME_EVENTS, LDB_TBL_CONTENT_EVENTS );
+    res = SQLexec(st);
+    PQclear(res);
+  }
+  return 0;
+}
+
+/********************************************************************************************************************************
+ *    int lielas_createRtdbgsysTbl()
+ ********************************************************************************************************************************/
+int lielas_createRtdbgsysTbl(){
+  char st[LDB_SQL_BUFFER_SIZE];
+  PGresult *res;
+
+  if(SQLTableExists(LDB_TBL_NAME_RTDBGSYS )){
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "CREATE TABLE %s.%s %s", LDB_TBL_SCHEMA, LDB_TBL_NAME_RTDBGSYS, LDB_TBL_CONTENT_RTDBGSYS );
     res = SQLexec(st);
     PQclear(res);
   }

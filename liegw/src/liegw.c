@@ -32,7 +32,7 @@
 #include <curl/curl.h>
 
 #include "lielas/devicecontainer.h"
-#include "coap/coapserver.h"
+#include "tcpserver.h"
 #include "log.h"
 #include "devicehandler.h"
 #include "lielas/lbus.h"
@@ -49,7 +49,9 @@
  * 		main
  */
 int main(void) {
-  pthread_t coapserverThread;
+  pthread_t tcpserverThread;
+  time_t rawtime;
+  struct tm *now;
 
   //pid = fork();
   
@@ -102,26 +104,19 @@ int main(void) {
 		lielas_log((unsigned char*)"Error loading lbus commands", LOG_LEVEL_ERROR);
 		return -4;
 	} 
-	
-	lielas_log((unsigned char*)"init coap", LOG_LEVEL_DEBUG);
-	if(COAPinit() != 0){
-		lielas_log((unsigned char*)"Error initializing COAP Server", LOG_LEVEL_ERROR);
-		return -5;
-	}
-
-  lielas_log((unsigned char*)"set runmode to normal mode", LOG_LEVEL_DEBUG);
-	if(lielas_setRunmode(RUNMODE_NORMAL) != 0){
-    lielas_log((unsigned char*)"Error setting runmode to normal mode", LOG_LEVEL_ERROR);
-    return -6;
-	}
 
   lielas_log((unsigned char*)"Starting coap server thread", LOG_LEVEL_DEBUG);
-  pthread_create(&coapserverThread, NULL, COAPhandleServer, NULL);
+  pthread_create(&tcpserverThread, NULL, tcpserver, NULL);
 
 	lielas_log((unsigned char*)"Lielasd COAP server successfully started", LOG_LEVEL_DEBUG);
   
   while(rtc_get_state() == RTC_STATE_NOT_SYNCED){
       sleep(1);
+      time(&rawtime);
+      now = gmtime(&rawtime);
+      if(now->tm_sec <= 1){
+        rtc_init();
+      }
       lbus_handler();
   }
   
@@ -129,12 +124,8 @@ int main(void) {
   
 	while(1){
 		lbus_handler();
-		if(lielas_getRunmode() == RUNMODE_NORMAL){
-			LDCcheckForNewDevices();
-			HandleDevices();
-		}else if(lielas_getRunmode() == RUNMODE_REGISTER){
-			lielas_runmodeHandler();
-		}
+		LDCcheckForNewDevices();
+		HandleDevices();
 	}
 	lielas_log((unsigned char*)"Shutting down server", LOG_LEVEL_DEBUG);
 	return EXIT_SUCCESS;

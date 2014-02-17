@@ -54,9 +54,7 @@ int setLoggerMint(Ldevice *d, Lmodul *m);
 int convertValueWithExponent(char *indata, char *outval, uint8_t outValLen, double ex);
 uint16_t get_crc(unsigned char* data, int len);
 int getNumberOfDatasets(Ldevice *d);
-
-int runmode;
-static struct tm *endRegModeTimer;
+int handleRtdbgsys(Ldevice* d);
 
 /********************************************************************************************************************************
  * 		void HandleDevices(): handle device events
@@ -73,22 +71,16 @@ void HandleDevices(){
   int timeslotDuration;
   char log[LOG_BUF_LEN];
   int datapakets;
+  static int lastHour;
   
   //check if it is time to get data
-  //time(&rawtime);
-  rawtime = 1391504520;
+  time(&rawtime);
   now = gmtime(&rawtime);
   
-  //debugcode
-  endOfTimeslot = now;
-  now = malloc(sizeof(struct tm));
-  *now = *endOfTimeslot;
-  endOfTimeslot = NULL;
-  //end of debugcode
-  
-  //if(now->tm_min != 2){
-  //  return;
-  //}
+  if(now->tm_min != 2 || now->tm_hour == lastHour){
+    return;
+  }
+  lastHour = now->tm_hour;
   
   //get number of devices
   numberOfDevices = LDCgetNumberOfDevices();
@@ -121,6 +113,11 @@ void HandleDevices(){
   
   while(d != NULL){
     //TODO get rtdbgsys
+    //0 o'clock? test date/time
+    if(now->tm_hour == 0){
+      DeviceSetDatetime(d);
+    }
+    handleRtdbgsys(d);
   
     //calculate end of timeslot
     if(endOfTimeslot == NULL){
@@ -141,7 +138,8 @@ void HandleDevices(){
     
     //get number of datasets
     datapakets = getNumberOfDatasets(d);
-    printf("%i:%i\n", d->datapakets ,datapakets);
+    snprintf(log, LOG_BUF_LEN, "Get data from %s with %i/%i datapakets\n", d->mac, d->datapakets ,datapakets);
+    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
     
     if(d->datapakets < datapakets){ //only get data if there is new data
       //get datapakets until all data or end of timeslot
@@ -161,21 +159,14 @@ void HandleDevices(){
           }
         }
         DeleteDatapaketcontainer(dpc);
-        //time(&rawtime);
-        //now = gmtime(&rawtime);
-        now->tm_sec += 1;
-        mktime(now);
+        time(&rawtime);
+        now = gmtime(&rawtime);
       }
     }
-    
-    //0 o'clock? test date/time
-    if(now->tm_hour == 0){
-      DeviceSetDatetime(d);
-    }
-    
+        
     //check date/time
-    //time(&rawtime);
-    //now = gmtime(&rawtime);
+    time(&rawtime);
+    now = gmtime(&rawtime);
     if(difftime(mktime(endTime), mktime(now)) <= 0.){  //end of time
       free(endTime);
       free(endOfTimeslot);
@@ -251,10 +242,11 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc, int offset){
   int pos = 0;
   int cnr;        
   datapaket *dp;
-  int16_t val;
+  int16_value_t val;
+  crc_t crc;
 
-  
-  lielas_log((unsigned char*) "get device data", LOG_LEVEL_DEBUG);
+  snprintf(log, LOG_BUF_LEN, "\nget device data from %s", d->mac);
+  lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
   
   dpc->datapakets = 0;
   dpc->dec = 0;
@@ -278,38 +270,67 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc, int offset){
     return -1;
   }
   
+  snprintf(log, LOG_BUF_LEN, "paket:\n");
+  for(pos = 0; pos < cb->len; pos++){
+    snprintf(&log[strlen(log)], LOG_BUF_LEN, "%x", (unsigned char)cb->buf[pos]);
+    if(((pos + 1) % 10) == 0){
+      snprintf(&log[strlen(log)], LOG_BUF_LEN,"\n");
+    }
+  }
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+  pos = 0;
+  
   while(pos < cb->len){
     
-    lwp_compdt_to_struct_tm((unsigned char*)&cb->buf[pos], &dt);
-    mktime(&dt);
-    pos += 4;
+    uint16_t calcCrc = get_crc((unsigned char*)&cb->buf[pos], 8);
+    crc.uh = cb->buf[pos+9];
+    crc.ul = cb->buf[pos + 8];
     
-    snprintf(log, LOG_BUF_LEN, "found datetime: %x:%x:%x:%x ... ", (unsigned char)cb->buf[pos], (unsigned char)cb->buf[pos+1], (unsigned char)cb->buf[pos+2], (unsigned char)cb->buf[pos+3]);
-    strftime(&log[strlen(log)], LOG_BUF_LEN, "%d.%m.%Y %H:%M:%S",&dt);
-    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-    
-    if(testDatetime(&dt)){
-      for(cnr = 1; cnr <= d->modul[1]->channels; cnr++){
-        dp = CreateDatapaket();
-        if(dp == NULL){
-          break;
+    if(crc.u16 != calcCrc){
+        snprintf(log, LOG_BUF_LEN, "crc error: received %x but calculated %x ", (uint16_t)crc.u16, (uint16_t)calcCrc);
+        lielas_log((unsigned char*)log, LOG_LEVEL_ERROR);
+        pos += 10;
+    }else{
+      lwp_compdt_to_struct_tm((unsigned char*)&cb->buf[pos], &dt);
+      mktime(&dt);
+      pos += 4;
+      
+      snprintf(log, LOG_BUF_LEN, "found datetime: %x:%x:%x:%x ... ", (unsigned char)cb->buf[pos - 4], (unsigned char)cb->buf[pos - 3], (unsigned char)cb->buf[pos - 2], (unsigned char)cb->buf[pos - 1]);
+      strftime(&log[strlen(log)], LOG_BUF_LEN, "%d.%m.%Y %H:%M:%S",&dt);
+      lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+      
+      if(testDatetime(&dt)){
+        for(cnr = 1; cnr <= d->modul[1]->channels; cnr++){
+          dp = CreateDatapaket();
+          if(dp == NULL){
+            break;
+          }
+          //init datapaket
+          dp->d = d;
+          dp->m = d->modul[1];
+          dp->c = d->modul[1]->channel[cnr];
+          //build value
+          val.uh = cb->buf[pos + 1];
+          val.ul = cb->buf[pos];
+          //convert value to string
+          double dval = (double)val.val / 100.;
+          snprintf(dp->value, VALUEBUFFER_SIZE, "%.2f", (double)dval);
+          //change . to , in string
+          char komma[]  = ".";
+          int kommaPos = strcspn(dp->value, komma);
+          if(komma > 0){
+            dp->value[kommaPos] = ',';
+          }
+          pos += 2;
+          memcpy(dp->dt, &dt, sizeof(struct tm));
+          dpc->dp[dpc->datapakets] = dp;
+          dpc->datapakets += 1;
+          snprintf(log, LOG_BUF_LEN, "found value: %x:%x ... %s", (unsigned char)cb->buf[pos-2], (unsigned char)cb->buf[pos-1], dp->value);
+          lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
         }
-        dp->d = d;
-        dp->m = d->modul[1];
-        dp->c = d->modul[1]->channel[cnr];
-        val = (int16_t)(((uint16_t)cb->buf[pos] << 8) + (uint16_t)cb->buf[pos + 1]);
-        snprintf(dp->value, VALUEBUFFER_SIZE, "%i", (int16_t)val);
-        pos += 2;
-        memcpy(dp->dt, &dt, sizeof(struct tm));
-        dpc->dp[dpc->datapakets] = dp;
-        dpc->datapakets += 1;
-        snprintf(log, LOG_BUF_LEN, "found value: %x:%x ... %s", (unsigned char)cb->buf[pos-2], (unsigned char)cb->buf[pos-1], dp->value);
-        lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
       }
+      pos += 2;
     }
-
-    //uint16_t crc = get_crc((unsigned char*)&cb->buf[pos - 8], 8);
-    pos += 2;
   }
 	return 0;
 }
@@ -343,14 +364,14 @@ int DeviceSetDatetime(Ldevice *d){
 	now = gmtime(&rawtime);
   
   
-	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/device", d->address);
+	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/datetime", d->address);
 	strftime(datetime, DATABUFFER_SIZE, "datetime=%Y.%m.%d-%H:%M:%S", now);
 	coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)datetime);
 	sleep(1);
 
 	//get time and check if it is set
-/*	buf[0] = 0;
-	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/device", d->address);
+	buf[0] = 0;
+	snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/datetime", d->address);
 	coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
   
   if(cb->status != COAP_STATUS_CONTENT){
@@ -358,12 +379,8 @@ int DeviceSetDatetime(Ldevice *d){
 		return -1;
 	}
   
-	sleep(1);*/
-  
-  //TODO parse dt
-  
   dt.tm_isdst = 0;
-	strptime(recvDt, "%Y.%m.%d-%H:%M:%S", &dt);
+	strptime(cb->buf, "%Y.%m.%d-%H:%M:%S", &dt);
   snprintf(log, CMDBUFFER_SIZE, "device time: %s", recvDt);
   lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
@@ -382,6 +399,7 @@ int DeviceSetDatetime(Ldevice *d){
   lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
 	return -1;
 }
+
 
 /********************************************************************************************************************************
  * 		int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc):
@@ -451,53 +469,84 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 
 	return 0;
 }
+
+
 /********************************************************************************************************************************
- * 		int setCycleMode(Ldevice *d, int mode)
+ * 		int handleRtdbgsys(Ldevice* d):
+ * 			get rtdbgsys and save it to database
  ********************************************************************************************************************************/
 
-int setCycleMode(Ldevice *d, int mode){
-	char cmd[CMDBUFFER_SIZE];
-	char payload[CMDBUFFER_SIZE];
-	char buf[CMDBUFFER_SIZE];
-	int tries = 30;
-	int i;
-	coap_buf *cb = coap_create_buf();
+int handleRtdbgsys(Ldevice* d){
+  coap_buf *cb;        
+  unsigned char buf[DATABUFFER_SIZE] = { 0 };
+  char rtdbgsys[(DATABUFFER_SIZE * 2)+1];
+  char cmd[CMDBUFFER_SIZE];
+  char log[LOG_BUF_LEN];
+  int i;
+	char st[CMDBUFFER_SIZE];
+	PGresult *res;
+  time_t rawtime;
+  struct tm *now;
+	char adrStr[CMDBUFFER_SIZE];
+	char dtStr[CMDBUFFER_SIZE];
 
-	if(cb == NULL){
-		return -1;
-	}
+  cb = coap_create_buf();
+  if( cb == NULL){
+    snprintf(log, LOG_BUF_LEN, "failed to create coap buffer");
+    lielas_log((unsigned char*)log, LOG_LEVEL_ERROR);
+    return -1;
+  }
+  cb->buf = (char*)buf;
+  cb->bufSize = DATABUFFER_SIZE;
   
-  if(mode != LWP_CYCLE_MODE_ON && mode != LWP_CYCLE_MODE_OFF){
-	  lielas_log((unsigned char*)"error setting cycle mode: unknown cycle mode", LOG_LEVEL_WARN);
+  snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/rtdbgsys", d->address);        
+  coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+  
+  if(cb->status != COAP_STATUS_CONTENT){
+    lielas_log((unsigned char*) "Status error getting data", LOG_LEVEL_DEBUG);
     return -1;
   }
   
-	cb->buf = buf;
-  cb->bufSize = CMDBUFFER_SIZE;
+  for(i = 0; i < cb->len; i++){
+    snprintf(&rtdbgsys[i * 2], DATABUFFER_SIZE * 2, "%02X", (uint8_t)cb->buf[i]);
+  }
+  rtdbgsys[i * 2] = 0;
   
-	snprintf(cmd, CMDBUFFER_SIZE, "coap://[%s]:5683/network", d->address);
-	snprintf(payload, CMDBUFFER_SIZE,"cycling_mode=%i", mode);
-  coap_set_retries(1);
-
-
-	for(i = 0; i < tries; i++){
-    lielas_log((unsigned char*)"trying to switch cycle mode", LOG_LEVEL_DEBUG);
-		coap_send_cmd(cmd, cb, MYCOAP_METHOD_PUT, (unsigned char*)payload);
-		if(cb->status == COAP_STATUS_CONTENT){
-      if(mode == LWP_CYCLE_MODE_ON){
-        lielas_log((unsigned char*)"successfully turned power cycle on", LOG_LEVEL_DEBUG);
-      }else{
-        lielas_log((unsigned char*)"successfully turned power cycle off", LOG_LEVEL_DEBUG);
-      }
-      coap_set_retries(MYCOAP_STD_TRIES);
-			return 0;
-		}
-		buf[0] = 0;
+  time(&rawtime);
+  now = gmtime(&rawtime);
+  
+  //create column if not existing
+	snprintf(adrStr, CMDBUFFER_SIZE, "%s", d->mac);
+	if(SQLRowExists(LDB_TBL_NAME_RTDBGSYS, adrStr)){
+		snprintf(st, CMDBUFFER_SIZE, "ALTER TABLE %s.%s ADD COLUMN \"%s\" text", LDB_TBL_SCHEMA, LDB_TBL_NAME_RTDBGSYS , adrStr);
+		res = SQLexec(st);
+		PQclear(res);
 	}
-	sleep(2);
-  coap_set_retries(MYCOAP_STD_TRIES);
-	return -1;
+  
+  // create datetime string
+	strftime(dtStr, CMDBUFFER_SIZE, "%Y-%m-%d 00:00:00", now);
+    
+	//check, if datetime-row exists
+	if(SQLCellExists(LDB_TBL_NAME_RTDBGSYS, "datetime", dtStr)){
+		//creat new row
+		snprintf(st, CMDBUFFER_SIZE, "INSERT INTO %s.%s ( datetime, \"%s\" ) VALUES ( '%s', '%s')", 
+               LDB_TBL_SCHEMA, LDB_TBL_NAME_RTDBGSYS ,adrStr, dtStr, rtdbgsys);
+		res = SQLexec(st);
+		PQclear(res);
+	}else{
+		snprintf(st, CMDBUFFER_SIZE, "UPDATE %s.%s SET \"%s\"='%s' WHERE datetime='%s'", 
+               LDB_TBL_SCHEMA, LDB_TBL_NAME_RTDBGSYS ,adrStr, rtdbgsys, dtStr );
+		res = SQLexec(st);
+		PQclear(res);
+	}
+  
+  return 0;
 }
+
+/********************************************************************************************************************************
+ * 		int handleBatmons(Ldevice* d):
+ * 			get battery value and save it to database
+ ********************************************************************************************************************************/
 
 /********************************************************************************************************************************
  * 		datapaketcontainer CreateDatapaketcontainer()
@@ -547,117 +596,24 @@ void DeleteDatapaketcontainer(datapaketcontainer *dpc){
 	free(dpc);
 }
 
-/********************************************************************************************************************************
- * 		void InitDeviceHandler()
- ********************************************************************************************************************************/
-void InitDeviceHandler(){
-}
-
-/********************************************************************************************************************************
- *    int lielas_getRunmode()
- ********************************************************************************************************************************/
-int lielas_getRunmode(){
-  return runmode;
-}
-
-/********************************************************************************************************************************
- *    void lielas_setRunmode(int mode)
- ********************************************************************************************************************************/
-int lielas_setRunmode(int mode){
-  //char cmd[CMDBUFFER_SIZE];
-  //char payload[CMDBUFFER_SIZE];
-  //coap_buf *cb;
-  time_t rawtime;
-  struct tm *now;
-
-  //cb = coap_create_buf();
-
-  if(mode != runmode){
-    if(mode == RUNMODE_REGISTER){
-      lielas_log((unsigned char*) "setting runmode to registration mode", LOG_LEVEL_DEBUG);
-      
-      if(1){ 
-
-        time(&rawtime);
-        now = gmtime(&rawtime);
-
-        if(endRegModeTimer != NULL)
-          free(endRegModeTimer);
-
-        endRegModeTimer = malloc(sizeof(struct tm));
-        if(endRegModeTimer != NULL){
-          runmode = mode;
-          memcpy(endRegModeTimer, now, sizeof(struct tm));
-          endRegModeTimer->tm_sec += set_getRegModeLen();
-          mktime(endRegModeTimer);
-        }else{
-          lielas_log((unsigned char*) "failed to allocate memory for runtime timer", LOG_LEVEL_WARN);
-          return -1;
-        }
-
-      }else{
-        lielas_log((unsigned char*) "unable to set registration mode", LOG_LEVEL_WARN);
-        return -1;
-      }
-    }else if(mode == RUNMODE_NORMAL){
-      lielas_log((unsigned char*) "setting runmode to normal mode", LOG_LEVEL_DEBUG);
-
-      if(1){ 
-        runmode = mode;
-      }else{
-        lielas_log((unsigned char*) "unable to set normal mode", LOG_LEVEL_WARN);
-        return -1;
-      }
-    }
+uint16_t crc_update(uint16_t crc, uint8_t a){
+  int i;
+  crc ^= a;
+  for(i = 0; i < 8; ++i){
+    if(crc & 1)
+      crc = (crc >> 1) ^0xA001;
+    else
+      crc = (crc >> 1);
   }
-  return 0;
-}
-
-/********************************************************************************************************************************
- *    void lielas_runmodeHandler()
- *    switches automatically back to normal mode
- ********************************************************************************************************************************/
-void lielas_runmodeHandler(){
-  double diff;
-  time_t rawtime;
-  struct tm *now;
-
-  if(lielas_getRunmode() != RUNMODE_REGISTER)
-    return;
-
-  if(endRegModeTimer != NULL){
-    time(&rawtime);
-    now = gmtime(&rawtime);
-    diff = difftime(mktime(now), mktime(endRegModeTimer));
-    if(diff < 0 && diff > (0 - set_getMaxRegModeLen())){
-      return;
-
-    }
-  }
-
-  if(lielas_setRunmode(RUNMODE_NORMAL) != 0){
-    lielas_log((unsigned char*)"failed to set runmode to normal mode", LOG_LEVEL_WARN);
-  }
-
-}
-
-/********************************************************************************************************************************
- *    struct tm *lielas_getEndRegModeTimer()
- ********************************************************************************************************************************/
-struct tm *lielas_getEndRegModeTimer(){
-  return endRegModeTimer;
+  return crc;
 }
 
 uint16_t get_crc(unsigned char* data, int len){
-  int crc  = 0;
+  int crc  = 0xFFFF;
   int i;
   
   for(i = 0; i < len; i++){
-    crc ^= data[i];
-    crc  = (crc >> 8) | (crc << 8);
-    crc ^= (crc & 0xff00) << 4;
-    crc ^= (crc >> 8) >> 4;
-    crc ^= (crc & 0xff00) >> 5;   
+    crc = crc_update(crc, data[i]); 
   }
   return crc;
 }

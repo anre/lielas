@@ -38,6 +38,8 @@
 #define LDB_TBL_NAME_DATA           "log_data"
 #define LDB_TBL_NAME_SETTINGS       "settings"
 #define LDB_TBL_NAME_EVENTS         "events"
+#define LDB_TBL_NAME_RTDBGSYS       "rtdbgsys"
+#define LDB_TBL_NAME_BATMON         "batmon"
 
 #define LDB_TBL_CONTENT_LBUS            "(id integer NOT NULL, tmrecv timestamp, usr text, address text, cmd text, payload text, handled boolean, tmnexthandle timestamp, tmhandled timestamp, PRIMARY KEY(id))"
 #define LDB_TBL_CONTENT_USERS           "(id integer NOT NULL, login text, first_name text, last_name text, usergroup text, timezone text, password text, PRIMARY KEY(id))"
@@ -49,7 +51,8 @@
 #define LDB_TBL_CONTENT_DATA            "(datetime timestamp NOT NULL, PRIMARY KEY(datetime))"
 #define LDB_TBL_CONTENT_SETTINGS        "(name text NOT NULL, value text, PRIMARY KEY(name))"
 #define LDB_TBL_CONTENT_EVENTS          "(id integer NOT NULL, tmcreate timestamp, affects text, class text, description text, handled boolean, tmhandled timestamp)"
-
+#define LDB_TBL_CONTENT_RTDBGSYS        "(datetime timestamp NOT NULL, PRIMARY KEY(datetime))"
+#define LDB_TBL_CONTENT_BATMON          "(datetime timestamp NOT NULL, PRIMARY KEY(datetime))"
 
 #define LDB_SQL_SET_NAME_DB_VER           "DB_VER"
 #define LDB_SQL_SET_NAME_PANID            "PANID"
@@ -88,6 +91,7 @@ int lielas_createChannelsTbl();
 int lielas_createDataTbl();
 int lielas_createSettingsTbl();
 int lielas_createEventsTbl();
+int lielas_createRtdbgsysTbl();
 
 int lielas_getLDBSetting(char* dest, const char* name, int maxLen);
 int lielas_setLDBSetting(const char* val, const char* name);

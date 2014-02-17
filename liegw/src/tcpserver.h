@@ -24,7 +24,9 @@
 #ifndef TCPSERVER_H
 #define TCPSERVER_H
 
+#define TCP_SEND_BUF_SIZE 1025
 
+void* tcpserver();
 
 #endif
 

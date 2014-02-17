@@ -47,6 +47,7 @@
 #define LBUS_CMD_CHG          "chg"
 #define LBUS_CMD_DEL          "del"
 #define LBUS_CMD_LOGIN        "login"
+#define LBUS_CMD_RTC          "rtc"
 
 #define LBUS_PAYLOAD_DEL_DATA "data"
 #define LBUS_PAYLOAD_DEL_DB   "db"

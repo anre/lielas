@@ -830,16 +830,17 @@ void LDCcheckForNewDevices(){
 	jsmntok_t tokens[MAX_JSON_TOKENS];
   int nextToken;
   int routes;
+  static int lastScan;
 
 	//get systemtime
   sleep(1);
 	time(&rawtime);
 	now = gmtime(&rawtime);
   
-  if(now->tm_sec < 58){
-    //return;
+  if(now->tm_sec < 10 || lastScan == now->tm_min){
+    return;
   }
-  
+  lastScan = now->tm_min;
 
 	/*if(nextScan == NULL){
 		nextScan = malloc(sizeof(struct tm));
@@ -956,11 +957,11 @@ void LDCcheckForNewDevices(){
         //copy address to buffer
         for(i=0; i < tokens[nextToken].end - tokens[nextToken].start; i++){
           if(rplTable[i + tokens[nextToken].start] == ' '){
-            adr[i]= 0;
             break;
           }
           adr[i] = rplTable[i + tokens[nextToken].start];
         }
+        adr[i]= 0;
 
         //check if address is already registered
         LDCgetDeviceByAddress(adr, &d);
@@ -1048,8 +1049,8 @@ void LDCcheckForNewDevices(){
 					LDCsaveUpdatedDevice(d);
           
           // set datetime
-          //lielas_log((unsigned char*)"setting device date and time", LOG_LEVEL_DEBUG);
-          //DeviceSetDatetime(d);
+          lielas_log((unsigned char*)"setting device date and time", LOG_LEVEL_DEBUG);
+          DeviceSetDatetime(d);
         }
       }
 		}

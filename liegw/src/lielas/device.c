@@ -30,6 +30,8 @@
 
 
 Ldevice *LcreateDevice(){
+  int i;
+  
 	Ldevice *d = malloc(sizeof(Ldevice));
 	if(d == NULL){
 		lielas_log((unsigned char*)"Can't allocate memory for new device", LOG_LEVEL_ERROR);
@@ -42,7 +44,9 @@ Ldevice *LcreateDevice(){
   d->mac[0] = 0;
 	d->mint[0] = 0;
 	d->moduls = 0;
-	d->modul[0] = 0;
+  for(i = 0; i < MAX_MODULS; i++){
+    d->modul[i] = NULL;
+  }
   d->name[0] = 0;
   d->sw_ver[0] = 0;
   d->supply[0] = 0;

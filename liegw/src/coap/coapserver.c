@@ -143,7 +143,6 @@ void hnd_get_runmode(coap_context_t  *c, struct coap_resource_t *resource,
   time_t now;
   unsigned char payload[MAX_PAYLOAD_SIZE];
   int len = 0;
-  struct tm *timer;
 
   response->hdr->code = COAP_RESPONSE_CODE(205);
 
@@ -167,15 +166,6 @@ void hnd_get_runmode(coap_context_t  *c, struct coap_resource_t *resource,
   }else{
 
     len += sprintf((char*)&payload[len], "{\n");
-    if(lielas_getRunmode() == RUNMODE_NORMAL){
-      len += sprintf((char*)&payload[len], "  \"runmode\":\"normal\"\n");
-    }else if(lielas_getRunmode() == RUNMODE_REGISTER){
-      len += snprintf((char*)&payload[len], MAX_PAYLOAD_SIZE, "  \"runmode\":\"register\",\n");
-      timer = lielas_getEndRegModeTimer();
-      if(timer != NULL){
-        len += strftime((char*)&payload[len], (MAX_PAYLOAD_SIZE-len), "  \"end\":\"%d.%m.%Y %H:%M:%S\",\n", timer);
-      }
-    }
     len += sprintf((char*)&payload[len], "}\n");
 
     coap_add_data(response, len, payload);
