@@ -1,15 +1,12 @@
 include Makefile.inc
 
 C_SRCS += \
-src/coap/coapserver.c \
 src/coap/mycoap.c \
 
 OBJS += \
-src/coap/coapserver.o \
 src/coap/mycoap.o \
 
 C_DEPS += \
-src/coap/coapserver.d \
 src/coap/mycoap.d \
 
 %.o: %.c

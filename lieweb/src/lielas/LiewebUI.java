@@ -38,19 +38,17 @@ import com.vaadin.terminal.*;
 import com.vaadin.ui.*;
 import com.vaadin.ui.Button.ClickEvent;
 
-import lielas.core.CoapHelper;
 import lielas.core.Config;
 import lielas.core.Device;
 import lielas.core.DeviceContainer;
 import lielas.core.EventContainer;
-import lielas.core.LBus;
-import lielas.core.LBusSender;
 import lielas.core.NewDeviceContainer;
 import lielas.core.SQLHelper;
 import lielas.core.User;
 import lielas.core.UserContainer;
 import lielas.core.XMLHelper;
 import lielas.core.LanguageHelper;
+import lielas.core.TcpClient;
 
 @SuppressWarnings({ "serial", "unused" })
 
@@ -84,7 +82,6 @@ public class LiewebUI extends UI {
 	
 	public EventContainer eventContainer = null;
 	
-	public CoapHelper coap;
 	public User user;
 	
 	public Config config;
@@ -128,13 +125,8 @@ public class LiewebUI extends UI {
 						headerScreen.setPermisson(1);
 						Notification.show("Welcome " + user.getForename() + " " + user.getName(),Notification.Type.WARNING_MESSAGE);
 						loggedIn = true;
-						//TODO send tcp msg
-						/*LBusSender lbus = new LBusSender(this.config.getLbusServerAddress(), this.config.getLbusServerPort(), "lbus");
-						lbus.setCmd(lbus.LBUS_CMD_LOGIN);
-						lbus.setUser(this.user.getID());
-						lbus.setAddress("liegw");
-						lbus.setPayload("");
-						lbus.send();*/
+						TcpClient tcpClient = new TcpClient(this.config.getTcpServerAddress(), this.config.getTcpServerPort());
+						tcpClient.SendLoginMessage(this.user.getID());
 					}
 				}
 			}

@@ -62,6 +62,7 @@ public class DeviceContainer extends BeanItemContainer<Device> implements Serial
 				
 				d = sql.GetDevice(id);
 			}
+			dc.sort(new String[] {"mac"}, new boolean[] { true });
 		}catch(Exception e){
 			e.printStackTrace();
 		}

@@ -197,29 +197,6 @@ public class DeviceManagerScreen extends Panel{
 		
 		deviceListLayout.addComponent(dmDetailScreen);	
 
-		/************************************************************************************************************************
-		 * 
-		 * 		Register Devices
-		 * 
-		 ************************************************************************************************************************/	
-		registerLayout = new HorizontalLayout();
-		registerLayout.setStyleName("deviceManager");
-		dmTabSheet.addTab(registerLayout, app.langHelper.GetString(LanguageHelper.DM_TAB_REGISTER));	
-		
-		startRegModeBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.DM_TAB_RED_START_REG_BTTN));
-		startRegModeBttn.addStyleName("deviceManager");
-		startRegModeBttn.setHeight(24, Unit.PIXELS);
-		
-		startRegModeBttn.addClickListener(new ClickListener() {
-			@Override
-			public void buttonClick(ClickEvent event) {
-				StartRegModeBttnClicked();
-			}
-		});
-		
-		registerLayout.addComponent(startRegModeBttn);
-		
-		
 
 		/************************************************************************************************************************/	
 		hLayout.addComponent(dmTabSheet);
@@ -285,10 +262,6 @@ public class DeviceManagerScreen extends Panel{
 			dmDetailScreen.setDevice(device, true);
 			dmDetailScreen.Update();
 		}
-	}
-	
-	private void StartRegModeBttnClicked(){
-		
 	}
 	
 }

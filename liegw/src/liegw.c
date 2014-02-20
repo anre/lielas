@@ -38,7 +38,6 @@
 #include "lielas/lbus.h"
 #include "lielas/ldb.h"
 #include "settings.h"
-#include "lielas/reghandler.h"
 
 #include "rtc/rtc.h"
 
@@ -48,15 +47,21 @@
 /*
  * 		main
  */
+ #define VERSION_H  1
+ #define VERSION_M  0
+ #define VERSION_L  0
+ 
 int main(void) {
   pthread_t tcpserverThread;
   time_t rawtime;
   struct tm *now;
+  char log[LOG_BUF_LEN];
 
   //pid = fork();
   
   //setbuf(stdout, NULL);
-  lielas_log((unsigned char*)"starting liewebgw", LOG_LEVEL_DEBUG);
+  snprintf(log, LOG_BUF_LEN, "starting liegw %i.%i.%i", VERSION_H, VERSION_M, VERSION_L);
+  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
 
   lielas_log((unsigned char*)"setting timezone", LOG_LEVEL_DEBUG);
   putenv("TZ=CUT0");

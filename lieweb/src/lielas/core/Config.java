@@ -52,8 +52,8 @@ public class Config {
 	String sixLowPanBaudrate = "";
 	String sixLowPanTunnel = "";
 	
-	String lbusServerAddress = "";
-	Integer lbusServerPort = 5684;
+	String tcpServerAddress = "";
+	Integer tcpServerPort = 5684;
 	
 	String sqlServerAddress = "localhost";
 	Integer sqlServerPort = 5432;
@@ -102,8 +102,8 @@ public class Config {
 		sixLowPanBaudrate = configFile.getProperty("6LowPanBaudrate");
 		sixLowPanTunnel = configFile.getProperty("6LowPanTun");
 		
-		lbusServerAddress = configFile.getProperty("lbusServerAddress");
-		lbusServerPort = Integer.parseInt(configFile.getProperty("lbusServerPort"));
+		tcpServerAddress = configFile.getProperty("tcpServerAddress");
+		tcpServerPort = Integer.parseInt(configFile.getProperty("tcpServerPort"));
 		
 		dbUser = configFile.getProperty("dbUser");
 		dbPass = configFile.getProperty("dbPassword");
@@ -229,20 +229,20 @@ public class Config {
 		this.sixLowPanUART = sixLowPanUART;
 	}
 
-	public String getLbusServerAddress() {
-		return lbusServerAddress;
+	public String getTcpServerAddress() {
+		return tcpServerAddress;
 	}
 
-	public void setLbusServerAddress(String lbusServerAddress) {
-		this.lbusServerAddress = lbusServerAddress;
+	public void setTcpServerAddress(String tcpServerAddress) {
+		this.tcpServerAddress = tcpServerAddress;
 	}
 
-	public Integer getLbusServerPort() {
-		return lbusServerPort;
+	public Integer getTcpServerPort() {
+		return tcpServerPort;
 	}
 
-	public void setLbusServerPort(Integer lbusServerPort) {
-		this.lbusServerPort = lbusServerPort;
+	public void setTcpServerPort(Integer tcpServerPort) {
+		this.tcpServerPort = tcpServerPort;
 	}
 
 	public String getSixLowPanBaudrate() {

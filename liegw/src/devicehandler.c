@@ -116,8 +116,8 @@ void HandleDevices(){
     //0 o'clock? test date/time
     if(now->tm_hour == 0){
       DeviceSetDatetime(d);
+      handleRtdbgsys(d);
     }
-    handleRtdbgsys(d);
   
     //calculate end of timeslot
     if(endOfTimeslot == NULL){

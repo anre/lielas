@@ -55,11 +55,10 @@ import lielas.core.Device;
 import lielas.core.DeviceContainer;
 import lielas.core.Channel;
 import lielas.core.ExceptionHandler;
-import lielas.core.LBus;
-import lielas.core.LBusSender;
 import lielas.core.Modul;
 import lielas.core.LanguageHelper;
 import lielas.core.NewDeviceContainer;
+import lielas.core.TcpClient;
 import lielas.core.UserContainer;
 
 @SuppressWarnings({ "serial", "unused" })
@@ -86,7 +85,6 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 	private Label dlCSupplyLbl = null;
 
 	private NativeButton dlSaveBttn = null;
-	private NativeButton dlDeleteBttn = null;
 	
 	private static final int detailVSpacerHeight = 5;
 	
@@ -94,12 +92,6 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 	public static boolean TYPE_NOT_REGISTERED = false;
 	
 	private Label modulAddressDLbl[];
-	private Label modulMintDLbl[];
-	private TextField modulMIntCTx[]; 
-	private Label modulPintDLbl[];
-	private NativeSelect modulPIntCTx[]; 
-	private Label modulAintDLbl[];
-	private TextField modulAIntCTx[]; 
 	
 	private int channelModulAddress[];
 	private Label channelAddressDLbl[];
@@ -152,17 +144,10 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		
 		dlCAddressLbl.setValue(device.getMac());
 		dlCNameTx.setValue(device.getName());
-		dlCGroupTx.setValue(device.getGroup());
-		//dlCMIntTx.setValue(device.getMeassurementIntervall().toString());
-		//dlCPIntSel.select(app.langHelper.GetString(Device.getProcessIntervallString(device.getProcessIntervall())));
-		//dlCAIntTx.setValue(device.getAlarmIntervall().toString());		
+		dlCGroupTx.setValue(device.getGroup());	
 
 		for(int i = 1; i < (device.getModuls()+1) ; i++){
 			Modul m = device.getModul(i);
-			modulMIntCTx[i].setValue(m.getMeassurementIntervall().toString());
-			//modulPIntCTx[i].select(app.langHelper.GetString(Modul.getProcessIntervallString(m.getProcessIntervall())));
-			//modulPIntCTx[i].setValue(m.getProcessIntervall());
-			//modulAIntCTx[i].setValue(m.getAlarmIntervall().toString());
 			for( int j = 1; j <= m.getChannels();j++){
 				Channel c = m.getChannel(j);
 				channelNameCTx[cmAddress].setValue(c.getName());
@@ -297,12 +282,6 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 
 		// Moduls
 		modulAddressDLbl = new Label[20];
-		modulMintDLbl = new Label[20];
-		modulMIntCTx = new TextField[20];
-		modulPintDLbl = new Label[20];
-		modulPIntCTx = new NativeSelect[20];
-		modulAintDLbl = new Label[20];
-		modulAIntCTx = new TextField[20];
 		
 		channelModulAddress = new int[20];
 		for(int i = 0; i < channelModulAddress.length; i++){
@@ -334,46 +313,6 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 			//modulAddressDLbl[i].setWidth(215, Unit.PIXELS);
 			dlBodyLayout.addComponent(modulAddressDLbl[i], 0, lines, 2, lines++);
 			
-			// MInt
-			
-			modulMintDLbl[i] = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_MEASSUREMENT_INTERVALL));
-			modulMintDLbl[i].addStyleName("dmDetailGridPadding");
-			dlBodyLayout.addComponent(modulMintDLbl[i], 0, lines, 1, lines);
-			
-			modulMIntCTx[i] = new TextField();
-			modulMIntCTx[i].setStyleName("detaillist-body");
-			modulMIntCTx[i].addStyleName("dmDetailGridPadding");
-			modulMIntCTx[i].setWidth(215, Unit.PIXELS);
-			dlBodyLayout.addComponent(modulMIntCTx[i], 2, lines++);
-			
-			// PInt
-
-			/*modulPintDLbl[i] = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_PROCESS_INTERVALL));
-			modulPintDLbl[i].addStyleName("dmDetailGridPadding");
-			dlBodyLayout.addComponent(modulPintDLbl[i], 0, lines, 1, lines);
-			
-			modulPIntCTx[i] = new NativeSelect();
-			modulPIntCTx[i].setStyleName("detaillist-body");
-			modulPIntCTx[i].addStyleName("dmDetailGridPadding");
-			modulPIntCTx[i].addStyleName("dm");
-			modulPIntCTx[i].setWidth(215, Unit.PIXELS);
-			modulPIntCTx[i].addItem(app.langHelper.GetString(LanguageHelper.AT_PINT_OPT_LIFETIME));
-			modulPIntCTx[i].addItem(app.langHelper.GetString(LanguageHelper.AT_PINT_OPT_NORMAL));
-			modulPIntCTx[i].addItem(app.langHelper.GetString(LanguageHelper.AT_PINT_OPT_FAST_GATHER));
-			dlBodyLayout.addComponent(modulPIntCTx[i], 2, lines++);
-			
-			// AInt
-
-			modulAintDLbl[i] = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_ALARM_INTERVALL));
-			modulAintDLbl[i].addStyleName("dmDetailGridPadding");
-			dlBodyLayout.addComponent(modulAintDLbl[i], 0, lines, 1, lines);
-			
-			modulAIntCTx[i] = new TextField();
-			modulAIntCTx[i].setStyleName("detaillist-body");
-			modulAIntCTx[i].addStyleName("dmDetailGridPadding");
-			modulAIntCTx[i].setWidth(215, Unit.PIXELS);
-			dlBodyLayout.addComponent(modulAIntCTx[i], 2, lines++);*/
-
 			VerticalLayout mSpacerLayout = new VerticalLayout();
 			mSpacerLayout.setHeight(10, Unit.PIXELS);
 			dlBodyLayout.addComponent(mSpacerLayout, 0, lines++ );
@@ -485,22 +424,6 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 			}
 		});
 		
-
-		
-		// Delete Button
-		
-		dlDeleteBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DELETE_BTTN));
-		dlDeleteBttn.addStyleName("detaillist-footer");
-		detailListFooterLayout.addComponent(dlDeleteBttn);
-		detailListFooterLayout.setComponentAlignment(dlDeleteBttn, Alignment.TOP_RIGHT);	
-		
-		dlDeleteBttn.addClickListener(new ClickListener(){
-			@Override
-			public void buttonClick(ClickEvent event) {
-				DlDeleteBttnClicked(event);
-			}
-		});
-		
 		this.addComponent(detailListBodyLayout);
 		this.addComponent(detailListFooterLayout);	
 		
@@ -531,27 +454,6 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		return -1;
 	}
 	
-	private void DlDeleteBttnClicked(ClickEvent event){
-		YesNoPopupScreen ackPopup = new YesNoPopupScreen(app, "Delete Device", "Are you sure you want to delete the device? Device Data is not deleted.");
-		ackPopup.addListener(new PopupClosedListener(){
-			@Override
-			public void popupClosedEvent(YesNoPopupScreen e) {
-				if(e.isYesClicked()){
-					LBusSender lbus = new LBusSender(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
-					lbus.setCmd(lbus.LBUS_CMD_DEL);
-					lbus.setUser(app.user.getID());
-					lbus.setAddress("liegw");
-					lbus.setPayload("\"device\":\"" + device.getID().toString() + "\"");
-					lbus.send();
-					app.deviceContainer.removeItem(device);
-					device = null;
-				}
-				app.Update();
-			}
-		});
-	}
-	
-	
 	private void DlSaveBttnClicked(ClickEvent event){
 		
 		boolean error = false;
@@ -561,45 +463,14 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		int[] modulAInt = new int[20];
 		int channelNr = 1;
 		
-		/*mInt = ParseInterval(dlCMIntTx.getValue().toString(), "Meassurement ");
-		if(mInt == -1){
-			error = true;
-		}*/
-		
-		/*aInt =  ParseInterval(dlCAIntTx.getValue().toString(), "Alarm ");
-		if(aInt == -1){
-			error = true;
-		}*/
-		
-		for(int i = 1; i < (device.getModuls()+1); i++){
-			Modul m = device.getModul(i);
-			modulMInt[i] = ParseInterval(modulMIntCTx[i].getValue().toString(), "Module " + m.getAddress() + " Meassurement ");
-			if(modulMInt[i] == -1){
-				error = true;
-			}
-
-			//modulPInt[i] = Modul.getProcessIntervallInt(modulPIntCTx[i].getValue().toString(), app.langHelper);
-			
-			/*modulAInt[i] = ParseInterval(modulAIntCTx[i].getValue().toString(), "Module " + m.getAddress() + " Alarm ");
-			if(modulAInt[i] == -1){
-				error = true;
-			}*/
-			
-		}
-		
 		if( !error){
 			device.setName((String) dlCNameTx.getValue());
 			device.setGroup((String) dlCGroupTx.getValue());
-			//device.setMeassurementIntervall(mInt);
-			//device.setProcessIntervall(Device.getProcessIntervallInt((String)dlCPIntSel.getValue(), app.langHelper));
-			//device.setAlarmIntervall(aInt);
 			
 			for(int i = 1; i < (device.getModuls()+1); i++){
 				Modul m = device.getModul(i);
 				
 				m.setMeassurementIntervall(modulMInt[i]);
-				//m.setProcessIntervall(modulPInt[i]);
-				//m.setAlarmIntervall(modulAInt[i]);
 				
 				channelNr = 1;
 				for(int j = 0; j < channelModulAddress.length; j++){
@@ -618,12 +489,8 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 					if(e.isYesClicked()){
 						if(app.deviceContainer.SaveDevice(device)){
 							Notification.show("Settings successfully saved");
-							LBusSender lbus = new LBusSender(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
-							lbus.setCmd(lbus.LBUS_CMD_CHG);
-							lbus.setUser(app.user.getID());
-							lbus.setAddress("liegw");
-							lbus.setPayload("\"device\":\"" + device.getID().toString() + "\"");
-							lbus.send();
+							TcpClient tcpClient = new TcpClient(app.config.getTcpServerAddress(), app.config.getTcpServerPort());
+							tcpClient.SendSaveDeviceSettingsMessage(app.user.getID(), device.getID());
 						}else{
 							Notification.show("Error: Couldn't save settings");
 						}

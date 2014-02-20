@@ -167,6 +167,8 @@ public class DownloadScreen extends Panel{
 		
 		downloadHelpText.setValue(app.langHelper.GetString(LanguageHelper.DL_HELPTEXT_MULTISELECT));
 
+		downloadTable.removeAllItems();
+		FillDownloadTable();
 	}
 	
 	public void Activate(){

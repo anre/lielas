@@ -36,12 +36,10 @@ import lielas.core.Config;
 import lielas.core.Device;
 import lielas.core.DeviceContainer;
 import lielas.core.ExceptionHandler;
-import lielas.core.LBus;
-import lielas.core.LBusReceiver;
-import lielas.core.LBusSender;
 import lielas.core.LanguageHelper;
 import lielas.core.SQLHelper;
 import lielas.core.CSVHelper;
+import lielas.core.TcpClient;
 import lielas.core.User;
 
 import lielas.LiewebUI;
@@ -731,9 +729,13 @@ public class OptionsScreen extends Panel{
 		
 		//rtc settings
 		clockSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
-		LBusReceiver lbus = new LBusReceiver(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "rtc", "state");
 		
-		String rtcState = lbus.get();
+		//TODO add tcp msg
+		TcpClient tcpClient = new TcpClient(app.config.getTcpServerAddress(), app.config.getTcpServerPort());
+		String rtcState = tcpClient.getRtcState(app.user.getID());
+		if(rtcState == null){
+			rtcState = "";
+		}
 		rtcStateTxt.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_STATE) + ": " + rtcState);
 		if(rtcState.equals("not synced")){
 			dateField.setVisible(true);
@@ -919,10 +921,7 @@ public class OptionsScreen extends Panel{
 			@Override
 			public void popupClosedEvent(YesNoPopupScreen e) {
 				if(e.isYesClicked()){
-					LBusSender lbus = new LBusSender(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
-					lbus.setCmd(lbus.LBUS_CMD_CHG);
-					lbus.setUser(app.user.getID());
-					lbus.setAddress("liegw");
+					TcpClient tcpClient = new TcpClient(app.config.getTcpServerAddress(), app.config.getTcpServerPort());
 					
 					if(useDhcpCB.getValue()){
 						app.sql.setNetType("dhcp");
@@ -936,7 +935,7 @@ public class OptionsScreen extends Panel{
 						netmaskCTx.setValue("");
 						gwAddressCTx.setValue("");
 						
-						lbus.setPayload("\"net_type\":\"dhcp\"");
+						tcpClient.SendSaveNetworksettingsMessage(app.user.getID(), "dhcp");
 					}else{
 						app.sql.setNetType("static");
 						app.sql.setNetAddress(ipAddressCTx.getValue());
@@ -944,11 +943,8 @@ public class OptionsScreen extends Panel{
 						app.sql.setNetGateway(gwAddressCTx.getValue());
 						app.sql.setNetDns1(dns1CTx.getValue());
 						app.sql.setNetDns2(dns2CTx.getValue());
-						lbus.setPayload("\"net_type\":\"static\"\n");
+						tcpClient.SendSaveNetworksettingsMessage(app.user.getID(), "static");
 					}
-					
-
-					lbus.send();
 					
 					getUI().getPage().setLocation("lieweb");
 					getUI().getSession().close();
@@ -1018,14 +1014,8 @@ public class OptionsScreen extends Panel{
 		cal.setTime(date);
 		java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		String dt = sdf.format(cal.getTime());
-		
-		LBusSender lbus = new LBusSender(app.config.getLbusServerAddress(), app.config.getLbusServerPort(), "lbus");
-		lbus.setCmd(lbus.LBUS_CMD_CHG);
-		lbus.setUser(app.user.getID());
-		lbus.setAddress("liegw");
-		lbus.setPayload("\"rtc\":\"" + dt + "\"\n");
-		lbus.send();
-		
+		TcpClient tcpClient = new TcpClient(app.config.getTcpServerAddress(), app.config.getTcpServerPort());
+		tcpClient.SendChangeDateTimeMessage(app.user.getID(), dt);
 	}
 }
 
