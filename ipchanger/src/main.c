@@ -116,7 +116,7 @@ void restart_net_interface(){
       exit(-1);
     }
     sleep(5);
-    if(system("/sbin/ifup eth0")){
+    if(system("/sbin/ifup -v eth0")){
       write_log("failed to bring eth0 up", LOG_LEVEL_ERROR);
       exit(-1);
     }
@@ -255,10 +255,10 @@ void set_dhcp(){
   fprintf(file, "auto eth0\n");
   fprintf(file, "iface eth0 inet dhcp\n");
   fprintf(file, "\n");
-  fprintf(file, "iface eth0 inet6 static\n");
-  fprintf(file, "	 address fd23:557d:21e0:1::1\n");
+  /*fprintf(file, "iface eth0 inet6 static\n");
+  fprintf(file, "	 address fd23:557d:21e0:1::334c\n");
   fprintf(file, "	 netmask 64\n");
-  fprintf(file, "\n");
+  fprintf(file, "\n");*/
   
   fclose(file);
 }
@@ -287,10 +287,10 @@ void set_static(char *adr, char *mask, char *gw){
   fprintf(file, "  address %s\n", adr);
   fprintf(file, "  netmask %s\n", mask);
   fprintf(file, "  gateway %s\n", gw);
-  fprintf(file, "iface eth0 inet6 static\n");
-  fprintf(file, "	 address fd23:557d:21e0:1::1\n");
+  /*fprintf(file, "iface eth0 inet6 static\n");
+  fprintf(file, "	 address fd23:557d:21e0:1::334c\n");
   fprintf(file, "	 netmask 64\n");
-  fprintf(file, "\n");
+  fprintf(file, "\n");*/
   
   fclose(file);
   

@@ -121,8 +121,8 @@ int rtc4162_get(struct tm *dt){
   dt->tm_sec = BCD2BYTE(buf[1] & RTC4162_MASK_SEC); 
   dt->tm_min = BCD2BYTE(buf[2] & RTC4162_MASK_MIN);
   dt->tm_hour= BCD2BYTE(buf[3] & RTC4162_MASK_HOUR);
-  dt->tm_mday= BCD2BYTE(buf[5] & RTC4162_MASK_DAYOM);
-  dt->tm_mon = BCD2BYTE(buf[6] & RTC4162_MASK_MONTH);
+  dt->tm_mday= (BCD2BYTE(buf[5] & RTC4162_MASK_DAYOM)) ;
+  dt->tm_mon = BCD2BYTE(buf[6] & RTC4162_MASK_MONTH) - 1;
   dt->tm_year= BCD2BYTE(buf[7] & RTC4162_MASK_YEAR) + RTC4162_YEAR_OFFSET;
   dt->tm_wday = 0;
   dt->tm_yday = 0;
@@ -142,7 +142,7 @@ int rtc4162_set(struct tm *dt){
 	buf[3] = (buf[3] & ~RTC4162_MASK_HOUR) | (BYTE2BCD(dt->tm_hour) & RTC4162_MASK_HOUR);
 	
 	buf[5] = (buf[5] & ~RTC4162_MASK_DAYOM) | (BYTE2BCD(dt->tm_mday) & RTC4162_MASK_DAYOM);
-	buf[6] = (buf[6] & ~RTC4162_MASK_MONTH) | (BYTE2BCD(dt->tm_mon) & RTC4162_MASK_MONTH);
+	buf[6] = (buf[6] & ~RTC4162_MASK_MONTH) | (BYTE2BCD(dt->tm_mon + 1) & RTC4162_MASK_MONTH);
 	buf[7] = (buf[7] & ~RTC4162_MASK_YEAR) | (BYTE2BCD((uint8_t)(dt->tm_year - RTC4162_YEAR_OFFSET)) & RTC4162_MASK_YEAR);
   
   if(write_register(RTC4162_REG_MSECOND, buf, 8)){

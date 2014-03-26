@@ -106,9 +106,10 @@ int lwp_parse_wkc(char *str, lwp_wkc *wkc);
 lwp_resource *lwp_get_res_by_name( char* str, lwp_wkc *wkc);
 int lwp_add_attr(char* name, lwp_resource *res);
 void lwp_print_wkc(lwp_wkc *wkc, char* str);
-int lwp_get_attr_value(char *str, lwp_resource *res, char *attr_name, char *val, int size);
+int lwp_get_attr_value(char *attr, int attrSize, char *val, int size, int pos);
 void lwp_compdt_to_struct_tm(uint8_t *cdt, struct tm *dt);
 void lwp_mac_to_std_mac(char* dest, char* src);
+int lwp_get_vbat(char* attr, int len);
 #endif
 
 

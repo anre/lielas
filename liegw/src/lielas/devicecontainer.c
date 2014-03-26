@@ -198,10 +198,11 @@ int LDCloadDevices(){
 	char msg[500];
 	char st[SQL_STATEMENT_BUF_SIZE];
   char log[LOG_BUF_LEN];
+  char buf[SQL_STATEMENT_BUF_SIZE];
 
 	//query devices table
   
-	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mac, mint, moduls, registered, datapakets FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
+	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mac, mint, moduls, registered, datapakets, router, datalogger, sw_ver, v_source, v_source_state FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
 	res = SQLexec(st);
 
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
@@ -226,6 +227,26 @@ int LDCloadDevices(){
 		strcpy(d->mint, PQgetvalue(res, i, 3));
 		strcpy(moduls,  PQgetvalue(res, i, 4));
     d->datapakets = strtol(PQgetvalue(res, i, 6), NULL, 10);
+    //router
+    strcpy(buf, PQgetvalue(res, i, 7));
+    if(!strcmp(buf, "t")){
+      d->router = 1;
+    }else{
+      d->router = 0;
+    }
+    //datalogger
+    strcpy(buf, PQgetvalue(res, i, 8));
+    if(!strcmp(buf, "t")){
+      d->datalogger = 1;
+    }else{
+      d->datalogger = 0;
+    }
+    //sw_ver
+    strcpy(d->sw_ver, PQgetvalue(res, i, 9));
+    //v_source
+    strcpy(d->supply, PQgetvalue(res, i, 10));
+    //v_source_state
+    strcpy(d->supplyState, PQgetvalue(res, i, 11));
     
     //load Moduls
 		loadModuls(d, moduls);
@@ -234,7 +255,7 @@ int LDCloadDevices(){
 		LDCadd(d);
 		sprintf(msg, "Device %s loaded", d->address);
 		lielas_log((unsigned char*)msg, LOG_LEVEL_DEBUG);
-
+    
 	}
 	PQclear(res);
   
@@ -329,7 +350,7 @@ void loadChannels(Lmodul *m, char *channels){
 			//load channel
 			cstr[j] = 0;
       snprintf(st, SQL_STATEMENT_BUF_SIZE,
-                "SELECT id, address, type, unit, exponent FROM %s.%s WHERE id=%s",
+                "SELECT id, address, type, unit, exponent, class FROM %s.%s WHERE id=%s",
                 LDB_TBL_SCHEMA, LDB_TBL_NAME_CHANNELS, cstr);
 			res = SQLexec(st);
 			if(PQresultStatus(res) != PGRES_TUPLES_OK){
@@ -343,6 +364,7 @@ void loadChannels(Lmodul *m, char *channels){
 			strcpy(channel->type, PQgetvalue(res, 0, 2));
 			strcpy(channel->unit, PQgetvalue(res, 0, 3));
       channel->exponent = strtod(PQgetvalue(res, 0, 4), NULL);
+			strcpy(channel->class, PQgetvalue(res, 0, 5));
       
 			LaddChannel(m, channel);
 
@@ -391,6 +413,7 @@ Ldevice *loadDeviceById(unsigned int id){
 	char st[SQL_BUFFER_SIZE	];
 	Ldevice *d;
 	char moduls[CLIENT_BUFFER_LEN];
+  char buf[SQL_STATEMENT_BUF_SIZE];
 
 	d = LcreateDevice();
 
@@ -398,7 +421,7 @@ Ldevice *loadDeviceById(unsigned int id){
 		return d;
 	}
 
-	snprintf(st, SQL_BUFFER_SIZE, "SELECT id, address, mac, mint, moduls, registered FROM %s.%s WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id);
+	snprintf(st, SQL_BUFFER_SIZE, "SELECT id, address, mac, mint, moduls, registered, datapakets, router, datalogger, sw_ver, v_source, v_source_state FROM %s.%s WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id);
 	res = SQLexec(st);
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
 		lielas_log((unsigned char*)"Failed to get device by id", LOG_LEVEL_WARN);
@@ -419,6 +442,28 @@ Ldevice *loadDeviceById(unsigned int id){
 	strcpy(d->mac, PQgetvalue(res,0, 2));
 	strcpy(d->mint, PQgetvalue(res, 0, 3));
 	strcpy(moduls,  PQgetvalue(res, 0, 4));
+  d->datapakets = strtol(PQgetvalue(res, 0, 6), NULL, 10);
+  //router
+  strcpy(buf, PQgetvalue(res, 0, 7));
+  if(!strcmp(buf, "t")){
+    d->router = 1;
+  }else{
+    d->router = 0;
+  }
+  //datalogger
+  strcpy(buf, PQgetvalue(res, 0, 8));
+  if(!strcmp(buf, "t")){
+    d->datalogger = 1;
+  }else{
+    d->datalogger = 0;
+  }
+  //sw_ver
+  strcpy(d->sw_ver, PQgetvalue(res, 0, 9));
+  //v_source
+  strcpy(d->supply, PQgetvalue(res, 0, 10));
+    //v_source_state
+  strcpy(d->supplyState, PQgetvalue(res, 0, 11));
+  
 	loadModuls(d, moduls);
 	PQclear(res);
 
@@ -478,8 +523,8 @@ int LDCsaveNewDevice(Ldevice *d){
 		return -1;
 	}
 
-	snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mac, registered, name,  mint, datapakets) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%d')",
-	         LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id, d->address, d->mac, "true", d->name, d->mint, d->datapakets);
+	snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mac, registered, name,  mint, datapakets, router, datalogger, v_source, v_source_state, sw_ver) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s')",
+	         LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id, d->address, d->mac, "true", d->name, d->mint, d->datapakets, d->router, d->datalogger, d->supply, d->supplyState, d->sw_ver);
 
 	res = SQLexec(st);
 
@@ -518,7 +563,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 	}
 
 	if(strcmp(d->address, oldDevice->address)){
-		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET address=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->address, d->id);
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET address='%s' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->address, d->id);
 		res = SQLexec(st);
 		if(!res){
 			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -538,7 +583,7 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 		PQclear(res);
 	}
 	if(strcmp(d->mint, oldDevice->mint)){
-		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET mint=\"%s\" WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->mint, d->id);
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET mint='%s' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->mint, d->id);
 		res = SQLexec(st);
 		if(!res){
 			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
@@ -547,6 +592,36 @@ int LDCsaveUpdatedDevice(Ldevice *d){
 		}
 		PQclear(res);
 	}
+  if(strcmp(d->supply, oldDevice->supply)){
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET v_source='%s' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->supply, d->id);
+		res = SQLexec(st);
+		if(!res){
+			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
+			PQclear(res);
+			return -1;
+		}
+		PQclear(res);
+  }
+  if(strcmp(d->supplyState, oldDevice->supplyState)){
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET v_source_state='%s' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->supplyState, d->id);
+		res = SQLexec(st);
+		if(!res){
+			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
+			PQclear(res);
+			return -1;
+		}
+		PQclear(res);
+  }
+  if(strcmp(d->sw_ver, oldDevice->sw_ver)){
+		snprintf(st, SQL_BUFFER_SIZE, "UPDATE %s.%s SET sw_ver='%s' WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES , d->sw_ver, d->id);
+		res = SQLexec(st);
+		if(!res){
+			lielas_log((unsigned char*)"Error executing SQL statement", LOG_LEVEL_WARN);
+			PQclear(res);
+			return -1;
+		}
+		PQclear(res);
+  }
 
 	for(i = 1; i < MAX_MODULS && d->modul[i] != NULL; i++){
 		if(d->modul[i] != NULL && oldDevice->modul[i] == NULL){	// new modul
@@ -810,13 +885,14 @@ Ldevice *LDCgetNextDevice(){
 
 void LDCcheckForNewDevices(){
 
-	int i, j;
+	int i;
 	int state = 0;
 	char cmd[CLIENT_BUFFER_LEN];
 	char buf[CLIENT_BUFFER_LEN];
 	char adr[IPV6_ADR_BUF_LEN];
   char rplTable[RPL_TABLE_LEN];
   char log[LOG_BUF_LEN];
+  char routerStr[CLIENT_BUFFER_LEN];
 	Ldevice *d;
 	Lmodul *m[MAX_MODULS];
 	Lchannel *c[MAX_CHANNELS];
@@ -979,7 +1055,6 @@ void LDCcheckForNewDevices(){
           
           snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/info", adr, set_getGatewaynodePort());
           coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-          printf("cmd: %s\n", cmd);
           
           if(cb->status != COAP_STATUS_CONTENT){
             lielas_log((unsigned char*)"failed to get /info", LOG_LEVEL_WARN);
@@ -989,22 +1064,66 @@ void LDCcheckForNewDevices(){
           //set device attributes
           
           //d->name
-          for(i = 0; i < cb->bufSize && i < DEVICE_MAX_STR_LEN; i++){
-            if(cb->buf[i] == '\t')
-              break;
-            d->name[i] = cb->buf[i];
+          lwp_get_attr_value(cb->buf, cb->bufSize, d->name, DEVICE_MAX_STR_LEN, 1);
+          
+          //d->sw_ver
+          lwp_get_attr_value(cb->buf, cb->bufSize, d->sw_ver, DEVICE_MAX_STR_LEN, 2);
+          
+          //d->router
+          lwp_get_attr_value(cb->buf, cb->bufSize, routerStr, CLIENT_BUFFER_LEN, 4);
+          if(!strcmp(routerStr, "ROUTER")){
+            d->router = 1;
+            strcpy(d->supply, "net");
+          }else{
+            d->router = 0;
+            strcpy(d->supply, "bat");
           }
-          i++;
-          //TODO add sw_ver to db
-          for(j = 0; (i + j) < cb->bufSize && j < DEVICE_MAX_STR_LEN; j++){
-            if(cb->buf[i+j] == '\t')
-              break;
-              d->sw_ver[j] = cb->buf[i+j];
-          }
+          strcpy(d->supplyState, LIELAS_SUPPLY_STATE_OK);
           
           if(!strcmp(d->name, "mini2_TH")){
+            d->datalogger = 1;
+            
+          
+            m[1] = LcreateModul();
+            sprintf(m[1]->address, "1");
+            sprintf(m[1]->mint, "%d", LIELAS_STD_MINT);
+            
+            c[1] = LcreateChannel();
+            sprintf(c[1]->address, "1");
+            sprintf(c[1]->unit, "°C");
+            sprintf(c[1]->class, "SENSOR");
+            sprintf(c[1]->type, "SHT_T");
+            c[1]->exponent = -1.0;
+            LaddChannel(m[1], c[1]);
+            
+            c[2] = LcreateChannel();
+            sprintf(c[2]->address, "2");
+            sprintf(c[2]->unit, "%%");
+            sprintf(c[2]->class, "SENSOR");
+            sprintf(c[2]->type, "SHT_RH");
+            c[2]->exponent = -1.0;
+            LaddChannel(m[1], c[2]);
+            
+            c[2] = LcreateChannel();
+            sprintf(c[2]->address, "3");
+            sprintf(c[2]->unit, "g/m³");
+            sprintf(c[2]->class, "SENSOR");
+            sprintf(c[2]->type, "SHT_AH");
+            c[2]->exponent = -1.0;
+            LaddChannel(m[1], c[2]);
+            
+            c[2] = LcreateChannel();
+            sprintf(c[2]->address, "4");
+            sprintf(c[2]->unit, "°C");
+            sprintf(c[2]->class, "SENSOR");
+            sprintf(c[2]->type, "SHT_DP");
+            c[2]->exponent = -1.0;
+            LaddChannel(m[1], c[2]);
+            
+            LaddModul(d, m[1]);
           }else{
-            lielas_log((unsigned char*)"unknown device", LOG_LEVEL_WARN);
+            snprintf(log, LOG_BUF_LEN, "unknown device: '%s'", d->name);
+            lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
             return;
           }
           
@@ -1015,42 +1134,23 @@ void LDCcheckForNewDevices(){
           
           d->registered = 1;
           
-          m[1] = LcreateModul();
-          sprintf(m[1]->address, "1");
-          sprintf(m[1]->mint, "60");
-          
-          c[1] = LcreateChannel();
-          sprintf(c[1]->address, "1");
-          sprintf(c[1]->unit, "°C");
-          sprintf(c[1]->class, "SENSOR");
-          sprintf(c[1]->type, "SHT_T");
-          c[1]->exponent = -1.0;
-          LaddChannel(m[1], c[1]);
-          
-          c[2] = LcreateChannel();
-          sprintf(c[2]->address, "2");
-          sprintf(c[2]->unit, "%%");
-          sprintf(c[2]->class, "SENSOR");
-          sprintf(c[2]->type, "SHT_H");
-          c[2]->exponent = -1.0;
-          LaddChannel(m[1], c[2]);
-          
-          LaddModul(d, m[1]);
-          
           // basic device settings finished, save device
           lielas_log((unsigned char*)"saving new Device:", LOG_LEVEL_DEBUG);
           
 					LDCadd(d);
 					LDCsaveNewDevice(d);
+					LDCsaveUpdatedDevice(d);
           
           LprintDeviceStructure(d, log, LOG_BUF_LEN, 0);
           lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
           
-					LDCsaveUpdatedDevice(d);
-          
           // set datetime
           lielas_log((unsigned char*)"setting device date and time", LOG_LEVEL_DEBUG);
           DeviceSetDatetime(d);
+          
+          // get vsource state
+          lielas_log((unsigned char*)"checking device vsource state", LOG_LEVEL_DEBUG);
+          handleBatteryManagement(d);
         }
       }
 		}
@@ -1066,10 +1166,9 @@ int ipv6ToMac(const char* ip, char *mac){
     return -1;
   }
 
-  snprintf(mac, MAC_STR_LEN, "00:%.2X:%.2X:%.2X:%.2X:%.2X:%.2X:%.2X", ipv6.s6_addr[9], ipv6.s6_addr[10],
-                                                                      ipv6.s6_addr[11], ipv6.s6_addr[12], 
-                                                                      ipv6.s6_addr[13], ipv6.s6_addr[14], 
-                                                                      ipv6.s6_addr[15]);
+  snprintf(mac, MAC_STR_LEN, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X:%.2X:%.2X"
+            , ipv6.s6_addr[8] , ipv6.s6_addr[9] , ipv6.s6_addr[10], ipv6.s6_addr[11]
+            , ipv6.s6_addr[12], ipv6.s6_addr[13], ipv6.s6_addr[14], ipv6.s6_addr[15]);
   
   return 0;
 } 

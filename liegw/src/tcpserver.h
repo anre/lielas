@@ -26,6 +26,9 @@
 
 #define TCP_SEND_BUF_SIZE 1025
 
+#define TCP_CMD_RTC_STATE "rtc"
+#define TCP_CMD_TRC_TIME  "time"
+
 void* tcpserver();
 
 #endif

@@ -109,6 +109,16 @@ public class TcpClient{
 		return sendAndReceive(msg);
 	}
 	
+	public String getRtcTime(Integer userId){
+		String msg = "{\n";
+		msg += "\"address\":\"liegw\",\n";
+		msg += "\"user\":\"" + userId.toString() + "\",\n";
+		msg += "\"cmd\":\"time\"\n";
+		msg += "}";
+		
+		return sendAndReceive(msg);
+	}
+	
 	private boolean send(String msg){
 		try{
 			java.net.Socket socket = new java.net.Socket(this.serverAddress, this.serverPort);

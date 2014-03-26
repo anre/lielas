@@ -83,6 +83,8 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 	private TextField dlCAIntTx = null;
 	private Label dlDSupplyLbl = null;
 	private Label dlCSupplyLbl = null;
+	private Label dlDSupplyStateLbl = null;
+	private Label dlCSupplyStateLbl = null;
 
 	private NativeButton dlSaveBttn = null;
 	
@@ -275,10 +277,18 @@ public class DeviceManagerDetailScreen extends VerticalLayout{
 		// Supply
 		dlDSupplyLbl = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_SUPPLY));
 		dlDSupplyLbl.addStyleName("dmDetailGridPadding");
-		dlBodyLayout.addComponent(dlDSupplyLbl, 0, 6, 1, 6);
-		dlCSupplyLbl = new Label("Battery");
+		dlBodyLayout.addComponent(dlDSupplyLbl, 0, 3, 1, 3);
+		dlCSupplyLbl = new Label(app.langHelper.GetString(this.device.getDeviceVSourceString()));
 		dlCSupplyLbl.addStyleName("dmDetailGridPadding");
-		dlBodyLayout.addComponent(dlCSupplyLbl, 2, 6);	  
+		dlBodyLayout.addComponent(dlCSupplyLbl, 2, 3);	  
+		
+		//SupplyState
+		dlDSupplyStateLbl = new Label(app.langHelper.GetString(LanguageHelper.DM_TABLE_DL_DETAILS_SUPPLY_STATE));
+		dlDSupplyStateLbl.addStyleName("dmDetailGridPadding");
+		dlBodyLayout.addComponent(dlDSupplyStateLbl, 0, 4, 1, 4);
+		dlCSupplyStateLbl = new Label(app.langHelper.GetString(this.device.getDeviceVSourceStateString()));
+		dlCSupplyStateLbl.addStyleName("dmDetailGridPadding");
+		dlBodyLayout.addComponent(dlCSupplyStateLbl, 2, 4);	  
 
 		// Moduls
 		modulAddressDLbl = new Label[20];

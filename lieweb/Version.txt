@@ -1,0 +1,4 @@
+1.0.0
+  - added BOM to csv File for correct enconding
+  - corrected delete button and popup text
+  - added server time in options tab

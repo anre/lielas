@@ -50,7 +50,10 @@ Ldevice *LcreateDevice(){
   d->name[0] = 0;
   d->sw_ver[0] = 0;
   d->supply[0] = 0;
+  d->supplyState[0] = 0;
   d->datapakets = 0;
+  d->datalogger = 0;
+  d->router = 0;
 
 	return d;
 }
@@ -121,8 +124,19 @@ void LprintDeviceStructure(Ldevice *d, char *str, int size, int all){
   pos += snprintf(&str[pos], size - pos, "  name: %s\n", d->name);
   pos += snprintf(&str[pos], size - pos, "  software version: %s\n", d->sw_ver);
   pos += snprintf(&str[pos], size - pos, "  supply: %s\n", d->supply);
+  pos += snprintf(&str[pos], size - pos, "  supply state: %s\n", d->supplyState);
   pos += snprintf(&str[pos], size - pos, "  meassurement interval: %s\n", d->mint);
-  for(i=0; i < MAX_MODULS; i++){
+  if(d->router){
+    pos += snprintf(&str[pos], size - pos, "  is a router node\n");
+  }else{
+    pos += snprintf(&str[pos], size - pos, "  is a leaf node\n");
+  }
+  if(d->datalogger){
+    pos += snprintf(&str[pos], size - pos, "  has a datalogger modul\n");
+  }else{
+    pos += snprintf(&str[pos], size - pos, "  has no datalogger modul\n");
+  }
+  for(i=1; i <= MAX_MODULS; i++){
     if(d->modul[i] == NULL){
       if(all){ // print empty entries
           pos += snprintf(&str[pos], size - pos, "*************************************************\n");
@@ -133,7 +147,7 @@ void LprintDeviceStructure(Ldevice *d, char *str, int size, int all){
       pos += snprintf(&str[pos], size - pos, "*************************************************\n");
       pos += snprintf(&str[pos], size - pos, "  Modul %i of %u with id %u and address %s:\n", i, d->moduls, d->modul[i]->id, d->modul[i]->address);
       pos += snprintf(&str[pos], size - pos, "    meassurement interval: %s\n", d->modul[i]->mint);
-      for(j=0; j < MAX_CHANNELS; j++){
+      for(j=1; j <= MAX_CHANNELS; j++){
         if(d->modul[i]->channel[j] == NULL){
           if(all){ // print empty entries
             pos += snprintf(&str[pos], size - pos, "-------------------------------------------------\n");
@@ -147,6 +161,7 @@ void LprintDeviceStructure(Ldevice *d, char *str, int size, int all){
           pos += snprintf(&str[pos], size - pos, "      type: %s\n", d->modul[i]->channel[j]->type);
           pos += snprintf(&str[pos], size - pos, "      class: %s\n", d->modul[i]->channel[j]->class);
           pos += snprintf(&str[pos], size - pos, "      unit: %s\n", d->modul[i]->channel[j]->unit);
+          pos += snprintf(&str[pos], size - pos, "      exponent: %.2f\n", d->modul[i]->channel[j]->exponent);
         }
       }
     }

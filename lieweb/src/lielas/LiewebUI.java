@@ -86,7 +86,7 @@ public class LiewebUI extends UI {
 	
 	public Config config;
 	
-	public String version = "0.1.0";
+	public String version = "1.0.0";
 
 
 	@Override

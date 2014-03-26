@@ -222,6 +222,8 @@ int testdt(struct tm *dt){
 		return -1;
 	if(dt->tm_mday < 1 || dt->tm_mday > 31)
 		return -1;
+  if(dt->tm_mon == 1 && dt->tm_mday >  29)
+    return -1;
 
 	return 0;  
 }

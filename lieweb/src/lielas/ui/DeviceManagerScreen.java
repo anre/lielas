@@ -173,7 +173,7 @@ public class DeviceManagerScreen extends Panel{
 				Device d = app.deviceContainer.firstItemId();
 				for( int i=0; i < app.deviceContainer.size(); i++){
 					if(d.getMac().equals(mac)){
-						if(d.getHasEvent()){
+						if(d.VSourceStateLow()){
 							return "highlight-red";
 						}else{
 							return null;

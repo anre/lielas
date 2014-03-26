@@ -66,41 +66,81 @@ public class DownloadScreen extends Panel{
 	public DownloadScreen(final LiewebUI app){
 		this.app = app;
 		Activate();
-		
-		HorizontalLayout hLayout = new HorizontalLayout();
-		hLayout.setSizeFull();
-		
 		setSizeFull();
 		
-		vSplit = new VerticalSplitPanel();
-		vSplit.setLocked(true);
-		vSplit.setSplitPosition(0, Unit.PIXELS);
-		vSplit.setWidth(1150, Unit.PIXELS);
-		vSplit.setHeight(100, Unit.PERCENTAGE);
-		vSplit.addStyleName("downloadscreen");
+		//first hLayout
+		HorizontalLayout firstHLayout = new HorizontalLayout();
+		firstHLayout.setSizeFull();
 		
-		// Filter
+		//first vLayout
+		VerticalLayout firstVLayout = new VerticalLayout();
+		//firstVLayout.setSizeFull();
+		firstVLayout.setWidth(1150, Unit.PIXELS);
+		firstVLayout.setHeight(100, Unit.PERCENTAGE);
+		firstVLayout.setStyleName("downlaodscreen");
+		firstHLayout.addComponent(firstVLayout);
+		firstHLayout.setComponentAlignment(firstVLayout, Alignment.TOP_CENTER);
 		
-		HorizontalLayout firstSplitLayout = new HorizontalLayout();
-		firstSplitLayout.setSizeFull();
-		vSplit.setFirstComponent(firstSplitLayout);		
+		//second vLayout
+		VerticalLayout secondVLayout = new VerticalLayout();
+		secondVLayout.setWidth(1150, Unit.PIXELS);
+		secondVLayout.setStyleName("downlaodscreen");
+		firstVLayout.addComponent(secondVLayout);
+		firstVLayout.setExpandRatio(secondVLayout, 1.0f);
 		
-		// Table
+		//top Spacer
+		Label topSpacer = new Label();
+		topSpacer.setHeight(20, Unit.PIXELS);
+		secondVLayout.addComponent(topSpacer);
 		
-		VerticalLayout secondSplitLayout = new VerticalLayout();
-		secondSplitLayout.setSizeFull();
-		vSplit.setSecondComponent(secondSplitLayout);
-	
+		//second hLayout
+		HorizontalLayout secondHLayout = new HorizontalLayout();
+		secondHLayout.setSizeFull();
+		secondVLayout.addComponent(secondHLayout);
+		secondVLayout.setExpandRatio(secondHLayout, 1.0f);
+		
+		Label leftSpacer = new Label();
+		leftSpacer.setWidth(75, Unit.PIXELS);
+		secondHLayout.addComponent(leftSpacer);
+		
+		//content Layout
+		VerticalLayout contentLayout = new VerticalLayout();
+		contentLayout.setSizeFull();
+		secondHLayout.addComponent(contentLayout);
+		secondHLayout.setExpandRatio(contentLayout, 1.0f);
+
+		
+		// Download-Button
+		
+		downloadBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.DL_BTTN_DOWNLOAD));
+		downloadBttn.addStyleName("downloadscreen");
+		contentLayout.addComponent(downloadBttn);
+		contentLayout.setComponentAlignment(downloadBttn, Alignment.TOP_RIGHT);
+		
+		CSVHelper csv = new CSVHelper(app);
+		
+		StreamResource sr = csv.GetCSVFile("data");
+		FileDownloader fileDownloader = new FileDownloader(sr);
+		fileDownloader.extend(downloadBttn);
+		
+		//bottom Spacer
+		Label midSpacer = new Label();
+		midSpacer.setHeight(20, Unit.PIXELS);
+		contentLayout.addComponent(midSpacer);
+		
+		//table	
 		downloadTable = new Table(app.langHelper.GetString(LanguageHelper.DL_TABLE_CAPTION));
 		downloadTable.setWidth(1000, Unit.PIXELS);
+		//downloadTable.setHeight(100, Unit.PERCENTAGE);
 		downloadTable.setSelectable(true);
 		downloadTable.setMultiSelect(true);
 		downloadTable.setImmediate(true);
 		downloadTable.setPageLength(0);
 		downloadTable.setStyleName("downloadscreen");
 		downloadTable.setSortEnabled(false);
-		secondSplitLayout.addComponent(downloadTable);
-		secondSplitLayout.setComponentAlignment(downloadTable,  Alignment.TOP_LEFT);
+		contentLayout.addComponent(downloadTable);
+		contentLayout.setComponentAlignment(downloadTable,  Alignment.TOP_LEFT);
+		contentLayout.setExpandRatio(downloadTable, 1.0f);
 		
 		downloadTable.addContainerProperty("", String.class, null);
 		downloadTable.addContainerProperty(LanguageHelper.DL_TABLE_COL_ADDRESS, String.class, null);
@@ -118,40 +158,21 @@ public class DownloadScreen extends Panel{
 
 		FillDownloadTable();
 		
+		//help text
 		downloadHelpText = new Label(app.langHelper.GetString(LanguageHelper.DL_HELPTEXT_MULTISELECT));
 		downloadHelpText.addStyleName("downloadscreen");
 		downloadHelpText.addStyleName("helptext");
-		secondSplitLayout.addComponent(downloadHelpText);
-		secondSplitLayout.setComponentAlignment(downloadHelpText, Alignment.TOP_LEFT);
-		
-		// Download-Button
-		
-		downloadBttn = new NativeButton(app.langHelper.GetString(LanguageHelper.DL_BTTN_DOWNLOAD));
-		downloadBttn.addStyleName("downloadscreen");
-		secondSplitLayout.addComponent(downloadBttn);
-		secondSplitLayout.setComponentAlignment(downloadBttn, Alignment.TOP_RIGHT);
-		secondSplitLayout.setExpandRatio(downloadBttn, 1.0f);
-		
-		CSVHelper csv = new CSVHelper(app);
-		
-		StreamResource sr = csv.GetCSVFile("data");
-		FileDownloader fileDownloader = new FileDownloader(sr);
-		fileDownloader.extend(downloadBttn);
-		
-		/*downloadBttn.addClickListener(new ClickListener(){
-			@Override
-			public void buttonClick(ClickEvent event) {
-				// TODO Auto-generated method stub
-				BttnDownloadClicked(event);
-			}
-		});*/
-		
+		downloadHelpText.setHeight(20, Unit.PIXELS);
+		contentLayout.addComponent(downloadHelpText);
+		contentLayout.setComponentAlignment(downloadHelpText, Alignment.TOP_LEFT);
 
-
+		//bottom Spacer
+		Label bottomSpacer = new Label();
+		bottomSpacer.setHeight(20, Unit.PIXELS);
+		contentLayout.addComponent(bottomSpacer);
 		
-		hLayout.addComponent(vSplit);
-		hLayout.setComponentAlignment(vSplit, Alignment.TOP_CENTER);
-		setContent(hLayout);
+		setContent(firstHLayout);		
+		
 	}
 	
 	public void Update(){
@@ -184,6 +205,7 @@ public class DownloadScreen extends Panel{
 		Device d = app.deviceContainer.firstItemId();
 		
 		for( Integer i = 0; i < app.deviceContainer.size(); i++){
+		//for( Integer i = 0; i < 2; i++){
 			for(Integer j = 1; j < (d.getModuls()+1); j++){
 				Modul m = d.getModul(j);
 				if(m != null){

@@ -5,21 +5,27 @@ src/devicehandler.c \
 src/liegw.c \
 src/settings.c \
 src/log.c \
-src/tcpserver.c
+src/tcpserver.c \
+src/resetButton.c \
+src/powerButton.c
 
 OBJS += \
 src/devicehandler.o \
 src/liegw.o \
 src/settings.o \
 src/log.o \
-src/tcpserver.o
+src/tcpserver.o \
+src/resetButton.o \
+src/powerButton.o
 
 C_DEPS += \
 src/devicehandler.d \
 src/liegw.d \
 src/settings.d \
 src/log.d \
-src/tcpserver.d
+src/tcpserver.d \
+src/resetButton.d \
+src/powerButton.d
 
 # Each subdirectory must supply rules for building sources it contributes
 %.o: %.c

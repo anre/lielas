@@ -55,6 +55,8 @@ int convertValueWithExponent(char *indata, char *outval, uint8_t outValLen, doub
 uint16_t get_crc(unsigned char* data, int len);
 int getNumberOfDatasets(Ldevice *d);
 int handleRtdbgsys(Ldevice* d);
+double relHumidityToAbs(double rel, double temp);
+double calculateDewpoint(double rel, double temp);
 
 /********************************************************************************************************************************
  * 		void HandleDevices(): handle device events
@@ -72,6 +74,10 @@ void HandleDevices(){
   char log[LOG_BUF_LEN];
   int datapakets;
   static int lastHour;
+  
+  
+  //d = LDCgetFirstDevice();
+  //handleBatteryManagement(d);
   
   //check if it is time to get data
   time(&rawtime);
@@ -106,6 +112,7 @@ void HandleDevices(){
   snprintf(log, LOG_BUF_LEN, "Starting to get data. %i devices, timeslots are %i s long", numberOfDevices, timeslotDuration);
   lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
+  
   //get first device
   d = LDCgetFirstDevice();
   if(d == NULL) 
@@ -117,6 +124,7 @@ void HandleDevices(){
     if(now->tm_hour == 0){
       DeviceSetDatetime(d);
       handleRtdbgsys(d);
+      handleBatteryManagement(d);
     }
   
     //calculate end of timeslot
@@ -176,6 +184,19 @@ void HandleDevices(){
     //get next device
     d = LDCgetNextDevice();
   }
+  
+  //check if it is time to reset BR
+  time(&rawtime);
+  now = gmtime(&rawtime);
+  
+  if(now->tm_hour == 0){
+    lielas_log((unsigned char*)"error reserving space for datapaket container", LOG_LEVEL_WARN);
+    system("./deactivateBRnor");
+    sleep(2);
+    system("./activateBRnor");
+  }
+  
+  
   free(endTime);
   free(endOfTimeslot);
 }
@@ -244,6 +265,7 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc, int offset){
   datapaket *dp;
   int16_value_t val;
   crc_t crc;
+  double temp, hum;
 
   snprintf(log, LOG_BUF_LEN, "\nget device data from %s", d->mac);
   lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
@@ -310,23 +332,40 @@ int getDeviceData(Ldevice *d, datapaketcontainer *dpc, int offset){
           dp->m = d->modul[1];
           dp->c = d->modul[1]->channel[cnr];
           //build value
-          val.uh = cb->buf[pos + 1];
-          val.ul = cb->buf[pos];
-          //convert value to string
-          double dval = (double)val.val / 100.;
-          snprintf(dp->value, VALUEBUFFER_SIZE, "%.2f", (double)dval);
+          if( cnr == 3){
+            double dval = relHumidityToAbs(hum, temp);
+            snprintf(dp->value, VALUEBUFFER_SIZE, "%.2f", (double)dval);
+            snprintf(log, LOG_BUF_LEN, "calculated value: %s", dp->value);
+            lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+          }else if(cnr == 4){
+            double dval = calculateDewpoint(hum, temp);
+            snprintf(dp->value, VALUEBUFFER_SIZE, "%.2f", (double)dval);
+            snprintf(log, LOG_BUF_LEN, "calculated value: %s", dp->value);
+            lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+          }else{
+            val.uh = cb->buf[pos + 1];
+            val.ul = cb->buf[pos];
+            //convert value to string
+            double dval = (double)val.val / 100.;
+            if(cnr == 1){
+              temp = dval;
+            }else if(cnr == 2){
+              hum = dval;
+            }
+            snprintf(dp->value, VALUEBUFFER_SIZE, "%.2f", (double)dval);
+            pos += 2;
+            snprintf(log, LOG_BUF_LEN, "found value: %x:%x ... %s", (unsigned char)cb->buf[pos-2], (unsigned char)cb->buf[pos-1], dp->value);
+            lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
+          }
           //change . to , in string
           char komma[]  = ".";
           int kommaPos = strcspn(dp->value, komma);
-          if(komma > 0){
+          if(kommaPos > 0){
             dp->value[kommaPos] = ',';
           }
-          pos += 2;
           memcpy(dp->dt, &dt, sizeof(struct tm));
           dpc->dp[dpc->datapakets] = dp;
           dpc->datapakets += 1;
-          snprintf(log, LOG_BUF_LEN, "found value: %x:%x ... %s", (unsigned char)cb->buf[pos-2], (unsigned char)cb->buf[pos-1], dp->value);
-          lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
         }
       }
       pos += 2;
@@ -345,7 +384,6 @@ int DeviceSetDatetime(Ldevice *d){
 	struct tm dt;
 	char cmd[CMDBUFFER_SIZE];
 	char datetime[CMDBUFFER_SIZE];
-  char recvDt[CMDBUFFER_SIZE];
 	char buf[CMDBUFFER_SIZE];
   char log[CMDBUFFER_SIZE];
 	coap_buf *cb = coap_create_buf();
@@ -381,7 +419,7 @@ int DeviceSetDatetime(Ldevice *d){
   
   dt.tm_isdst = 0;
 	strptime(cb->buf, "%Y.%m.%d-%H:%M:%S", &dt);
-  snprintf(log, CMDBUFFER_SIZE, "device time: %s", recvDt);
+  snprintf(log, CMDBUFFER_SIZE, "device time: %s", cb->buf);
   lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
   
 	time(&rawtime);
@@ -508,6 +546,9 @@ int handleRtdbgsys(Ldevice* d){
   }
   
   for(i = 0; i < cb->len; i++){
+    if(cb->buf[i] == 0){
+      break;
+    }
     snprintf(&rtdbgsys[i * 2], DATABUFFER_SIZE * 2, "%02X", (uint8_t)cb->buf[i]);
   }
   rtdbgsys[i * 2] = 0;
@@ -543,11 +584,111 @@ int handleRtdbgsys(Ldevice* d){
   return 0;
 }
 
-/********************************************************************************************************************************
- * 		int handleBatmons(Ldevice* d):
- * 			get battery value and save it to database
- ********************************************************************************************************************************/
+/******************************************************************************
+ * double relHumidityToAbs(double rel, double temp)
+ *
+ * approximates absolute humidity over water with given
+ * relative humidity in % and temperature in °C
+ ******************************************************************************/
+double relHumidityToAbs(double rel, double temp){
+    double a = 7.5;
+    double b = 237.3;
+    const double rs = 8314.3;
+    const double mw = 18.016;
+    double sdd; // Sättigungsdampfdruck
+    double dd; // Dampfduck in hPa
+    double af;  //absolute Feuchte
 
+    if(temp < 0){
+        a = 7.6;
+        b = 240.7;
+    }
+
+    sdd = 6.1078 * pow(10. , (a*temp) / (b + temp));
+    dd = rel / 100 * sdd;
+    af = pow(10, 5) * mw / rs * dd / (temp + 273.15) ;
+    return af;
+}
+
+/******************************************************************************
+ * double relHumidityToAbs(double rel, double temp)
+ *
+ * approximates absolute humidity over water with given
+ * relative humidity in % and temperature in °C
+ ******************************************************************************/
+double calculateDewpoint(double rel, double temp){
+    double a = 7.5;
+    double b = 237.3;
+    double sdd; // Sättigungsdampfdruck
+    double dd; // Dampfduck in hPa
+    double v;
+    double td; // taupunkttemperatur
+
+    if(temp < 0){
+        a = 7.6;
+        b = 240.7;
+    }
+
+    sdd = 6.1078 * pow(10. , (a*temp) / (b + temp));
+    dd = rel / 100 * sdd;
+    v = log10(dd/6.1087);
+    td = (b * v) / (a - v);
+    return td;
+}
+
+/********************************************************************************************************************************
+ * 		int handleBatteryManagement(Ldevice* d):
+ * 			get battery value and save it to database, raise battery low event if battery voltage is low
+ ********************************************************************************************************************************/
+int handleBatteryManagement(Ldevice* d){
+  coap_buf *cb;        
+  unsigned char buf[DATABUFFER_SIZE] = { 0 };
+  char bat[DATABUFFER_SIZE];
+  double batValue;
+  char cmd[CMDBUFFER_SIZE];
+  char log[LOG_BUF_LEN];
+  //int i;
+	//char st[CMDBUFFER_SIZE];
+	//PGresult *res;
+  //time_t rawtime;
+  //struct tm *now;
+	//char adrStr[CMDBUFFER_SIZE];
+	//char dtStr[CMDBUFFER_SIZE];
+
+  cb = coap_create_buf();
+  if( cb == NULL){
+    snprintf(log, LOG_BUF_LEN, "failed to create coap buffer");
+    lielas_log((unsigned char*)log, LOG_LEVEL_ERROR);
+    return -1;
+  }
+  cb->buf = (char*)buf;
+  cb->bufSize = DATABUFFER_SIZE;
+  
+  snprintf(cmd, DATABUFFER_SIZE, "coap://[%s]:5683/info", d->address);        
+  coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+  
+  if(cb->status != COAP_STATUS_CONTENT){
+    lielas_log((unsigned char*) "Status error getting data", LOG_LEVEL_DEBUG);
+    return -1;
+  }
+  
+  lwp_get_attr_value(cb->buf, cb->bufSize, bat, DATABUFFER_SIZE, 5);
+  if(strncmp(bat, "Vbat=", 5)){
+    return -1;
+  }
+  
+  batValue = strtod((char*)(bat + 5), NULL);
+  
+  if( batValue < LIELAS_SUPPLY_LOW_VOLTAGE ){
+    strcpy(d->supplyState, LIELAS_SUPPLY_STATE_LOW);
+  }else{
+    strcpy(d->supplyState, LIELAS_SUPPLY_STATE_OK);
+  }
+	LDCsaveUpdatedDevice(d);
+  
+  return 0;
+} 
+ 
 /********************************************************************************************************************************
  * 		datapaketcontainer CreateDatapaketcontainer()
  ********************************************************************************************************************************/

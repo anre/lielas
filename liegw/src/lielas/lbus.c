@@ -938,7 +938,8 @@ static int changeNetType(Lbuscmd *cmd, int tok, jsmntok_t *tokens, int maxTokens
         return -1;
       }
     }else{
-      lielas_log((unsigned char*)"Failed to change network settings, unknown net_type", LOG_LEVEL_WARN);
+      snprintf(log, LOG_BUF_LEN, "Failed to change network settings, unknown net_type '%s'", net_type);
+      lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
       setCmdHandled(cmd);
       return -1;
     }

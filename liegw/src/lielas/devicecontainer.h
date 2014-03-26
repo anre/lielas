@@ -57,6 +57,7 @@ int LDCremove(Ldevice *d);
 int LDCgetNumberOfDevices();
 int LDCloadDevices();
 int LDCsaveNrOfDatapakte(Ldevice *d);
+int LDCsaveUpdatedDevice(Ldevice *d);
 int LDCgetDeviceByAddress(const char* adr, Ldevice **d);
 int LDCgetDeviceById(int id, Ldevice **d);
 void LDCcheckForNewDevices();

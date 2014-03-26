@@ -159,9 +159,13 @@ void* tcpserver(){
                 time(&rawtime);
                 tmnow = gmtime(&rawtime);
                 cmd->tmrecv = *tmnow;
-                if(!strcmp(cmd->cmd, "rtc")){
+                if(!strcmp(cmd->cmd, TCP_CMD_RTC_STATE)){
                   //answer rtc state immediately
                   snprintf(sendBuf, TCP_SEND_BUF_SIZE, "ok\n%s\n", rtc_get_state_text());
+                  write(connfd, sendBuf, strlen(sendBuf));
+                }else if(!strcmp(cmd->cmd, TCP_CMD_TRC_TIME)){
+                  //answer rtc time immediately
+                  strftime(sendBuf, TCP_SEND_BUF_SIZE, "ok\n%R %d.%m.%Y\n", tmnow);
                   write(connfd, sendBuf, strlen(sendBuf));
                 }else{
                   if(lbus_add(cmd, 1)){

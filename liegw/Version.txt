@@ -1,0 +1,4 @@
+1.0.1
+  - fixed RTC bug: rtc month 1-12 and linux month 0-11
+  - added tcp server command get time
+  - added channel 3 and 4 for miniTH (AH and DP)

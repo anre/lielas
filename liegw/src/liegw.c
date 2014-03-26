@@ -44,6 +44,10 @@
 #include "coap/libcoap/coap.h"
 #include "coap/mycoap.h"
 
+#include "resetButton.h"
+#include "powerButton.h"
+
+#include "lielas/lwp.h"
 /*
  * 		main
  */
@@ -53,10 +57,13 @@
  
 int main(void) {
   pthread_t tcpserverThread;
+  pthread_t rbHandlerThread;
+  pthread_t pbHandlerThread;
   time_t rawtime;
   struct tm *now;
   char log[LOG_BUF_LEN];
-
+  int error;
+  
   //pid = fork();
   
   //setbuf(stdout, NULL);
@@ -69,7 +76,7 @@ int main(void) {
   
   lielas_log((unsigned char*)"load settings", LOG_LEVEL_DEBUG);
   if(set_load()){
-      lielas_log((unsigned char*)"Error loading settings from config.properties", LOG_LEVEL_ERROR);
+      lielas_log((unsigned char*)"Error loading settings from config.json", LOG_LEVEL_ERROR);
       return -1;
   }
   
@@ -112,6 +119,26 @@ int main(void) {
 
   lielas_log((unsigned char*)"Starting coap server thread", LOG_LEVEL_DEBUG);
   pthread_create(&tcpserverThread, NULL, tcpserver, NULL);
+  
+  lielas_log((unsigned char*)"init reset Button", LOG_LEVEL_DEBUG);
+  error = rb_init();
+	if(error != 0){
+    snprintf(log, LOG_BUF_LEN, "Error initializing reset button with error code: %d", error);
+		lielas_log((unsigned char*)log, LOG_LEVEL_ERROR);
+		return -5;
+	} 
+  lielas_log((unsigned char*)"Starting reset button handler thread", LOG_LEVEL_DEBUG);
+  pthread_create(&rbHandlerThread, NULL, rb_handler, NULL);
+  
+  lielas_log((unsigned char*)"init power Button", LOG_LEVEL_DEBUG);
+  error = pb_init();
+	if(error != 0){
+    snprintf(log, LOG_BUF_LEN, "Error initializing power button with error code: %d", error);
+		lielas_log((unsigned char*)log, LOG_LEVEL_ERROR);
+		return -5;
+	} 
+  lielas_log((unsigned char*)"Starting power button handler thread", LOG_LEVEL_DEBUG);
+  pthread_create(&pbHandlerThread, NULL, pb_handler, NULL);  
 
 	lielas_log((unsigned char*)"Lielasd COAP server successfully started", LOG_LEVEL_DEBUG);
   

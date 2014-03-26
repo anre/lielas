@@ -52,7 +52,10 @@ typedef struct Ldevice_struct{
   char name[DEVICE_MAX_STR_LEN];
   char sw_ver[DEVICE_MAX_STR_LEN];
   char supply[DEVICE_MAX_STR_LEN];
+  char supplyState[DEVICE_MAX_STR_LEN];
   int moduls;
+  int datalogger;
+  int router;
   int datapakets;
   Lmodul *modul[MAX_MODULS];
   struct tm lastProcessed;

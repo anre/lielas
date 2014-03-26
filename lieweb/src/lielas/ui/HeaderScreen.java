@@ -71,6 +71,9 @@ public class HeaderScreen extends Panel{
 		//setSizeFull();
 		//setScrollable(false);
 			
+		Label firstSpacer = new Label();
+		firstSpacer.setWidth(40, Unit.PIXELS);
+		
 		Label leftSpacer = new Label();
 		leftSpacer.setWidth(40, Unit.PIXELS);
 		
@@ -181,10 +184,13 @@ public class HeaderScreen extends Panel{
 			}
 		});		
 		
-
-		ThemeResource res_header = new ThemeResource("images/logo.png");
+		ThemeResource comp_header = new ThemeResource("images/comp_logo.png");
+		Embedded comp_logo_header = new Embedded(null, comp_header);
+		ThemeResource res_header = new ThemeResource("images/lielas_logo.png");
 		Embedded pic_header = new Embedded(null, res_header);	
-		
+
+		lo.addComponent(firstSpacer);
+		lo.addComponent(pic_header);
 		lo.addComponent(leftSpacer);
 		lo.addComponent(DeviceManagerButton);
 		lo.addComponent(DownloadButton);
@@ -197,7 +203,7 @@ public class HeaderScreen extends Panel{
 		lo.addComponent(FirstLanguageLbl);
 		lo.addComponent(delimiterLbl);
 		lo.addComponent(SecondLanguageLbl);
-		lo.addComponent(pic_header);
+		lo.addComponent(comp_logo_header);
 		lo.addComponent(rightSpacer);
 		
 		lo.setExpandRatio(middleSpacer, 1.0f);

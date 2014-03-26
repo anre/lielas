@@ -47,10 +47,8 @@ public class Config {
 	String csvFiletypeEnding = ".csv";
 	
 	String sixLowPanPrefix = "";
-	String sixLowPanGatewayIP = "";
-	String sixLowPanUART = "";
-	String sixLowPanBaudrate = "";
-	String sixLowPanTunnel = "";
+	String sixLowPanGatewayEui64 = "";
+	Integer sixLowPanPanid = 0;
 	
 	String tcpServerAddress = "";
 	Integer tcpServerPort = 5684;
@@ -97,10 +95,8 @@ public class Config {
 		csvFiletypeEnding = configFile.getProperty("csvFiletypeEnding");
 		
 		sixLowPanPrefix = configFile.getProperty("6LowPanPrefix");
-		sixLowPanGatewayIP = configFile.getProperty("6LowPanGwIp");
-		sixLowPanUART = configFile.getProperty("6LowPanUart");
-		sixLowPanBaudrate = configFile.getProperty("6LowPanBaudrate");
-		sixLowPanTunnel = configFile.getProperty("6LowPanTun");
+		sixLowPanGatewayEui64 = configFile.getProperty("6LowPanGwEui64");
+		sixLowPanPanid = Integer.parseInt(configFile.getProperty("6LowPanPanid"));
 		
 		tcpServerAddress = configFile.getProperty("tcpServerAddress");
 		tcpServerPort = Integer.parseInt(configFile.getProperty("tcpServerPort"));
@@ -213,20 +209,20 @@ public class Config {
 		this.sixLowPanPrefix = sixLowPanPrefix;
 	}
 
-	public String getSixLowPanGatewayIP() {
-		return sixLowPanGatewayIP;
+	public String getSixLowPanGatewayEui64() {
+		return sixLowPanGatewayEui64;
 	}
 
-	public void setSixLowPanGatewayIP(String sixLowPanGatewayIP) {
-		this.sixLowPanGatewayIP = sixLowPanGatewayIP;
+	public void setSixLowPanGatewayEui64(String sixLowPanGatewayEui64) {
+		this.sixLowPanGatewayEui64 = sixLowPanGatewayEui64;
 	}
 
-	public String getSixLowPanUART() {
-		return sixLowPanUART;
+	public Integer getSixLowPanPanid() {
+		return sixLowPanPanid;
 	}
 
-	public void setSixLowPanUART(String sixLowPanUART) {
-		this.sixLowPanUART = sixLowPanUART;
+	public void setSixLowPanPanid(Integer sixLowPanPanid) {
+		this.sixLowPanPanid = sixLowPanPanid;
 	}
 
 	public String getTcpServerAddress() {
@@ -243,22 +239,6 @@ public class Config {
 
 	public void setTcpServerPort(Integer tcpServerPort) {
 		this.tcpServerPort = tcpServerPort;
-	}
-
-	public String getSixLowPanBaudrate() {
-		return sixLowPanBaudrate;
-	}
-
-	public void setSixLowPanBaudrate(String sixLowPanBaudrate) {
-		this.sixLowPanBaudrate = sixLowPanBaudrate;
-	}
-
-	public String getSixLowPanTunnel() {
-		return sixLowPanTunnel;
-	}
-
-	public void setSixLowPanTunnel(String sixLowPanTunnel) {
-		this.sixLowPanTunnel = sixLowPanTunnel;
 	}
 
 	public String getSqlServerAddress() {

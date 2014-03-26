@@ -235,6 +235,7 @@ public class SQLHelper implements Serializable {
 		String group;
 		int mInt = 0;
 		String supply;
+		String supplyState;
 		int id;
 		
 		String moduls;
@@ -251,7 +252,7 @@ public class SQLHelper implements Serializable {
 		
 		try{
 			Statement st = conn.createStatement();
-			ResultSet rs = st.executeQuery("SELECT id, address, mac, registered, name, dev_group, mint, moduls  FROM lielas.devices ORDER BY id");
+			ResultSet rs = st.executeQuery("SELECT id, address, mac, registered, name, dev_group, mint, moduls, v_source,  v_source_state  FROM lielas.devices ORDER BY id");
 			
 			if(rs.next()){
 				while(rs.getInt(1) < ID){
@@ -278,11 +279,11 @@ public class SQLHelper implements Serializable {
 					mInt = Integer.parseInt(rs.getString(7));
 				}
 				
-				//supply = rs.getString(10);
-				supply  = "bat";
+				supply = rs.getString(9);
+				supplyState = rs.getString(10);
 				moduls = GetDeviceModuls(id);
 				
-				d = new Device(address, mac, registered, name, group, mInt, supply, id);
+				d = new Device(address, mac, registered, name, group, mInt, supply, supplyState, id);
 				
 				// get Moduls
 				if( moduls != null){

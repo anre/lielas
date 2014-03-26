@@ -65,7 +65,9 @@ public class CSVHelper implements Serializable{
 					if(app == null || app.deviceContainer == null || DeviceContainer.sql == null){
 						return new ByteArrayInputStream("Error".getBytes());
 					}
-					StringBuilder csvStr = DeviceContainer.sql.GetDataTable(app.deviceContainer, app.user.getTimezone(), app.langHelper);
+					StringBuilder csvStr = new StringBuilder();
+					csvStr.append("\uFEFF");
+					csvStr.append(DeviceContainer.sql.GetDataTable(app.deviceContainer, app.user.getTimezone(), app.langHelper));
 					if(csvStr == null){
 						return new ByteArrayInputStream("Error".getBytes());
 					}

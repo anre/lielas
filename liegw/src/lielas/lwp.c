@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 
 #include "lwp.h"
@@ -61,115 +62,6 @@ void lwp_init_attr(lwp_attr *attr){
  * 		lwp_parse_wkc
  ********************************************************************************************************************************/
 int lwp_parse_wkc(char *str, lwp_wkc *wkc){
-  char resname[LWP_MAX_RES_NAME_LEN];
-  char attrname[LWP_MAX_ATTR_NAME_LEN];
-  char *title;
-  char log[1000];
-  int pos = 0;
-  int eof = 0;
-  int eoa = 0;
-  int len;
-  int i;
-  lwp_resource *res;
-  //char wkcstr[LWP_MAX_WKC_LEN];
-  
-  
-  if(str[0] == 0){
-    lielas_log((unsigned char*)"error parsing wkc, empty wkc string", LOG_LEVEL_WARN);
-    return -1;
-  }
-  
-  //init wkc
-  wkc->channels = 0;
-  lwp_init_resource(&wkc->info);
-  lwp_init_resource(&wkc->device);
-  lwp_init_resource(&wkc->modul);
-  lwp_init_resource(&wkc->network);
-  lwp_init_resource(&wkc->database);
-  lwp_init_resource(&wkc->logger);
-  for(i = 0; i < MAX_CHANNELS; i++){
-    lwp_init_resource(&wkc->channel[i]);
-  }
-  
-  str = strchr(&str[1], '<');
-  len = strlen(str);
-  while(!eof){
-    //search resource token
-    if(str[pos] == '<' && str[pos+1] == '/'){
-      pos += 2;
-      //get resource name
-      for(i = 0; i < LWP_MAX_RES_NAME_LEN && ((pos+i) < len); i++){
-        if(str[pos+i] == '>'){
-          break;
-        }
-        resname[i] = str[pos+i];
-      }
-      resname[i] = 0;
-      res = lwp_get_res_by_name(resname, wkc);
-      
-      //special case resource channel
-      if(strncmp(resname, LWP_RESOURCE_CHANNEL, strlen(LWP_RESOURCE_CHANNEL)) == 0){
-        wkc->channels += 1;
-        if( wkc->channels >= MAX_CHANNELS){
-          wkc->channels -= 1;
-          res = 0;
-        }
-      }
-        
-      if(res == 0){ //unknown resource
-        snprintf(log, 1000, "unknown resource parsing .well-known/core: %s", resname);
-        lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-      }else{  // save resource and parse attributes
-        strncpy(res->name, resname, LWP_MAX_RES_NAME_LEN);
-      
-        //search title token
-        title = strstr(&str[pos], "title");
-        if(title == NULL){
-          lielas_log((unsigned char*)"error parsing wkc, title token not found", LOG_LEVEL_WARN);
-          return -1;
-        }
-        //parse title
-        title = strchr(title, '"');
-        if(title == NULL){
-          lielas_log((unsigned char*)"error parsing wkc, title value not found", LOG_LEVEL_WARN);
-          return -1;
-        }
-        
-        pos = title - str + 1;
-        eoa = 0;
-        
-        i = 0;
-        while(!eoa){  // scan full title
-          for(i = 0; i < LWP_MAX_ATTR_NAME_LEN && ((pos+i) < len); i++){
-            if( str[pos+i] == ' '){
-              break;
-            }else if(str[pos+i] == '"' || str[pos+i] == ' ' || str[pos+i] == '\n' || str[pos+i] == '|'){ // end of title
-              eoa = 1;
-              break;
-            }
-            attrname[i] =  str[pos+i];
-          }
-          attrname[i] = 0;
-          pos += i + 1;
-          if( strlen(attrname) > 0){
-            if(lwp_add_attr(attrname, res) != 0){
-              lielas_log((unsigned char*)"error parsing wkc, can't add attribute", LOG_LEVEL_WARN);
-              return -1;
-            }
-          }
-        }
-      } 
-    }
-      
-    if(str[pos] == 0 || pos > len){
-      eof = 1;
-    }
-    pos += 1;
-  }
-  
-  //lwp_print_wkc(wkc, wkcstr);
-  //lielas_log((unsigned char*) wkcstr, LOG_LEVEL_DEBUG);
-  
   return 0;
 }
 
@@ -261,45 +153,70 @@ void lwp_print_wkc(lwp_wkc *wkc, char* str){
 /********************************************************************************************************************************
  * 		lwp_parse_resource
  ********************************************************************************************************************************/ 
-int lwp_get_attr_value(char *str, lwp_resource *res, char *attr_name, char *val, int size){
-  int rank;
-  int pos =0 ;
+int lwp_get_attr_value(char *attr, int attrSize, char *val, int size, int pos){
   int i;
-
-  //get attriubte rank
-  for(rank=0; rank < res->attributes && rank < LWP_MAX_ATTRIBUTES; rank++){
-    if(strcmp(res->attr[rank].name, attr_name)== 0){
+  int start = 0;
+  int end = 0;
+  
+  if( pos < 1){
+    return -1;
+  }
+  pos -= 1;
+  
+  //search for start
+  for(i = 0; attr[i] != 0 && i < attrSize; i++){
+    if(attr[i] == '\t' || attr[i] == 0 || i == (attrSize -1)){
+      pos -= 1;
+      i += 1;
+    }
+    
+    
+    if(pos == 0){
+      //found value
+      start = i;
       break;
     }
   }
-  if(rank >= LWP_MAX_ATTRIBUTES || rank >= res->attributes){
+  if(i == (attrSize -1) && pos != 0){
     return -1;
   }
   
-  while(rank > 0){
-    if(str[pos] == '\t' || str[pos] == '\n' || str[pos] == 0){
-      rank -= 1;
+  //search for end
+  for(; i < attrSize; i++){
+    if(attr[i] == '\t' || attr[i] == 0 || i == (attrSize -1)){
+      //found end
+      end = i;
+      break;
     }
-    pos += 1;
-    if(pos >= size){
+    if(attr[i] == 0){
       return -1;
     }
   }
-  for( i = 0; pos < size; i++){
-    if(str[pos+i] == '\t' || str[pos+i] == '\n' || str[pos+i] == 0){
-      break;
-    }
-    val[i] = str[pos + i];
+  
+  //copy string
+  for(i = 0; i < (end - start) && i < size; i++){
+    val[i] = attr[start + i];
   }
   
-  if((pos+i) >= size){
-    val[0] = 0;
+  if( i >= size){
     return -1;
   }
   val[i] = 0;
   return 0;
 }
 
+/********************************************************************************************************************************
+ * 		int lwp_get_vbat(char* attr, int len)
+ ********************************************************************************************************************************/ 
+int lwp_get_vbat(char* attr, int len){
+  int ival;
+  double val = strtod(&attr[5], NULL);
+  if(val < 2. ||val > 4.){
+    val = 0.0;
+  }
+  ival = (int)(val * 1000);
+  return ival;
+}
 /********************************************************************************************************************************
  * 		lwp_compdt_to_struct_tm
  * 

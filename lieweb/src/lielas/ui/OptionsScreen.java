@@ -96,6 +96,9 @@ public class OptionsScreen extends Panel{
 	private Table groupsTable = null;
 	
 	private Label versionLbl = null;
+	private Label panidLbl = null;
+	private Label gwMacLbl = null;
+	private Label gwPrefixLbl = null;
 	
 	private Label clockSettingsLbl = null;
 	private Label languageSettingsLbl = null;
@@ -107,6 +110,7 @@ public class OptionsScreen extends Panel{
 	private CheckBox useTimeServerCB = null;
 	private TextField timeServerTxt = null;
 	private Label rtcStateTxt = null;
+	private Label rtcTimeTxt = null;
 	private InlineDateField dateField = null;
 	private NativeButton setDatetimeBttn = null;
 	
@@ -203,6 +207,15 @@ public class OptionsScreen extends Panel{
 		
 		versionLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_VERSION) + ": " + app.version);
 		infoLayout.addComponent(versionLbl);
+		
+		panidLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_PANID) + ": " + app.config.getSixLowPanPanid().toString());
+		infoLayout.addComponent(panidLbl);
+		
+		gwMacLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_GW_EUI64) + ": " + app.config.getSixLowPanGatewayEui64());
+		infoLayout.addComponent(gwMacLbl);
+		
+		gwPrefixLbl = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_GW_PREFIX) + ": " + app.config.getSixLowPanPrefix());
+		infoLayout.addComponent(gwPrefixLbl);
 	
 		//////////////////////////////////////////////////////////////////////////////////////////////
 		// 								Clock Settings
@@ -229,9 +242,11 @@ public class OptionsScreen extends Panel{
 		FormLayout timeServerLo = new FormLayout();
 		clockSettingsLayout.addComponent(timeServerLo);
 		
-		rtcStateTxt = new Label("RTC Status: ");
+		rtcStateTxt = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_STATE));
 		timeServerLo.addComponent(rtcStateTxt);
-		
+
+		rtcTimeTxt = new Label(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_TIME));
+		timeServerLo.addComponent(rtcTimeTxt);
 		
 		
 		dateField = new InlineDateField();
@@ -709,6 +724,11 @@ public class OptionsScreen extends Panel{
 		
 		Config cfg =  new Config();
 		cfg.LoadSettings();
+
+		versionLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_VERSION) + ": " + app.version);
+		panidLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_PANID) + ": " + cfg.getSixLowPanPanid().toString());
+		gwMacLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_GW_EUI64) + ": " + cfg.getSixLowPanGatewayEui64());
+		gwPrefixLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_GW_PREFIX) + ": " + cfg.getSixLowPanPrefix());
 		
 		settingsTab.getTab(globalSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL));
 		settingsTab.getTab(userSettingsLayout).setCaption(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_USER));
@@ -730,7 +750,6 @@ public class OptionsScreen extends Panel{
 		//rtc settings
 		clockSettingsLbl.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_SETTINGS));
 		
-		//TODO add tcp msg
 		TcpClient tcpClient = new TcpClient(app.config.getTcpServerAddress(), app.config.getTcpServerPort());
 		String rtcState = tcpClient.getRtcState(app.user.getID());
 		if(rtcState == null){
@@ -741,6 +760,13 @@ public class OptionsScreen extends Panel{
 			dateField.setVisible(true);
 			setDatetimeBttn.setVisible(true);
 		}
+		
+		String rtcTime = tcpClient.getRtcTime(app.user.getID());
+		if(rtcTime == null){
+			rtcTime = "";
+		}
+		rtcTimeTxt.setValue(app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_CLOCK_TIME) + ": " + rtcTime);
+		
 		
 		//network settings
 		str = app.sql.getNetType();
@@ -881,8 +907,8 @@ public class OptionsScreen extends Panel{
 
 	private void DeleteDataBeforeBttnClicked(ClickEvent event){
 
-		YesNoPopupScreen ackPopup =  new YesNoPopupScreen(app, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_POP_HEADER), 
-				app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_POP_TEXT));
+		YesNoPopupScreen ackPopup =  new YesNoPopupScreen(app, app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_BEFORE_POP_HEADER), 
+				app.langHelper.GetString(LanguageHelper.SET_TABSHEET_TAB_GLOBAL_DB_DELETE_BEFORE_POP_TEXT));
 		
 		ackPopup.addListener(new PopupClosedListener(){
 			@Override

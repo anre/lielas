@@ -37,13 +37,14 @@ public class Device implements Serializable {
 	private String group;
 	private int meassurementIntervall;
 	private String supply;
+	private String supplyState;
 	private int ID;
 	private Modul[] modul;
 	private int moduls;
 	private Boolean hasEvent;
 		
 	public Device(String address, String mac, boolean registered, String name, String group,
-			Integer meassurementIntervall, String supply, Integer id) {
+			Integer meassurementIntervall, String supply, String supplyState, Integer id) {
 		super();
 		this.address = address;
 		this.mac = mac;
@@ -52,6 +53,7 @@ public class Device implements Serializable {
 		this.group = group;
 		this.meassurementIntervall = meassurementIntervall;
 		this.supply = supply;
+		this.supplyState = supplyState;
 		this.ID = id;
 		
 		modul = new Modul[20];
@@ -59,6 +61,31 @@ public class Device implements Serializable {
 		hasEvent = false;
 	}
 
+	public String getDeviceVSourceString(){
+		if(this.supply.equals("bat")){
+			return LanguageHelper.DEVICE_V_SOURCE_BAT;
+		}else if(this.supply.equals("net")){
+			return LanguageHelper.DEVICE_V_SOURCE_NET;
+		}
+		return LanguageHelper.DEVICE_V_SOURCE_UNKNOWN;
+	}
+	
+	public String getDeviceVSourceStateString(){
+		if(this.supplyState.equals("ok")){
+			return LanguageHelper.DEVICE_V_SOURCE_STATE_OK;
+		}else if(this.supplyState.equals("low")){
+			return LanguageHelper.DEVICE_V_SOURCE_STATE_LOW;
+		}
+		return LanguageHelper.DEVICE_V_SOURCE_STATE_UNKNOWN;
+	}
+	
+	public boolean VSourceStateLow(){
+		if(this.supplyState.equals("low")){
+			return true;
+		}
+		return false;
+	}
+	
 	public String getAddress() {
 		return address;
 	}
@@ -113,6 +140,14 @@ public class Device implements Serializable {
 
 	public void setSupply(String supply) {
 		this.supply = supply;
+	}
+
+	public String getSupplyState() {
+		return supplyState;
+	}
+
+	public void setSupplyState(String supplyState) {
+		this.supplyState = supplyState;
 	}
 
 	public Integer getID() {
