@@ -188,15 +188,11 @@ void HandleDevices(){
   //check if it is time to reset BR
   time(&rawtime);
   now = gmtime(&rawtime);
-  
-  if(now->tm_hour == 0){
-    lielas_log((unsigned char*)"error reserving space for datapaket container", LOG_LEVEL_WARN);
-    system("./deactivateBRnor");
-    sleep(2);
-    system("./activateBRnor");
-  }
-  
-  
+
+  system("./deactivateBRnor");
+  sleep(2);
+  system("./activateBRnor");
+
   free(endTime);
   free(endOfTimeslot);
 }
