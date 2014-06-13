@@ -29,7 +29,6 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <math.h>
-#include <curl/curl.h>
 
 #include "lielas/devicecontainer.h"
 #include "tcpserver.h"
