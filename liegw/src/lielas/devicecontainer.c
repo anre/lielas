@@ -34,6 +34,7 @@
 #include "devicecontainer.h"
 #include "../log.h"
 #include "../sql/sql.h"
+#include "../sql/mysqlhandler.h"
 #include "../settings.h"
 #include "ldb.h"
 #include "../jsmn/jsmn.h"
@@ -202,7 +203,7 @@ int LDCloadDevices(){
 
 	//query devices table
   
-	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mac, mint, moduls, registered, datapakets, router, datalogger, sw_ver, v_source, v_source_state FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
+	snprintf(st, SQL_STATEMENT_BUF_SIZE, "SELECT id, address, mac, mint, moduls, registered, datapakets, router, datalogger, sw_ver, v_source, v_source_state, route_id FROM %s.%s", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES);
 	res = SQLexec(st);
 
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
@@ -247,6 +248,8 @@ int LDCloadDevices(){
     strcpy(d->supply, PQgetvalue(res, i, 10));
     //v_source_state
     strcpy(d->supplyState, PQgetvalue(res, i, 11));
+    //route_id
+    d->route_id = strtol(PQgetvalue(res, i, 12), NULL, 10);
     
     //load Moduls
 		loadModuls(d, moduls);
@@ -421,7 +424,7 @@ Ldevice *loadDeviceById(unsigned int id){
 		return d;
 	}
 
-	snprintf(st, SQL_BUFFER_SIZE, "SELECT id, address, mac, mint, moduls, registered, datapakets, router, datalogger, sw_ver, v_source, v_source_state FROM %s.%s WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id);
+	snprintf(st, SQL_BUFFER_SIZE, "SELECT id, address, mac, mint, moduls, registered, datapakets, router, datalogger, sw_ver, v_source, v_source_state, route_id FROM %s.%s WHERE id=%d", LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id);
 	res = SQLexec(st);
 	if(PQresultStatus(res) != PGRES_TUPLES_OK){
 		lielas_log((unsigned char*)"Failed to get device by id", LOG_LEVEL_WARN);
@@ -463,6 +466,8 @@ Ldevice *loadDeviceById(unsigned int id){
   strcpy(d->supply, PQgetvalue(res, 0, 10));
     //v_source_state
   strcpy(d->supplyState, PQgetvalue(res, 0, 11));
+  //route_id
+  d->route_id = strtol(PQgetvalue(res, 0, 12), NULL, 10);
   
 	loadModuls(d, moduls);
 	PQclear(res);
@@ -523,8 +528,8 @@ int LDCsaveNewDevice(Ldevice *d){
 		return -1;
 	}
 
-	snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mac, registered, name,  mint, datapakets, router, datalogger, v_source, v_source_state, sw_ver) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s')",
-	         LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id, d->address, d->mac, "true", d->name, d->mint, d->datapakets, d->router, d->datalogger, d->supply, d->supplyState, d->sw_ver);
+	snprintf(st, SQL_BUFFER_SIZE, "INSERT INTO %s.%s (id, address, mac, registered, name,  mint, datapakets, router, datalogger, v_source, v_source_state, sw_ver, route_id) VALUES (%d, '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%d')",
+	         LDB_TBL_SCHEMA, LDB_TBL_NAME_DEVICES, id, d->address, d->mac, "true", d->name, d->mint, d->datapakets, d->router, d->datalogger, d->supply, d->supplyState, d->sw_ver, d->route_id);
 
 	res = SQLexec(st);
 
@@ -884,280 +889,135 @@ Ldevice *LDCgetNextDevice(){
  ********************************************************************************************************************************/
 
 void LDCcheckForNewDevices(){
-
-	int i;
-	int state = 0;
-	char cmd[CLIENT_BUFFER_LEN];
-	char buf[CLIENT_BUFFER_LEN];
-	char adr[IPV6_ADR_BUF_LEN];
-  char rplTable[RPL_TABLE_LEN];
+  int devices = 0;
+  int routes  = 0;
+  Ldevice *d;
+  Lmodul *m[MAX_MODULS];
+  Lchannel *c[MAX_CHANNELS];
+  IGROUTE igroutes[MAX_DEVICES];
   char log[LOG_BUF_LEN];
-  char routerStr[CLIENT_BUFFER_LEN];
-	Ldevice *d;
-	Lmodul *m[MAX_MODULS];
-	Lchannel *c[MAX_CHANNELS];
-	time_t rawtime;
-	struct tm *now;
-	//static struct tm *nextScan;
-	//double diff;
-  coap_buf *cb;
-	jsmn_parser json;
-	jsmnerr_t r;
-	jsmntok_t tokens[MAX_JSON_TOKENS];
-  int nextToken;
-  int routes;
-  static int lastScan;
-
-	//get systemtime
-  sleep(1);
-	time(&rawtime);
-	now = gmtime(&rawtime);
+  int i;
   
-  if(now->tm_sec < 10 || lastScan == now->tm_min){
-    return;
-  }
-  lastScan = now->tm_min;
-
-	/*if(nextScan == NULL){
-		nextScan = malloc(sizeof(struct tm));
-		if(nextScan == NULL)
-			return;
-		memcpy(nextScan, now, sizeof(struct tm));
-	}else{
-		diff = difftime(mktime(now), mktime(nextScan));
-		if(diff < 1.0 && diff > (-MAX_SCAN_NEW_DEVICES_INTERVAL)){
-			return;
-		}
-	}
-	if(nextScan == NULL)
-		return;
-
-	free(nextScan);
-	nextScan = malloc(sizeof(struct tm));
-	if(nextScan == NULL)
-		return;
-	memcpy(nextScan, now, sizeof(struct tm));
-	nextScan->tm_sec += SCAN_NEW_DEVICES_INTERVAL;
-	mktime(nextScan);*/
-
-	// get routing table
-   
-  cb = coap_create_buf();
-	if( cb == NULL){
-    lielas_log((unsigned char*)"failed to create coap buf", LOG_LEVEL_WARN);
-		return;
-	}
-	cb->buf = (char*)rplTable;
-  cb->bufSize = RPL_TABLE_LEN;
+	//get number of actual devices
+  devices = LDCgetNumberOfDevices();
   
-  #ifdef DC_USE_RPL_COAP_SERVER
-  snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/rpl", set_getGatewaynodeAddr(), set_getGatewaynodePort());
-  coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
+  //get number of routes;
+  routes = msql_get_number_of_routes();
   
-  if(cb->status != COAP_STATUS_CONTENT){
-    lielas_log((unsigned char*)"failed to get routing table", LOG_LEVEL_WARN);
+  if(routes <= devices){
     return;
   }
   
-  #else 
+  //load all routes
+  routes = msql_get_routes(igroutes, MAX_DEVICES);
   
-  FILE *fp;
-  long size;
+  //new devices found
+  while(routes > devices){
   
-  fp = fopen("/usr/local/lielas/rpl.tbl", "r");
-  if(fp == NULL){
-    lielas_log((unsigned char*)"failed to get routing table file", LOG_LEVEL_WARN);
-    return;
-  }
-  
-  //get file size
-  fseek(fp, 0, SEEK_END);
-  size = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
-  
-  if(cb->bufSize > (size + 1)){
-    fread(cb->buf, size, 1, fp);
-    cb->buf[size] = 0;
-  }else{
-    lielas_log((unsigned char*)"rpl routing table too big for buffer, skip parsing", LOG_LEVEL_WARN);
-    fclose(fp);
-    return;
-  }
-  
-  fclose(fp);
-  #endif
-  
-  //check if routing table is in html or json format
-  if(rplTable[0] == '<'){
-    // HTML format, convert to json
-    convertHtmlToJson(rplTable);
-  }else if(rplTable[0] != '{'){
-    //unknown format
-    lielas_log((unsigned char*)"failed to parse routing table, unknown format", LOG_LEVEL_WARN);
-		return;
-  }
-  
-  jsmn_init(&json);
-  nextToken = 0;
-	r = jsmn_parse(&json, rplTable, tokens, MAX_JSON_TOKENS);
-	if(r != JSMN_SUCCESS && r != JSMN_ERROR_PART){
-    lielas_log((unsigned char*)"failed to parse routing table", LOG_LEVEL_WARN);
-		return;
-	}
-  
-  cb->buf = (char*)buf;
-  cb->bufSize = CLIENT_BUFFER_LEN;
-  
-	while(nextToken < json.toknext && rplTable[tokens[nextToken].start] != 0){
-		if(state == 0){ // "Routes" not yet found
-      if( tokens[nextToken].type == JSMN_STRING){
-        if(!strncmp(&rplTable[tokens[nextToken].start], "Routes", strlen("Routes"))){
-          nextToken += 1;
-          if(tokens[nextToken].type != JSMN_ARRAY){
-            lielas_log((unsigned char*)"error parsing routing table", LOG_LEVEL_WARN);
-            return;
-          }
-          routes = tokens[nextToken].size;
-          
-          if(routes == 0){
-            lielas_log((unsigned char*)"routing table parsed, no routes found", LOG_LEVEL_DEBUG);
-            return;
-          }
-          state += 1; 
-          nextToken += 1;
+    //search the new route
+    for(i = 0; i < routes; i++){
+      d = LDCgetFirstDevice();
+      while(d != NULL){
+        //route allready registered, skip it
+        if(d->route_id == igroutes[i].id){
+          break;
         }
-      } 
-		}
-		if(state == 1){	// "Routes" found, read and parse addresses
-      if( tokens[nextToken].type == JSMN_STRING){
-        //copy address to buffer
-        for(i=0; i < tokens[nextToken].end - tokens[nextToken].start; i++){
-          if(rplTable[i + tokens[nextToken].start] == ' '){
-            break;
-          }
-          adr[i] = rplTable[i + tokens[nextToken].start];
-        }
-        adr[i]= 0;
-
-        //check if address is already registered
-        LDCgetDeviceByAddress(adr, &d);
-				if(d == NULL){
-          //new device found
-					d = LcreateDevice();
-					strcpy(d->address, adr);
-					sprintf(d->mint, "%d", LIELAS_STD_MINT);
-          snprintf(log, LOG_BUF_LEN, "new device found: %s", d->address);
-          lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
-      
-          //get resource info
-          cb->buf = (char*) buf;
-          cb->bufSize = CLIENT_BUFFER_LEN;
-          
-          snprintf(cmd, CLIENT_BUFFER_LEN, "coap://[%s]:%s/info", adr, set_getGatewaynodePort());
-          coap_send_cmd(cmd, cb, MYCOAP_METHOD_GET, NULL);
-          
-          if(cb->status != COAP_STATUS_CONTENT){
-            lielas_log((unsigned char*)"failed to get /info", LOG_LEVEL_WARN);
-            return;
-          }
-          
-          //set device attributes
-          
-          //d->name
-          lwp_get_attr_value(cb->buf, cb->bufSize, d->name, DEVICE_MAX_STR_LEN, 1);
-          
-          //d->sw_ver
-          lwp_get_attr_value(cb->buf, cb->bufSize, d->sw_ver, DEVICE_MAX_STR_LEN, 2);
-          
-          //d->router
-          lwp_get_attr_value(cb->buf, cb->bufSize, routerStr, CLIENT_BUFFER_LEN, 4);
-          if(!strcmp(routerStr, "ROUTER")){
-            d->router = 1;
-            strcpy(d->supply, "net");
-          }else{
-            d->router = 0;
-            strcpy(d->supply, "bat");
-          }
-          strcpy(d->supplyState, LIELAS_SUPPLY_STATE_OK);
-          
-          if(!strcmp(d->name, "mini2_TH")){
-            d->datalogger = 1;
-            
-          
-            m[1] = LcreateModul();
-            sprintf(m[1]->address, "1");
-            sprintf(m[1]->mint, "%d", LIELAS_STD_MINT);
-            
-            c[1] = LcreateChannel();
-            sprintf(c[1]->address, "1");
-            sprintf(c[1]->unit, "°C");
-            sprintf(c[1]->class, "SENSOR");
-            sprintf(c[1]->type, "SHT_T");
-            c[1]->exponent = -1.0;
-            LaddChannel(m[1], c[1]);
-            
-            c[2] = LcreateChannel();
-            sprintf(c[2]->address, "2");
-            sprintf(c[2]->unit, "%%");
-            sprintf(c[2]->class, "SENSOR");
-            sprintf(c[2]->type, "SHT_RH");
-            c[2]->exponent = -1.0;
-            LaddChannel(m[1], c[2]);
-            
-            c[2] = LcreateChannel();
-            sprintf(c[2]->address, "3");
-            sprintf(c[2]->unit, "g/m³");
-            sprintf(c[2]->class, "SENSOR");
-            sprintf(c[2]->type, "SHT_AH");
-            c[2]->exponent = -1.0;
-            LaddChannel(m[1], c[2]);
-            
-            c[2] = LcreateChannel();
-            sprintf(c[2]->address, "4");
-            sprintf(c[2]->unit, "°C");
-            sprintf(c[2]->class, "SENSOR");
-            sprintf(c[2]->type, "SHT_DP");
-            c[2]->exponent = -1.0;
-            LaddChannel(m[1], c[2]);
-            
-            LaddModul(d, m[1]);
-          }else{
-            snprintf(log, LOG_BUF_LEN, "unknown device: '%s'", d->name);
-            lielas_log((unsigned char*)log, LOG_LEVEL_WARN);
-            return;
-          }
-          
-          //d->mac
-          if(ipv6ToMac(adr, d->mac)){
-            return;
-          }
-          
-          d->registered = 1;
-          
-          // basic device settings finished, save device
-          lielas_log((unsigned char*)"saving new Device:", LOG_LEVEL_DEBUG);
-          
-					LDCadd(d);
-					LDCsaveNewDevice(d);
-					LDCsaveUpdatedDevice(d);
-          
-          LprintDeviceStructure(d, log, LOG_BUF_LEN, 0);
-          lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-          
-          // set datetime
-          lielas_log((unsigned char*)"setting device date and time", LOG_LEVEL_DEBUG);
-          DeviceSetDatetime(d);
-          
-          // get vsource state
-          lielas_log((unsigned char*)"checking device vsource state", LOG_LEVEL_DEBUG);
-          handleBatteryManagement(d);
-        }
+        d = LDCgetNextDevice();
       }
-		}
-    nextToken += 1;
-	}
-
+      
+      if(d == NULL || d->route_id != igroutes[i].id){
+        break;
+      }
+    }
+    
+    
+    if(d == NULL || d->route_id != igroutes[i].id){
+    
+      //new route found
+      printf("new route found: %s\n", igroutes[i].route);
+      
+      d = LcreateDevice();
+      d->id = igroutes[i].id;
+      d->route_id = igroutes[i].id;
+      strcpy(d->address, igroutes[i].route);	
+      sprintf(d->mint, "%d", LIELAS_STD_MINT);
+      snprintf(log, LOG_BUF_LEN, "new device found: %s", d->address);
+      lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
+        
+      //d->name
+      strcpy(d->name, "mini2TH");
+          
+      //d->sw_ver
+      strcpy(d->sw_ver, "0.1");
+      
+      //d->router
+      d->router = 0;
+      strcpy(d->supply, "bat");
+      strcpy(d->supplyState, LIELAS_SUPPLY_STATE_OK);
+      
+      d->datalogger = 1;
+      
+      m[1] = LcreateModul();
+      sprintf(m[1]->address, "1");
+      sprintf(m[1]->mint, "%d", LIELAS_STD_MINT);
+      
+      c[1] = LcreateChannel();
+      sprintf(c[1]->address, "1");
+      sprintf(c[1]->unit, "°C");
+      sprintf(c[1]->class, "SENSOR");
+      sprintf(c[1]->type, "SHT_T");
+      c[1]->exponent = -1.0;
+      LaddChannel(m[1], c[1]);
+            
+      c[2] = LcreateChannel();
+      sprintf(c[2]->address, "2");
+      sprintf(c[2]->unit, "%%");
+      sprintf(c[2]->class, "SENSOR");
+      sprintf(c[2]->type, "SHT_RH");
+      c[2]->exponent = -1.0;
+      LaddChannel(m[1], c[2]);
+            
+      c[3] = LcreateChannel();
+      sprintf(c[3]->address, "3");
+      sprintf(c[3]->unit, "g/m³");
+      sprintf(c[3]->class, "SENSOR");
+      sprintf(c[3]->type, "SHT_AH");
+      c[3]->exponent = -1.0;
+      LaddChannel(m[1], c[3]);
+            
+      c[4] = LcreateChannel();
+      sprintf(c[4]->address, "4");
+      sprintf(c[4]->unit, "°C");
+      sprintf(c[4]->class, "SENSOR");
+      sprintf(c[4]->type, "SHT_DP");
+      c[4]->exponent = -1.0;
+      LaddChannel(m[1], c[4]);
+      
+      LaddModul(d, m[1]);
+      
+      if(ipv6ToMac(igroutes[i].route, d->mac)){
+        return;
+      }
+      
+      LDCadd(d);
+      
+      lielas_log((unsigned char*)"saving new Device:", LOG_LEVEL_DEBUG);
+      LDCsaveNewDevice(d);
+      LDCsaveUpdatedDevice(d);
+      
+      LprintDeviceStructure(d, log, LOG_BUF_LEN, 0);
+      
+    }
+    devices += 1;
+  }
+  
 }
+
+
+
+/********************************************************************************************************************************
+ * 		int ipv6ToMac(const char* ip, char *mac)
+ ********************************************************************************************************************************/
 
 int ipv6ToMac(const char* ip, char *mac){
   struct in6_addr ipv6;

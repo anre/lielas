@@ -259,6 +259,9 @@ int lielas_createSettingsTbl(){
     snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'GW_NOR_ADR', '') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
     res = SQLexec(st);
     PQclear(res);
+    snprintf(st, LDB_SQL_BUFFER_SIZE, "INSERT INTO %s.%s ( name, value) VALUES ( 'LOG_COUNT', '0') ", LDB_TBL_SCHEMA, LDB_TBL_NAME_SETTINGS);
+    res = SQLexec(st);
+    PQclear(res);
   }
   return 0;
 }

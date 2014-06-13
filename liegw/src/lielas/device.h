@@ -60,6 +60,7 @@ typedef struct Ldevice_struct{
   Lmodul *modul[MAX_MODULS];
   struct tm lastProcessed;
   int hasLogger;
+  int route_id;
 }Ldevice;
 
 Ldevice *LcreateDevice();

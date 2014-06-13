@@ -1,13 +1,18 @@
 include Makefile.inc
 
 C_SRCS += \
-src/sql/sql.c
+src/sql/sql.c \
+src/sql/mysqlhandler.c
 
 OBJS += \
-src/sql/sql.o
+src/sql/sql.o \
+src/sql/mysqlhandler.o
+
 
 C_DEPS += \
-src/sql/sql.d
+src/sql/sql.d \
+src/sql/mysqlhandler.d
+
 
 # Each subdirectory must supply rules for building sources it contributes
 %.o: %.c

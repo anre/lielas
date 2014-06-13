@@ -6,7 +6,7 @@ BINDIR=bin/
 
 prefix = /usr/local/
 
-LIBS := -lm -lpq -lcoap -lpthread -lcurl
+LIBS := -lm -lpq -lcoap -lpthread -lcurl -lz -lrt -ldl -lmysqlclient
 C_SRCS :=
 O_SRCS :=
 C_DEPS :=

@@ -37,6 +37,7 @@
 #include "lielas/lielas.h"
 #include "coap/libcoap/coap.h"
 #include "sql/sql.h"
+#include "sql/mysqlhandler.h"
 #include "jsmn/jsmn.h"
 #include "coap/mycoap.h"
 #include "settings.h"
@@ -57,144 +58,160 @@ int getNumberOfDatasets(Ldevice *d);
 int handleRtdbgsys(Ldevice* d);
 double relHumidityToAbs(double rel, double temp);
 double calculateDewpoint(double rel, double temp);
+Ldevice *getDeviceByRouteId(int route_id);
 
 /********************************************************************************************************************************
  * 		void HandleDevices(): handle device events
  ********************************************************************************************************************************/
 
 void HandleDevices(){
-  Ldevice *d;
+  IGDATASET ds;
+  char buf[100];
+  int oldCount = 0;
+  int newCount;
+  int id;
   datapaketcontainer *dpc;
-  time_t rawtime;
-  struct tm *now;
-  struct tm *endTime;
-  struct tm *endOfTimeslot = NULL;
-  int numberOfDevices;
-  int timeslotDuration;
+  datapaket *dp;
+  double temp = 0.;
+  double hum = 0.;
+  double ahum = 0.;
+  double tp = 0.;
+  char komma[]  = ".";
+  int kommaPos;
+  Ldevice *d;
   char log[LOG_BUF_LEN];
-  int datapakets;
-  static int lastHour;
+
+  //get old count of log_data
+  lielas_getLDBSetting(buf, LDB_SQL_SET_NAME_LOG_COUNT, sizeof(buf));
+  oldCount = strtol(buf, NULL, 10);
   
+  //get new count of log_data
+  newCount = msql_get_log_count();
   
-  //d = LDCgetFirstDevice();
-  //handleBatteryManagement(d);
+  snprintf(log, LOG_BUF_LEN, "%i new values found, old log count %i", (newCount - oldCount), oldCount);
+	lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
   
-  //check if it is time to get data
-  time(&rawtime);
-  now = gmtime(&rawtime);
-  
-  if(now->tm_min != 2 || now->tm_hour == lastHour){
-    return;
-  }
-  lastHour = now->tm_hour;
-  
-  //get number of devices
-  numberOfDevices = LDCgetNumberOfDevices();
-  if(numberOfDevices < 1){
-    return;
+  //save new data
+  id =  oldCount;
+  if( id < 1 ){
+    id = 1;
   }
   
-  //calculate endTime and timeslots
-  endTime = malloc(sizeof(struct tm));
-  if(endTime == NULL){
-    lielas_log((unsigned char*)"error reserving space for struct tm endTime", LOG_LEVEL_ERROR);
-    return;
-  }
-  *endTime = *now;
-  endTime->tm_min = 4;
-  endTime->tm_sec = 0;
-  
-  timeslotDuration = (int)(difftime(mktime(endTime), mktime(now)) / numberOfDevices);
-  if(now->tm_hour == 0){
-    timeslotDuration -= 2;
-  }
-  
-  snprintf(log, LOG_BUF_LEN, "Starting to get data. %i devices, timeslots are %i s long", numberOfDevices, timeslotDuration);
-  lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-  
-  
-  //get first device
-  d = LDCgetFirstDevice();
-  if(d == NULL) 
-    return;
-  
-  while(d != NULL){
-    //TODO get rtdbgsys
-    //0 o'clock? test date/time
-    if(now->tm_hour == 0){
-      DeviceSetDatetime(d);
-      handleRtdbgsys(d);
-      handleBatteryManagement(d);
-    }
-  
-    //calculate end of timeslot
-    if(endOfTimeslot == NULL){
-      //first device
-      endOfTimeslot = malloc(sizeof(struct tm));
-      if(endOfTimeslot == NULL){
-        lielas_log((unsigned char*)"error reserving space for struct tm endOfTimeslot", LOG_LEVEL_ERROR);
-        free(endTime);
-        return;
-      }
-      *endOfTimeslot = *now;
-      endOfTimeslot->tm_sec += timeslotDuration;
-      mktime(endOfTimeslot);
-    }else{
-      endOfTimeslot->tm_sec += timeslotDuration;
-      mktime(endOfTimeslot);
-    }
+  while(id < newCount && ((id - oldCount) < 100) ){
     
-    //get number of datasets
-    datapakets = getNumberOfDatasets(d);
-    snprintf(log, LOG_BUF_LEN, "Get data from %s with %i/%i datapakets\n", d->mac, d->datapakets ,datapakets);
-    lielas_log((unsigned char*)log, LOG_LEVEL_DEBUG);
-    
-    if(d->datapakets < datapakets){ //only get data if there is new data
-      //get datapakets until all data or end of timeslot
-      while((difftime(mktime(endOfTimeslot), mktime(now)) > 0) && (d->datapakets < datapakets)){
+    if(msql_get_dataset(&ds, id) == 0){
+      //find device for given route_id
+      d = getDeviceByRouteId(ds.route_id);
+      if(d != NULL){
+        //device found, create datapaket container
         dpc = CreateDatapaketcontainer();
-        if(dpc == NULL){
-          lielas_log((unsigned char*)"error reserving space for datapaket container", LOG_LEVEL_ERROR);
-          free(endTime);
-          free(endOfTimeslot);
-          return;
-        }
-        if(!getDeviceData(d, dpc, d->datapakets)){
-          d->datapakets += dpc->datapakets / dpc->m->channels;
+        if(dpc != NULL){
+          dpc->d = d;
+          dpc->m = d->modul[1];
+          dpc->datapakets = 0;
+          dpc->dec = 0;
+          
+          //channel 1
+          dp = CreateDatapaket();
+          if(dp!=NULL){
+            dp->d = d;
+            dp->m = d->modul[1];
+            dp->c = d->modul[1]->channel[1];
+            
+            strncpy(dp->value, ds.temperature, VALUEBUFFER_SIZE);
+            temp = strtod(ds.temperature, NULL);
+            kommaPos = strcspn(dp->value, komma);
+            if(kommaPos > 0){
+              dp->value[kommaPos] = ',';
+            }
+            strncpy(dp->dtstring, ds.dt, VALUEBUFFER_SIZE);
+            dpc->dp[dpc->datapakets] = dp;
+            dpc->datapakets += 1;
+          }
+          
+          //channel 2
+          dp = CreateDatapaket();
+          if(dp!=NULL){
+            dp->d = d;
+            dp->m = d->modul[1];
+            dp->c = d->modul[1]->channel[2];
+            
+            strncpy(dp->value, ds.humidity, VALUEBUFFER_SIZE);
+            hum = strtod(ds.humidity, NULL);
+            kommaPos = strcspn(dp->value, komma);
+            if(kommaPos > 0){
+              dp->value[kommaPos] = ',';
+            }
+            strncpy(dp->dtstring, ds.dt, VALUEBUFFER_SIZE);
+            dpc->dp[dpc->datapakets] = dp;
+            dpc->datapakets += 1;
+          }
+          
+          //channel 3
+          dp = CreateDatapaket();
+          if(dp!=NULL){
+            dp->d = d;
+            dp->m = d->modul[1];
+            dp->c = d->modul[1]->channel[3];
+            
+            ahum = relHumidityToAbs(hum, temp);
+            snprintf(dp->value, VALUEBUFFER_SIZE, "%.2f", (double)ahum);
+            kommaPos = strcspn(dp->value, komma);
+            if(kommaPos > 0){
+              dp->value[kommaPos] = ',';
+            }
+            strncpy(dp->dtstring, ds.dt, VALUEBUFFER_SIZE);
+            dpc->dp[dpc->datapakets] = dp;
+            dpc->datapakets += 1;
+          }
+          
+          //channel 4
+          dp = CreateDatapaket();
+          if(dp!=NULL){
+            dp->d = d;
+            dp->m = d->modul[1];
+            dp->c = d->modul[1]->channel[4];
+            
+            tp = calculateDewpoint(hum, temp);
+            snprintf(dp->value, VALUEBUFFER_SIZE, "%.2f", (double)tp);
+            kommaPos = strcspn(dp->value, komma);
+            if(kommaPos > 0){
+              dp->value[kommaPos] = ',';
+            }
+            strncpy(dp->dtstring, ds.dt, VALUEBUFFER_SIZE);
+            dpc->dp[dpc->datapakets] = dp;
+            dpc->datapakets += 1;
+          }
+          
           if(SaveDataPaketContainerToDatabase(dpc)){
             lielas_log((unsigned char*)"failed to save datapakets", LOG_LEVEL_ERROR);
-            d->datapakets -= dpc->datapakets / dpc->m->channels;
           }
+          
+          DeleteDatapaketcontainer(dpc);
         }
-        DeleteDatapaketcontainer(dpc);
-        time(&rawtime);
-        now = gmtime(&rawtime);
       }
     }
-        
-    //check date/time
-    time(&rawtime);
-    now = gmtime(&rawtime);
-    if(difftime(mktime(endTime), mktime(now)) <= 0.){  //end of time
-      free(endTime);
-      free(endOfTimeslot);
-      return;
-    }
-    
-    //get next device
-    d = LDCgetNextDevice();
+    id+=1;
   }
   
-  //check if it is time to reset BR
-  time(&rawtime);
-  now = gmtime(&rawtime);
+  //save new count
+  snprintf(buf, sizeof(buf), "%i", id);
+  lielas_setLDBSetting( buf, LDB_SQL_SET_NAME_LOG_COUNT);  
+  
+  snprintf(log, LOG_BUF_LEN, "new log count %i", id);
+	lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
+  
+  
+}
 
-  system("./deactivateBRnor");
-  sleep(2);
-  system("./activateBRnor");
-
-  free(endTime);
-  free(endOfTimeslot);
+Ldevice *getDeviceByRouteId(int route_id){
+  Ldevice *d = LDCgetFirstDevice();
+  while(d != NULL){
+    if(d->route_id == route_id)
+      break;
+    d = LDCgetNextDevice();
+  }
+  return d;
 }
 
 /********************************************************************************************************************************
@@ -444,9 +461,9 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 	int i;
 	char st[CMDBUFFER_SIZE];
 	PGresult *res;
-	char dtStr[CMDBUFFER_SIZE];
+	//char dtStr[CMDBUFFER_SIZE];
 	char adrStr[CMDBUFFER_SIZE];
-  char log[LOG_BUF_LEN];
+  //char log[LOG_BUF_LEN];
 	int success = 0;
 
 	if(SQLTableExists(LDB_TBL_NAME_DATA)){
@@ -456,8 +473,8 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 		}
 	}
 
-  snprintf(log, LOG_BUF_LEN, "saving values to database");
-	lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
+  //snprintf(log, LOG_BUF_LEN, "saving values to database");
+	//lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
   
 	// create column string
 	//snprintf(column, BUFFER_SIZE, "%s.%s.%s", dpc->d->address, dpc->m->address, dpc->c->address);
@@ -473,19 +490,19 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 		}
 
 		// create datetime string
-		strftime(dtStr, CMDBUFFER_SIZE, "%Y-%m-%d %H:%M:%S", dpc->dp[i]->dt);
+		//strftime(dtStr, CMDBUFFER_SIZE, "%Y-%m-%d %H:%M:%S", dpc->dp[i]->dt);
     
 		//check, if datetime-row exists
-		if(SQLCellExists(LDB_TBL_NAME_DATA, "datetime", dtStr)){
+		if(SQLCellExists(LDB_TBL_NAME_DATA, "datetime", dpc->dp[i]->dtstring)){
 			//creat new row
 			snprintf(st, CMDBUFFER_SIZE, "INSERT INTO %s.%s ( datetime, \"%s\" ) VALUES ( '%s', '%s')", 
-                LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dtStr, dpc->dp[i]->value);
+                LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dpc->dp[i]->dtstring, dpc->dp[i]->value);
 			res = SQLexec(st);
 			PQclear(res);
 			success += 1;
 		}else{
 			snprintf(st, CMDBUFFER_SIZE, "UPDATE %s.%s SET \"%s\"='%s' WHERE datetime='%s'", 
-                LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dpc->dp[i]->value, dtStr );
+                LDB_TBL_SCHEMA, LDB_TBL_NAME_DATA ,adrStr, dpc->dp[i]->value, dpc->dp[i]->dtstring );
 			res = SQLexec(st);
 			PQclear(res);
 			success += 1;
@@ -498,8 +515,8 @@ int SaveDataPaketContainerToDatabase(datapaketcontainer* dpc){
 	res = SQLexec(st);
 	PQclear(res);
 
-  snprintf(log, LOG_BUF_LEN, "%i values successfully saved, overall %i datapakets", success, dpc->d->datapakets);
-	lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
+  //snprintf(log, LOG_BUF_LEN, "%i values successfully saved", success);
+	//lielas_log((unsigned char*) log, LOG_LEVEL_DEBUG);
 
 	return 0;
 }

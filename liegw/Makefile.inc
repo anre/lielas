@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -I/usr/include/postgresql -fsigned-char -O0 -ggdb -Wall
+CFLAGS = -I/usr/include/postgresql -I/usr/include/mysql -fsigned-char -O0 -ggdb -Wall
 LD = gcc
 LDFLAGS = -L/usr/lib -L/usr/include/postgresql/ -L/usr/lib/arm-linux-gnueabihf
 AR = ar

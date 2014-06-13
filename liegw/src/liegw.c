@@ -40,6 +40,7 @@
 #include "settings.h"
 
 #include "rtc/rtc.h"
+#include "sql/mysqlhandler.h"
 
 #include "coap/libcoap/coap.h"
 #include "coap/mycoap.h"
@@ -90,11 +91,17 @@ int main(void) {
     }
   }
   
-  lielas_log((unsigned char*)"init database", LOG_LEVEL_DEBUG);
+  lielas_log((unsigned char*)"init databases", LOG_LEVEL_DEBUG);
   if(lielas_createTables() != 0){
-    lielas_log((unsigned char*)"Error initializing database", LOG_LEVEL_ERROR);
+    lielas_log((unsigned char*)"Error initializing  postgresql database", LOG_LEVEL_ERROR);
     return -1;
   }
+  
+  if(msql_init() != 0){
+    lielas_log((unsigned char*)"Error initializing  mysql database", LOG_LEVEL_ERROR);
+    return -1;
+  }
+
 
 	lielas_log((unsigned char*)"init ldc", LOG_LEVEL_DEBUG);
 	if(LDCinit() != 0){
@@ -105,11 +112,15 @@ int main(void) {
 	lielas_log((unsigned char*)"loading devices", LOG_LEVEL_DEBUG);
 	LDCloadDevices();
   
+	lielas_log((unsigned char*)"searching for new devices", LOG_LEVEL_DEBUG);
+  LDCcheckForNewDevices();
+  
   lielas_log((unsigned char*)"init lbus", LOG_LEVEL_DEBUG);
 	if(lbus_init() != 0){
 		lielas_log((unsigned char*)"Error initializing lbus", LOG_LEVEL_ERROR);
 		return -2;
 	}
+
  
   lielas_log((unsigned char*)"load lbus commands", LOG_LEVEL_DEBUG);
 	if(lbus_load() != 0){
@@ -156,8 +167,8 @@ int main(void) {
   
 	while(1){
 		lbus_handler();
-		LDCcheckForNewDevices();
 		HandleDevices();
+    sleep(1);
 	}
 	lielas_log((unsigned char*)"Shutting down server", LOG_LEVEL_DEBUG);
 	return EXIT_SUCCESS;

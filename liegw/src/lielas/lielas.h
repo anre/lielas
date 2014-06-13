@@ -42,6 +42,7 @@
 #define LIELAS_STD_PINT                   2
 #define LIELAS_STD_AINT                   300
 
+#define MAX_DEVICES                        50
 #define MAX_MODULS                        20
 #define MAX_CHANNELS                      20
 

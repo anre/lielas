@@ -54,6 +54,7 @@ Ldevice *LcreateDevice(){
   d->datapakets = 0;
   d->datalogger = 0;
   d->router = 0;
+  d->route_id = 0;
 
 	return d;
 }
@@ -136,6 +137,9 @@ void LprintDeviceStructure(Ldevice *d, char *str, int size, int all){
   }else{
     pos += snprintf(&str[pos], size - pos, "  has no datalogger modul\n");
   }
+  
+  pos += snprintf(&str[pos], size - pos, "  route_id: %i\n", d->route_id);
+  
   for(i=1; i <= MAX_MODULS; i++){
     if(d->modul[i] == NULL){
       if(all){ // print empty entries
