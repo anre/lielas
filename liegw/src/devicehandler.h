@@ -48,6 +48,7 @@ typedef struct datapaket_struct{
 	Lmodul *m;
 	Lchannel* c;
 	struct tm *dt;	// datetime
+  char dtstring[VALUEBUFFER_SIZE];
 } datapaket;
 
 typedef struct datapaketcontainer_struct{

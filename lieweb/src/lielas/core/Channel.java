@@ -38,7 +38,7 @@ public class Channel implements Serializable{
 	private String unit;
 	
 	public Channel(int id, int address, String type, String unit, String minValue,
-			String maxValue) {
+		String maxValue) {
 		super();
 		this.id = id;
 		this.address = address;
